@@ -58,7 +58,7 @@ const HeroBanner = () => {
       </div>
 
       {/* Hero Banner Content with Floating Shadow */}
-      <div id="hero-banner" className="relative z-10 h-full w-full py-8 lg:py-12 px-4 lg:px-8">
+      <div id="hero-banner" className="relative z-10 h-full w-full pt-24 lg:pt-32 pb-8 lg:pb-12 px-4 lg:px-8">
         <div className="relative h-full w-full max-w-[95%] lg:max-w-[90%] mx-auto overflow-hidden rounded-2xl lg:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-shadow duration-300">
           {slides.map((slide, index) => (
             <div
