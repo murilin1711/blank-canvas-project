@@ -50,82 +50,89 @@ const Header = () => {
               </Link>
             </div>
 
-            {/* Navigation Bar */}
-            <div
-              id="navigationContainer"
-              className="absolute right-0 lg:left-0 w-[calc(100%-3.625rem)] lg:w-[calc(100%-1.9rem)] xll:w-[calc(100%-3.75rem)] 5xl:w-[calc(100%-4rem)] h-[43px] 4xl:h-[30px] my-5 mr-1.5 lg:mx-[15px] xll:mx-[30px] flex items-center justify-between bg-white/50 backdrop-blur-md rounded-full lg:rounded-xl shadow-sm"
-            >
-              <button className="font-suisse pr-2 py-1 lg:hidden text-[13px] text-black ml-10">Menu</button>
-
-              {/* Desktop Navigation */}
-              <div className="hidden lg:flex z-10">
-                <nav className="flex bg-white/60 backdrop-blur-md rounded-lg px-1 h-7 4xl:h-[30px] items-center shadow-sm">
-                  <ul className="flex flex-row items-center gap-1.5">
-                    {navItems.map((item) => (
-                      <li key={item} className="flex">
-                        <button
-                          onMouseEnter={() => setActiveSubmenu(item)}
-                          className="font-suisse font-normal text-[15px] -tracking-[0.02em] text-black hover:bg-white/80 h-[25px] 4xl:h-[26px] px-1.5 xll:px-2.5 rounded-lg transition-colors duration-200"
-                        >
-                          {item}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </div>
-
-              {/* Action Buttons */}
-              <div id="actionGroup" className="flex items-center ml-auto gap-5 lg:gap-1 h-[43px] lg:h-auto">
+            {/* Mobile Navigation Bar */}
+            <div className="lg:hidden absolute right-0 w-[calc(100%-3.625rem)] h-[43px] my-5 mr-1.5 flex items-center justify-between bg-white/50 backdrop-blur-md rounded-full shadow-sm">
+              <button className="font-suisse pr-2 py-1 text-[13px] text-black ml-10">Menu</button>
+              
+              <div className="flex items-center ml-auto gap-5 h-[43px]">
                 <button 
                   onClick={() => setSearchOpen(!searchOpen)}
-                  className="font-suisse text-[13px] -tracking-0.02 text-black flex items-center gap-1 lg:hidden"
+                  className="font-suisse text-[13px] -tracking-0.02 text-black flex items-center gap-1"
                 >
                   <span>Buscar</span>
                   <Search size={16} />
                 </button>
-                
-                {/* Desktop Search Input */}
-                <div className="hidden lg:block relative">
-                  <div 
-                    className={`h-7 1xl:h-[28px] bg-white/60 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${
-                      searchOpen ? 'w-[220px] xl:w-[280px]' : 'w-[94px] xl:w-[120px]'
-                    } overflow-hidden`}
-                  >
-                    {searchOpen ? (
-                      <div className="flex items-center h-full px-3 gap-2">
-                        <input
-                          type="text"
-                          placeholder="Buscar..."
-                          autoFocus
-                          className="flex-1 bg-transparent border-none outline-none text-[14px] font-suisse text-black placeholder:text-gray-500"
-                          onBlur={() => setSearchOpen(false)}
-                        />
-                        <Search className="w-[16px] h-[16px] text-black flex-shrink-0" />
-                      </div>
-                    ) : (
-                      <button 
-                        onClick={() => setSearchOpen(true)}
-                        className="w-full h-full flex items-center justify-between px-2"
-                      >
-                        <span className="font-suisse font-normal text-[15px] tracking-[-0.02em] text-black">Buscar</span>
-                        <Search className="w-[16px] h-[16px] text-black" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <a href="/my-account" aria-label="Log in" className="font-suisse hidden lg:flex items-center justify-center w-[32px] h-7 1xl:h-[28px] p-[4px_6px] 4xl:px-[7px] text-black bg-white/60 backdrop-blur-md rounded-lg shadow-sm">
-                  <User className="w-5 h-5 4xl:w-[18px] 4xl:h-[18px]" />
-                </a>
-                <a href="/wishlist" aria-label="Wishlist" className="font-suisse hidden lg:flex items-center justify-center w-[32px] h-7 1xl:h-[28px] p-[4px_6px] text-black bg-white/60 backdrop-blur-md rounded-lg shadow-sm">
-                  <Heart className="w-5 h-5 4xl:w-[18px] 4xl:h-[18px]" />
-                </a>
-                <button aria-label="open cart" className="font-suisse z-10 flex items-center justify-center gap-1 w-12 lm:w-[67px] h-7 4xl:h-[28px] text-[13px] lg:text-[15px] lg:bg-white/60 lg:backdrop-blur-md rounded-lg text-black -tracking-0.02 lg:px-2 shadow-sm">
-                  <span className="hidden lg:block">Bag</span>
+                <button aria-label="open cart" className="font-suisse z-10 flex items-center justify-center gap-1 w-12 h-7 text-[13px] rounded-lg text-black -tracking-0.02">
                   <ShoppingBag className="w-5 h-5 -mt-px" />
                 </button>
               </div>
+            </div>
+
+            {/* Desktop: Left Navigation Section (Floating) */}
+            <div className="hidden lg:block absolute left-0 my-5 mx-[15px] xll:mx-[30px]">
+              <nav className="flex bg-white/50 backdrop-blur-md rounded-xl px-1 h-[30px] items-center shadow-sm">
+                <ul className="flex flex-row items-center gap-1.5">
+                  {navItems.map((item) => (
+                    <li key={item} className="flex">
+                      <button
+                        onMouseEnter={() => setActiveSubmenu(item)}
+                        className="font-suisse font-normal text-[15px] -tracking-[0.02em] text-black hover:bg-white/80 h-[26px] px-1.5 xll:px-2.5 rounded-lg transition-colors duration-200"
+                      >
+                        {item}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+
+            {/* Desktop: Right Action Buttons (Floating) */}
+            <div className="hidden lg:flex absolute right-0 my-5 mx-[15px] xll:mx-[30px] items-center gap-1">
+              {/* Search */}
+              <div className="relative">
+                <div 
+                  className={`h-[28px] bg-white/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${
+                    searchOpen ? 'w-[220px] xl:w-[280px]' : 'w-[94px] xl:w-[120px]'
+                  } overflow-hidden`}
+                >
+                  {searchOpen ? (
+                    <div className="flex items-center h-full px-3 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Buscar..."
+                        autoFocus
+                        className="flex-1 bg-transparent border-none outline-none text-[14px] font-suisse text-black placeholder:text-gray-500"
+                        onBlur={() => setSearchOpen(false)}
+                      />
+                      <Search className="w-[16px] h-[16px] text-black flex-shrink-0" />
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setSearchOpen(true)}
+                      className="w-full h-full flex items-center justify-between px-2"
+                    >
+                      <span className="font-suisse font-normal text-[15px] tracking-[-0.02em] text-black">Buscar</span>
+                      <Search className="w-[16px] h-[16px] text-black" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Account */}
+              <a href="/my-account" aria-label="Log in" className="font-suisse flex items-center justify-center w-[32px] h-[28px] p-[4px_6px] 4xl:px-[7px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm">
+                <User className="w-5 h-5 4xl:w-[18px] 4xl:h-[18px]" />
+              </a>
+
+              {/* Wishlist */}
+              <a href="/wishlist" aria-label="Wishlist" className="font-suisse flex items-center justify-center w-[32px] h-[28px] p-[4px_6px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm">
+                <Heart className="w-5 h-5 4xl:w-[18px] 4xl:h-[18px]" />
+              </a>
+
+              {/* Bag */}
+              <button aria-label="open cart" className="font-suisse z-10 flex items-center justify-center gap-1 lm:w-[67px] h-[28px] text-[15px] bg-white/50 backdrop-blur-md rounded-lg text-black -tracking-0.02 px-2 shadow-sm">
+                <span>Bag</span>
+                <ShoppingBag className="w-5 h-5 -mt-px" />
+              </button>
             </div>
 
             {/* Submenu Overlay */}
