@@ -98,7 +98,7 @@ const HeroBanner = () => {
                   <h1 className="text-4xl lg:text-6xl font-medium tracking-tight text-black !whitespace-pre-line">
                     {slide.title}
                   </h1>
-                  <a href="#" className="text-sm font-medium tracking-tight underline underline-offset-4 text-black">
+                  <a href="#" className="text-sm font-medium tracking-tight underline underline-offset-4 text-black !whitespace-pre-line">
                     {slide.link}
                   </a>
                 </div>
