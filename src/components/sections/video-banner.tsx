@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 const VideoBanner = () => {
   return (
-    <section className="relative w-full py-8 lg:py-12">
+    <section className="relative w-full py-8 lg:py-12 mt-[70px]">
       <div className="relative w-[90%] lg:w-[85%] mx-auto aspect-video overflow-hidden rounded-xl bg-background-secondary shadow-lg">
         <video
           src="https://assets.decocache.com/osklenbr/05584bb1-461d-44e8-ac00-08bb8e300020/shop_gifts_av26_geral-(3).mp4"
