@@ -15,10 +15,10 @@ const Header = () => {
       {/* Desktop Center Logo */}
       <div className="fixed z-[9990] left-1/2 top-[calc(1.85rem+4px)] -translate-x-1/2 scale-[1.2] hidden lg:flex items-center justify-center h-[27px]">
         <Link href="/" aria-label="Ir para a página inicial/home">
-          <div className="w-[87.49px] h-[9.99px] text-white mix-blend-difference relative">
+          <div className="w-[200px] h-[50px] relative">
             <Image 
-              src="/logo.svg" 
-              alt="Logo" 
+              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf-removebg-preview-1765224509006.png" 
+              alt="Goiás Minas Uniformes Logo" 
               fill
               className="object-contain"
               priority
@@ -37,12 +37,12 @@ const Header = () => {
             {/* Mobile Logo */}
             <div className="absolute top-0 left-0 mt-5 ml-1 z-20 lg:hidden">
               <Link href="/" aria-label="Ir para a página inicial/home">
-                <div className="w-[43px] h-[43px] bg-white/50 backdrop-blur-md rounded-full flex items-center justify-center p-2.5 shadow-sm relative">
+                <div className="w-[70px] h-[43px] bg-white/50 backdrop-blur-md rounded-lg flex items-center justify-center p-2 shadow-sm relative">
                   <Image 
-                    src="/logo.svg" 
-                    alt="Logo" 
+                    src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf-removebg-preview-1765224509006.png" 
+                    alt="Goiás Minas Uniformes Logo" 
                     fill
-                    className="object-contain p-2"
+                    className="object-contain p-1"
                     priority
                   />
                 </div>
@@ -50,7 +50,7 @@ const Header = () => {
             </div>
 
             {/* Mobile Navigation Bar */}
-            <div className="lg:hidden absolute right-0 w-[calc(100%-3.625rem)] h-[43px] my-5 mr-1.5 flex items-center justify-between bg-white/50 backdrop-blur-md rounded-full shadow-sm">
+            <div className="lg:hidden absolute right-0 w-[calc(100%-5.625rem)] h-[43px] my-5 mr-1.5 flex items-center justify-between bg-white/50 backdrop-blur-md rounded-full shadow-sm">
               <button className="font-suisse pr-2 py-1 text-[13px] text-black ml-10">Menu</button>
               
               <div className="flex items-center ml-auto gap-5 h-[43px]">
