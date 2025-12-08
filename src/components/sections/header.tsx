@@ -69,7 +69,7 @@ const Header = () => {
             </div>
 
             {/* Desktop: Left Navigation Section (Floating) */}
-            <div className="hidden lg:block absolute left-0 my-5 mx-[15px] xll:mx-[30px]">
+            <div className="hidden lg:block absolute left-0 my-5 mx-[15px] xll:mx-[30px] z-[60]">
               <nav className="flex bg-white/50 backdrop-blur-md rounded-xl px-1 h-[30px] items-center shadow-sm">
                 <ul className="flex flex-row items-center gap-1.5">
                   {navItems.map((item) => (
@@ -87,7 +87,7 @@ const Header = () => {
             </div>
 
             {/* Desktop: Right Action Buttons (Floating) */}
-            <div className="hidden lg:flex absolute right-0 my-5 mx-[15px] xll:mx-[30px] items-center gap-1">
+            <div className="hidden lg:flex absolute right-0 my-5 mx-[15px] xll:mx-[30px] items-center gap-1 z-[60]">
               {/* Search */}
               <div className="relative">
                 <div 
@@ -139,7 +139,7 @@ const Header = () => {
             <div
               id="submenu"
               data-menu-open={activeSubmenu !== null}
-              className="absolute top-5 left-[5.5px] right-[5.5px] lg:left-[15px] lg:right-[15px] xll:left-[30px] xll:right-[30px] lg:w-[calc(100vw_-_1.9rem)] xll:w-[calc(100vw_-_3.75rem)] 5xl:w-[calc(100vw_-_4rem)] rounded-3xl md:rounded-xl bg-white/[0.7] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:lg:max-h-96 data-[menu-open=true]:backdrop-blur-[20px] overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] h-auto shadow-lg"
+              className="absolute top-5 left-[5.5px] right-[5.5px] lg:left-[15px] lg:right-[15px] xll:left-[30px] xll:right-[30px] lg:w-[calc(100vw_-_1.9rem)] xll:w-[calc(100vw_-_3.75rem)] 5xl:w-[calc(100vw_-_4rem)] rounded-3xl md:rounded-xl bg-white/[0.7] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:lg:max-h-96 data-[menu-open=true]:backdrop-blur-[20px] overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] h-auto shadow-lg z-[55]"
               style={{
                 transition: activeSubmenu !== null
                   ? 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0s'
