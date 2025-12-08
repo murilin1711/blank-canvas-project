@@ -1,5 +1,4 @@
 import AccessibilityWidget from '@/components/sections/accessibility-widget';
-import NotificationPopups from '@/components/sections/notification-popups';
 import Header from '@/components/sections/header';
 import HeroBanner from '@/components/sections/hero-banner';
 import CategoryShowcase from '@/components/sections/category-showcase';
