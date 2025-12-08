@@ -5,12 +5,12 @@ const VideoBanner = () => {
     <section className="relative w-full py-8 lg:py-12">
       <div className="relative w-[90%] lg:w-[85%] mx-auto aspect-video overflow-hidden rounded-xl bg-background-secondary shadow-lg">
         <video
-          src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Venha-nos-fazer-uma-visita-a-equipe-Goias-Minas-esta-pronta-para-te-atender-1765225330226.mp4"
+          src="https://assets.decocache.com/osklenbr/05584bb1-461d-44e8-ac00-08bb8e300020/shop_gifts_av26_geral-(3).mp4"
           autoPlay
           muted
           loop
           playsInline
-          className="absolute inset-0 w-full h-full object-contain z-0 bg-transparent"
+          className="absolute inset-0 w-full h-full object-cover z-0"
         >
           Your browser does not support the video tag.
         </video>

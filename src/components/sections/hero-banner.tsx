@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 
 const slides = [
   {
-    url: 'https://assets.decocache.com/osklenbr/893f7aed-c873-46c4-b445-0a36122cae1a/banner_ss26_white_mood_desktop.mp4',
+    url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Venha-nos-fazer-uma-visita-a-equipe-Goias-Minas-esta-pronta-para-te-atender-1765225330226.mp4',
     title: 'Resort 26',
     link: 'Shop The Collection',
   },
