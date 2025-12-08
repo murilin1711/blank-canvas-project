@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Search, User, Heart, ShoppingBag } from 'lucide-react';
 
 const OsklenBrandLogo = () => {
-  // The SVG path data was missing in the scrape. As per instructions,
+  // The SVG path data wjas missing in the scrape. As per instructions,
   // this is a fallback that renders the brand name as SVG text,
   // which behaves correctly with scaling and blend modes.
   return (
