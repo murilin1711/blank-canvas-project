@@ -12,24 +12,24 @@ type Product = {
 const products: Product[] = [
 {
   id: 1,
-  name: "T-shirt Palm Tree Light Linen",
-  price: "R$ 447",
-  image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7542601310_TSHIRT_1-4.jpg",
-  image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7542601310_TSHIRT_2-5.jpg"
+  name: "Adonai",
+  price: "",
+  image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf__1_-removebg-preview-1765246693154.png?width=8000&height=8000&resize=contain",
+  image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf__1_-removebg-preview-1765246693154.png?width=8000&height=8000&resize=contain"
 },
 {
-  id: 5,
-  name: "T-shirt Slim Stone Coqueiro Gaze",
-  price: "R$ 497",
-  image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7467114238_TSHIRT-SLIM-STONE-COQUEIRO-GAZE-MC_1-12.jpg",
-  image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7467114238_TSHIRT-SLIM-STONE-COQUEIRO-GAZE-MC_2-13.jpg"
+  id: 2,
+  name: "Colégio Delta",
+  price: "",
+  image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf__2_-removebg-preview-1765246749643.png?width=8000&height=8000&resize=contain",
+  image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf__2_-removebg-preview-1765246749643.png?width=8000&height=8000&resize=contain"
 },
 {
-  id: 9,
-  name: "T-shirt Vintage Leaf",
-  price: "R$ 497",
-  image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7551104_TSHIRT-VINTAGE-LEAF-MC_1-22.jpg",
-  image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7551104_TSHIRT-VINTAGE-LEAF-MC_2-23.jpg"
+  id: 3,
+  name: "Escola Modelo",
+  price: "",
+  image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf__3_-removebg-preview-1765246834589.png?width=8000&height=8000&resize=contain",
+  image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goias_minas.pdf__3_-removebg-preview-1765246834589.png?width=8000&height=8000&resize=contain"
 }];
 
 
@@ -40,25 +40,23 @@ const filters = [
 const ProductCard = ({ product }: {product: Product;}) =>
 <div className="flex-shrink-0 snap-start w-[280px] lg:w-[320px]">
     <a href="#" className="block group">
-      <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-input">
+      <div className="relative overflow-hidden rounded-xl aspect-[3/4] bg-white flex items-center justify-center">
         <Image
         src={product.image1}
         alt={product.name}
         width={320}
         height={427}
-        className="w-full h-full object-cover transition-opacity duration-300 group-hover:opacity-0" />
+        className="w-full h-full object-contain p-8 opacity-30 transition-all duration-300 group-hover:opacity-50 group-hover:scale-105" />
 
-        <Image
-        src={product.image2}
-        alt={product.name}
-        width={320}
-        height={427}
-        className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
+        {/* Botão Em Breve */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <button className="bg-primary text-primary-foreground px-8 py-3 rounded-lg text-sm font-medium transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg">
+            Em breve
+          </button>
+        </div>
       </div>
       <div className="mt-4">
-        <h3 className="text-sm lg:text-base text-text-secondary leading-tight">{product.name}</h3>
-        <p className="text-base lg:text-lg font-semibold text-text-primary mt-1">{product.price}</p>
+        <h3 className="text-sm lg:text-base text-text-secondary leading-tight text-center">{product.name}</h3>
       </div>
     </a>
   </div>;
