@@ -1,5 +1,8 @@
-import React from 'react';
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useInView } from 'framer-motion';
 
 type Product = {
   id: number;
@@ -89,6 +92,58 @@ const products: Product[] = [
   }
 ];
 
+// Componente para números animados
+const AnimatedCounter = ({ end, duration = 2000, suffix = "", prefix = "" }) => {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
+
+    let start = 0;
+    const increment = end / (duration / 16); // 60fps
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(start));
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [end, duration, inView]);
+
+  return (
+    <span ref={ref} className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#2e3091]">
+      {prefix}{count.toLocaleString()}{suffix}
+    </span>
+  );
+};
+
 const ProductCard = ({ product }: { product: Product }) => (
   <div className="flex-shrink-0 w-[280px] md:w-[300px] lg:w-[320px]">
     <a href="#" className="block group">
@@ -129,19 +184,48 @@ const ProductCarousel = () => {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-medium text-[#2e3091] mb-3 md:mb-4">
             Escolas que Confiam em Nossa Qualidade
           </h2>
-          <p className="text-gray-600 text-base md:text-lg max-w-3xl mx-auto">
+          <p className="text-gray-600 text-base md:text-lg max-w-3xl mx-auto mb-8 md:mb-12">
             Nossa tradição em uniformes escolares conquistou a confiança de diversas instituições de ensino
           </p>
         </div>
 
-        {/* Contador e badge */}
-        <div className="flex flex-col md:flex-row justify-center items-center gap-4 mb-8">
-          <div className="bg-[#2e3091] text-white px-6 py-2 rounded-full text-sm font-medium">
-            +11 escolas parceiras
+        {/* Estatísticas animadas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-10 md:mb-14">
+          <div className="bg-white rounded-2xl p-6 md:p-8 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+            <div className="mb-3">
+              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl text-[#2e3091]">🏫</span>
+              </div>
+              <AnimatedCounter end={40} suffix="+ anos" />
+            </div>
+            <p className="text-gray-600 text-sm md:text-base font-medium">
+              de experiência no mercado
+            </p>
           </div>
-          <p className="text-gray-600 text-center md:text-left">
-            Cada logo representa uma parceria de sucesso
-          </p>
+
+          <div className="bg-white rounded-2xl p-6 md:p-8 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+            <div className="mb-3">
+              <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl text-[#2e3091]">👨‍👩‍👧‍👦</span>
+              </div>
+              <AnimatedCounter end={10000} prefix="+ " suffix=" clientes" />
+            </div>
+            <p className="text-gray-600 text-sm md:text-base font-medium">
+              atendidos com excelência
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 md:p-8 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+            <div className="mb-3">
+              <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <span className="text-2xl text-[#2e3091]">🤝</span>
+              </div>
+              <AnimatedCounter end={11} prefix="+ " suffix=" escolas" />
+            </div>
+            <p className="text-gray-600 text-sm md:text-base font-medium">
+              parceiras satisfeitas
+            </p>
+          </div>
         </div>
 
         {/* Filtros - simplificados */}
@@ -174,6 +258,24 @@ const ProductCarousel = () => {
               </svg>
               <span>Arraste para ver mais</span>
             </div>
+          </div>
+        </div>
+
+        {/* Mensagem abaixo do carrossel */}
+        <div className="text-center mt-12 md:mt-16 max-w-2xl mx-auto">
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-2xl p-6 md:p-8 border border-gray-100">
+            <div className="w-16 h-16 bg-[#2e3091] rounded-2xl flex items-center justify-center text-white text-2xl mx-auto mb-4">
+              🏫
+            </div>
+            <h3 className="text-xl md:text-2xl font-semibold text-gray-900 mb-3">
+              Faça parte desta rede
+            </h3>
+            <p className="text-gray-700 text-base md:text-lg mb-4">
+              Oferecemos uniformes escolares de alta qualidade, conforto e durabilidade para sua instituição.
+            </p>
+            <button className="bg-[#2e3091] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#252a7a] transition-colors duration-300 shadow-md">
+              Solicitar orçamento para escola
+            </button>
           </div>
         </div>
       </div>
