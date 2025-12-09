@@ -124,7 +124,7 @@ const StoreLocator = () => {
               <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg z-20">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">📍 Você está aqui</p>
+                    <p className="font-medium text-gray-900">📍 GM Uniformes</p>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500">Aberto agora</div>
