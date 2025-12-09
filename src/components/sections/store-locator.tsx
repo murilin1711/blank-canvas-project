@@ -118,23 +118,6 @@ const StoreLocator = () => {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 title="Localização da Goiás Minas Uniformes" />
-
-              
-              {/* Overlay informativo */}
-              <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg z-20">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900 !whitespace-pre-line">📍 GM Uniformes</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-gray-500">Aberto agora</div>
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-green-600">● Aberto até 18h</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
