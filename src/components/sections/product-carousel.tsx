@@ -124,7 +124,7 @@ const ProductCarousel = () => {
     <section className="bg-[#F5F5F5] w-full py-10 lg:py-15">
       {/* Header com título */}
       <div className="px-4 sm:px-6 xll:px-[30px] mb-8">
-        <h2 className="text-2xl lg:text-3xl font-medium tracking-tight text-text-primary max-w-[900px] !whitespace-pre-line">Nossa tradição em uniformes escolares garante qualidade para diversas instituições parceiras.
+        <h2 className="text-2xl lg:text-3xl font-medium tracking-tight text-text-primary max-w-[900px] !whitespace-pre-line !text-center">Nossa tradição em uniformes escolares garante qualidade para diversas instituições parceiras.
 
         </h2>
       </div>
