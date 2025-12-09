@@ -86,7 +86,7 @@ const StoreLocator = () => {
                 <div className="grid grid-cols-2 gap-4 mb-8">
                   <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
-                      <Shield className="w-4 h-4 text-[#2e3091]" />
+                      <MapPin className="w-4 h-4 text-[#2e3091]" />
                     </div>
                     <p className="text-sm text-gray-700">Estacionamento Gratuito</p>
                   </div>
