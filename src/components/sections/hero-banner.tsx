@@ -159,7 +159,7 @@ const HeroBanner = () => {
 
               <div className="absolute inset-0 z-10 bg-white/10 rounded-xl lg:rounded-3xl" />
 
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center !w-[628px] !h-[365px]">
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center !w-[628px] !h-[364px]">
                 <div className="flex flex-col items-center gap-4">
                   <h1 className="text-4xl lg:text-6xl font-medium tracking-tight text-black !whitespace-pre-line">
                     {slide.title}
