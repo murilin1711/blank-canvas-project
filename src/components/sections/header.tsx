@@ -25,7 +25,7 @@ const Header = () => {
   return (
     <>
       {/* White background for header area - only show when not scrolled */}
-      <div className={`fixed top-0 left-0 right-0 bg-white z-40 transition-opacity duration-300 !w-full !h-20 ${isScrolled ? 'opacity-0' : 'opacity-100'}`} />
+      <div className={`fixed top-0 left-0 right-0 bg-white z-40 transition-opacity duration-300 !w-full !h-[79px] ${isScrolled ? 'opacity-0' : 'opacity-100'}`} />
       
       <header className="fixed w-full z-50">
         {/* Desktop Logo - Center, aligned with nav height */}
