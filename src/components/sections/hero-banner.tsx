@@ -124,7 +124,7 @@ const HeroBanner = () => {
       {/* Slides - Apenas 1 ajuste: adicionar lg:pt-0 para remover padding-top no desktop */}
       <div
         id="hero-banner"
-        className="relative z-10 flex items-center justify-center p-4 md:p-6 lg:p-8 lg:pt-0 !w-full !h-[649px]"
+        className="relative z-10 flex items-center justify-center p-4 md:p-6 lg:p-8 lg:pt-0 !w-full !h-[557px]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}>
