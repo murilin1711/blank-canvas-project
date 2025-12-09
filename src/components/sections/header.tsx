@@ -10,7 +10,7 @@ const Header = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navItems = ["Escolas", "Empresas", "Personalizadas", "Sobre", "FAQ"];
+  const navItems = ["Escolas", "Empresas", "Personalizadas", "Sobre", "FAQ", ""];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,111 +28,105 @@ const Header = () => {
       <div className={`fixed top-0 left-0 right-0 bg-white z-40 transition-opacity duration-300 !w-full !h-[79px] ${isScrolled ? 'opacity-0' : 'opacity-100'}`} />
       
       <header className="fixed w-full z-50">
-        {/* Desktop Header */}
-        <div className="hidden lg:flex fixed top-0 left-0 right-0 h-[80px] items-center z-50">
-          {/* Container principal */}
-          <div className="w-full h-full flex items-center px-8 xl:px-12 2xl:px-16">
-            
-            {/* Lado Esquerdo */}
-            <div className="flex-1 flex items-center justify-end">
-              <div 
-                className="mr-12 xl:mr-16 2xl:mr-20 flex items-center"
-                onMouseLeave={() => setActiveSubmenu(null)}
-              >
-                <nav className="bg-white/50 backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm flex">
-                  <ul className="flex items-center gap-1 px-2">
-                    {navItems.map((item) => (
-                      <li key={item} className="flex">
-                        <button
-                          onMouseEnter={() => setActiveSubmenu(item)}
-                          className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-colors duration-200 whitespace-nowrap"
-                        >
-                          {item}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </div>
-            </div>
-
-            {/* Logo Central */}
-            <div className="flex-shrink-0 mx-4 xl:mx-8">
-              <Link href="/" aria-label="Ir para a página inicial/home">
-                <div className="flex items-center justify-center">
-                  <Image
-                    src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
-                    alt="Goiás Minas Uniformes Logo"
-                    width={320}
-                    height={170}
-                    className="object-contain !w-auto !h-[120px]"
-                    priority
-                  />
-                </div>
-              </Link>
-            </div>
-
-            {/* Lado Direito */}
-            <div className="flex-1 flex items-center justify-start">
-              <div className="ml-12 xl:ml-16 2xl:ml-20 flex items-center gap-2">
-                {/* Search */}
-                <div className="relative">
-                  <div
-                    className={`h-[38px] bg-white/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${
-                      searchOpen ? 'w-[180px] xl:w-[200px]' : 'w-[90px] xl:w-[100px]'
-                    } overflow-hidden`}
-                  >
-                    {searchOpen ? (
-                      <div className="flex items-center h-full px-3 gap-2">
-                        <input
-                          type="text"
-                          placeholder="Buscar..."
-                          autoFocus
-                          className="flex-1 bg-transparent border-none outline-none text-[13px] font-suisse text-black placeholder:text-gray-500"
-                          onBlur={() => setSearchOpen(false)}
-                        />
-                        <Search className="w-[14px] h-[14px] text-black flex-shrink-0" />
-                      </div>
-                    ) : (
+        {/* Desktop Header Container */}
+        <div className="hidden lg:flex fixed top-0 left-0 right-0 h-[80px] items-center justify-between px-[30px] xll:px-[60px] z-50">
+          {/* Left Navigation */}
+          <div
+            className="flex-1 flex items-center justify-start"
+            onMouseLeave={() => setActiveSubmenu(null)}
+          >
+            <nav className="flex bg-white/50 backdrop-blur-md rounded-xl px-3 h-[40px] items-center shadow-sm">
+              <ul className="flex flex-row items-center gap-2">
+                {navItems.map((item) =>
+                  item ? (
+                    <li key={item} className="flex">
                       <button
-                        onClick={() => setSearchOpen(true)}
-                        className="w-full h-full flex items-center justify-between px-3"
+                        onMouseEnter={() => setActiveSubmenu(item)}
+                        className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-colors duration-200"
                       >
-                        <span className="font-suisse font-normal text-[13px] tracking-[-0.02em] text-black">Buscar</span>
-                        <Search className="w-[14px] h-[14px] text-black" />
+                        {item}
                       </button>
-                    )}
+                    </li>
+                  ) : null
+                )}
+              </ul>
+            </nav>
+          </div>
+
+          {/* Center Logo */}
+          <div className="flex-shrink-0 mx-8">
+            <Link href="/" aria-label="Ir para a página inicial/home">
+              <div className="flex items-center justify-center h-[40px]">
+                <Image
+                  src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
+                  alt="Goiás Minas Uniformes Logo"
+                  width={200}
+                  height={60}
+                  className="object-contain !w-auto !h-[60px]"
+                  priority
+                />
+              </div>
+            </Link>
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex-1 flex items-center justify-end gap-2">
+            {/* Search */}
+            <div className="relative">
+              <div
+                className={`h-[38px] bg-white/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${
+                  searchOpen ? 'w-[180px] xl:w-[220px]' : 'w-[90px] xl:w-[110px]'
+                } overflow-hidden`}
+              >
+                {searchOpen ? (
+                  <div className="flex items-center h-full px-3 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Buscar..."
+                      autoFocus
+                      className="flex-1 bg-transparent border-none outline-none text-[13px] font-suisse text-black placeholder:text-gray-500"
+                      onBlur={() => setSearchOpen(false)}
+                    />
+                    <Search className="w-[14px] h-[14px] text-black flex-shrink-0" />
                   </div>
-                </div>
-
-                {/* Account */}
-                <a
-                  href="/my-account"
-                  aria-label="Log in"
-                  className="font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-colors"
-                >
-                  <User className="w-4 h-4" />
-                </a>
-
-                {/* Wishlist */}
-                <a
-                  href="/wishlist"
-                  aria-label="Wishlist"
-                  className="font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-colors"
-                >
-                  <Heart className="w-4 h-4" />
-                </a>
-
-                {/* Cart */}
-                <button
-                  aria-label="open cart"
-                  className="font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-colors whitespace-nowrap"
-                >
-                  <span className="text-[13px] font-normal tracking-[-0.02em]">Carrinho</span>
-                  <ShoppingCart className="w-4 h-4" />
-                </button>
+                ) : (
+                  <button
+                    onClick={() => setSearchOpen(true)}
+                    className="w-full h-full flex items-center justify-between px-3"
+                  >
+                    <span className="font-suisse font-normal text-[13px] tracking-[-0.02em] text-black">Buscar</span>
+                    <Search className="w-[14px] h-[14px] text-black" />
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Account */}
+            <a
+              href="/my-account"
+              aria-label="Log in"
+              className="font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-colors"
+            >
+              <User className="w-4 h-4" />
+            </a>
+
+            {/* Wishlist */}
+            <a
+              href="/wishlist"
+              aria-label="Wishlist"
+              className="font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-colors"
+            >
+              <Heart className="w-4 h-4" />
+            </a>
+
+            {/* Cart */}
+            <button
+              aria-label="open cart"
+              className="font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-colors"
+            >
+              <span className="text-[13px] font-normal tracking-[-0.02em]">Carrinho</span>
+              <ShoppingCart className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
@@ -200,7 +194,7 @@ const Header = () => {
             <div className="relative bg-white/95 backdrop-blur-xl w-full max-w-sm mx-auto rounded-b-3xl shadow-2xl p-6">
               <nav>
                 <ul className="space-y-4">
-                  {navItems.map((item) => (
+                  {navItems.filter((item) => item).map((item) => (
                     <li key={item}>
                       <Link
                         href="#"
@@ -251,7 +245,7 @@ const Header = () => {
             }
           }}
           onMouseLeave={() => setActiveSubmenu(null)}
-          className="hidden lg:block absolute top-20 left-8 xl:left-12 2xl:left-16 right-8 xl:right-12 2xl:right-16 rounded-xl bg-white/[0.7] backdrop-blur-[20px] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:max-h-96 overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] shadow-lg z-[55]"
+          className="absolute top-20 left-[30px] right-[30px] xll:left-[60px] xll:right-[60px] rounded-xl bg-white/[0.7] backdrop-blur-[20px] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:max-h-96 overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] shadow-lg z-[55]"
           style={{
             transition:
               activeSubmenu !== null
@@ -260,15 +254,17 @@ const Header = () => {
           }}
         >
           <div className="grid h-full grid-cols-1 grid-rows-1">
-            {navItems.map((item) => (
-              <div
-                key={item}
-                data-active={activeSubmenu === item}
-                className="col-start-1 row-start-1 h-full min-h-[300px] pt-20 p-8 transition-opacity duration-200 opacity-0 pointer-events-none data-[active=true]:opacity-100 data-[active=true]:pointer-events-auto"
-              >
-                {/* Placeholder for submenu content */}
-              </div>
-            ))}
+            {navItems.map((item) =>
+              item ? (
+                <div
+                  key={item}
+                  data-active={activeSubmenu === item}
+                  className="col-start-1 row-start-1 h-full min-h-[300px] pt-20 p-8 transition-opacity duration-200 opacity-0 pointer-events-none data-[active=true]:opacity-100 data-[active=true]:pointer-events-auto"
+                >
+                  {/* Placeholder for submenu content */}
+                </div>
+              ) : null
+            )}
           </div>
         </div>
       </header>
