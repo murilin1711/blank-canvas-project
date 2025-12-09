@@ -29,6 +29,8 @@ const HeroBanner = () => {
   const [isMuted, setIsMuted] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const bgVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
@@ -43,6 +45,26 @@ const HeroBanner = () => {
 
   const handleVideoEnd = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current - touchEndX.current > 50) {
+      // Swipe left - next slide
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }
+
+    if (touchEndX.current - touchStartX.current > 50) {
+      // Swipe right - previous slide
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    }
   };
 
   useEffect(() => {
@@ -73,9 +95,9 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted]);
 
   return (
-    <section className="relative w-full h-screen overflow-hidden">
+    <section className="relative w-full h-screen lg:h-screen overflow-hidden">
       {/* Background (Blurred, only for videos) */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 hidden lg:block">
         {slides.map((slide, index) =>
           slide.type === 'video' ? (
             <div
@@ -102,8 +124,14 @@ const HeroBanner = () => {
       </div>
 
       {/* Hero Banner Content with Floating Shadow */}
-      <div id="hero-banner" className="relative z-10 h-full w-full pt-24 lg:pt-32 pb-8 lg:pb-12 px-4 lg:px-8">
-        <div className="relative h-full w-full max-w-[95%] lg:max-w-[90%] mx-auto overflow-hidden rounded-2xl lg:rounded-3xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-shadow duration-300">
+      <div 
+        id="hero-banner" 
+        className="relative z-10 h-full w-full pt-24 pb-8 px-4 lg:pt-32 lg:pb-12 lg:px-8"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="relative h-full w-full max-w-[90%] mx-auto lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] lg:hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-shadow duration-300">
           {slides.map((slide, index) =>
             <div
               key={index}
@@ -115,7 +143,7 @@ const HeroBanner = () => {
                 <>
                   <video
                     ref={(el) => {videoRefs.current[index] = el;}}
-                    className="h-full w-full object-cover rounded-2xl lg:rounded-3xl"
+                    className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
                     autoPlay
                     loop
                     muted={isMuted}
@@ -131,11 +159,11 @@ const HeroBanner = () => {
                 <img
                   src={slide.url}
                   alt={slide.title || 'Banner image'}
-                  className="h-full w-full object-cover rounded-2xl lg:rounded-3xl"
+                  className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
                 />
               )}
               
-              <div className="absolute inset-0 z-10 bg-white/10 rounded-2xl lg:rounded-3xl" aria-hidden="true" />
+              <div className="absolute inset-0 z-10 bg-white/10 rounded-xl lg:rounded-3xl" aria-hidden="true" />
 
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
                 <div className="flex flex-col items-center gap-4">
