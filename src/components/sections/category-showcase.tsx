@@ -10,13 +10,13 @@ const CategoryShowcase = () => {
             <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
               style={{
-                backgroundColor: '#E8E8E8',
+                backgroundColor: '#E8E8E8'
               }}
               aria-label="An image for the Men's collection category, showing a male model."
-              role="img"
-            />
+              role="img" />
+
             <div className="absolute bottom-6 left-6">
-              <h2 className="text-black">Men</h2>
+              <h2 className="text-black">Empresarial</h2>
             </div>
           </div>
         </Link>
@@ -30,8 +30,8 @@ const CategoryShowcase = () => {
           </div>
         </Link>
       </div>
-    </section>
-  );
+    </section>);
+
 };
 
 export default CategoryShowcase;
