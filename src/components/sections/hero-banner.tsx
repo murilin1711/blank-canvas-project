@@ -96,7 +96,7 @@ const HeroBanner = () => {
 
   return (
     <section className="relative w-full h-screen lg:h-screen overflow-hidden">
-      {/* Background (Blurred, only for videos) */}
+      {/* Background (Blurred, only for videos) - Desktop only */}
       <div className="absolute inset-0 z-0 hidden lg:block">
         {slides.map((slide, index) =>
           slide.type === 'video' ? (
@@ -123,15 +123,15 @@ const HeroBanner = () => {
         )}
       </div>
 
-      {/* Hero Banner Content with Floating Shadow */}
+      {/* Hero Banner Content - Mobile: aspect-video, Desktop: full height */}
       <div 
         id="hero-banner" 
-        className="relative z-10 h-full w-full pt-24 pb-8 px-4 lg:pt-32 lg:pb-12 lg:px-8"
+        className="relative z-10 w-full h-auto lg:h-full pt-24 pb-8 px-4 lg:pt-32 lg:pb-12 lg:px-8"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative h-full w-full max-w-[90%] mx-auto lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] lg:hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-shadow duration-300">
+        <div className="relative w-full max-w-[90%] mx-auto lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] lg:hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-shadow duration-300 aspect-video lg:aspect-auto lg:h-full">
           {slides.map((slide, index) =>
             <div
               key={index}
