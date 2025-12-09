@@ -172,9 +172,9 @@ const HeroBanner = () => {
             </div>
           )}
 
-          {/* CTA */}
-          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30">
-            <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-#2e3092 hover:bg-white/90 transition-colors duration-200 shadow-lg">
+          {/* CTA - Ajustado para mobile */}
+          <div className="absolute bottom-12 md:bottom-16 lg:bottom-20 left-1/2 -translate-x-1/2 z-30">
+            <button className="bg-white px-4 py-2 md:px-6 md:py-2.5 lg:px-8 lg:py-3 rounded-lg font-bold text-blue-#2e3092 hover:bg-white/90 transition-colors duration-200 shadow-lg text-sm md:text-base">
               Compre Agora
             </button>
           </div>
@@ -190,7 +190,7 @@ const HeroBanner = () => {
           )}
 
           {/* Dots */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+          <div className="absolute bottom-4 md:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
             {slides.map((_, index) =>
               <button
                 key={index}
