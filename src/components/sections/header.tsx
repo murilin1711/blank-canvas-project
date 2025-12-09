@@ -80,7 +80,7 @@ const Header = () => {
               <li key={item} className="flex">
                   <button
                   onMouseEnter={() => setActiveSubmenu(item)}
-                  className="font-suisse font-normal text-[15px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-1.5 xll:px-2.5 rounded-lg transition-colors duration-200 !whitespace-pre-line !whitespace-pre-line">
+                  className="font-suisse font-normal text-[15px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-1.5 xll:px-2.5 rounded-lg transition-colors duration-200 !whitespace-pre-line !whitespace-pre-line !whitespace-pre-line">
                     {item}
                   </button>
                 </li>
