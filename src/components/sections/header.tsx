@@ -28,26 +28,29 @@ const Header = () => {
       <div className={`fixed top-0 left-0 right-0 bg-white z-40 transition-opacity duration-300 !w-full !h-[79px] ${isScrolled ? 'opacity-0' : 'opacity-100'}`} />
       
       <header className="fixed w-full z-50">
-        {/* Desktop Header - Layout centralizado */}
+        {/* Desktop Header */}
         <div className="hidden lg:flex fixed top-0 left-0 right-0 h-[80px] items-center z-50">
-          {/* Container central para todo o conteúdo */}
+          {/* Container principal */}
           <div className="w-full h-full flex items-center justify-between px-8 xl:px-12 2xl:px-16">
             
             {/* Left Navigation - Lado Esquerdo */}
             <div 
-              className="flex-1 flex items-center justify-end"
+              className="flex items-center"
               onMouseLeave={() => setActiveSubmenu(null)}
             >
               <nav className="bg-white/50 backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm flex">
                 <ul className="flex items-center gap-1 px-2">
                   {navItems.map((item) => (
-                    <li key={item} className="flex">
+                    <li key={item} className="relative group">
                       <button
                         onMouseEnter={() => setActiveSubmenu(item)}
-                        className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-colors duration-200 whitespace-nowrap"
+                        className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-all duration-300 whitespace-nowrap
+                        group-hover:scale-105 group-hover:shadow-sm"
                       >
                         {item}
                       </button>
+                      {/* Efeito hover expandido */}
+                      <div className="absolute inset-x-0 -bottom-1 h-0.5 bg-[#2e3091] opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-x-0 group-hover:scale-x-100" />
                     </li>
                   ))}
                 </ul>
@@ -55,15 +58,15 @@ const Header = () => {
             </div>
 
             {/* Center Logo - Centralizada perfeitamente */}
-            <div className="flex-shrink-0 mx-8 xl:mx-12 2xl:mx-16">
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <Link href="/" aria-label="Ir para a página inicial/home">
-                <div className="flex items-center justify-center h-[80px]">
+                <div className="flex items-center justify-center">
                   <Image
                     src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
                     alt="Goiás Minas Uniformes Logo"
                     width={320}
                     height={170}
-                    className="object-contain !w-auto !h-[120px]"
+                    className="object-contain !w-auto !h-[120px] transition-transform duration-300 hover:scale-105"
                     priority
                   />
                 </div>
@@ -71,13 +74,13 @@ const Header = () => {
             </div>
 
             {/* Right Actions - Lado Direito */}
-            <div className="flex-1 flex items-center justify-start gap-2">
+            <div className="flex items-center gap-3">
               {/* Search */}
-              <div className="relative">
+              <div className="relative group">
                 <div
                   className={`h-[38px] bg-white/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${
                     searchOpen ? 'w-[180px] xl:w-[200px]' : 'w-[90px] xl:w-[100px]'
-                  } overflow-hidden`}
+                  } overflow-hidden group-hover:shadow-md group-hover:scale-105`}
                 >
                   {searchOpen ? (
                     <div className="flex items-center h-full px-3 gap-2">
@@ -96,7 +99,7 @@ const Header = () => {
                       className="w-full h-full flex items-center justify-between px-3"
                     >
                       <span className="font-suisse font-normal text-[13px] tracking-[-0.02em] text-black">Buscar</span>
-                      <Search className="w-[14px] h-[14px] text-black" />
+                      <Search className="w-[14px] h-[14px] text-black transition-transform duration-300 group-hover:scale-110" />
                     </button>
                   )}
                 </div>
@@ -106,47 +109,59 @@ const Header = () => {
               <a
                 href="/my-account"
                 aria-label="Log in"
-                className="font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-colors"
+                className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md"
               >
-                <User className="w-4 h-4" />
+                <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                  Minha Conta
+                </span>
               </a>
 
               {/* Wishlist */}
               <a
                 href="/wishlist"
                 aria-label="Wishlist"
-                className="font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-colors"
+                className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md"
               >
-                <Heart className="w-4 h-4" />
+                <Heart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                  Favoritos
+                </span>
               </a>
 
               {/* Cart */}
               <button
                 aria-label="open cart"
-                className="font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-colors whitespace-nowrap"
+                className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap"
               >
                 <span className="text-[13px] font-normal tracking-[-0.02em]">Carrinho</span>
-                <ShoppingCart className="w-4 h-4" />
+                <ShoppingCart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center">
+                  0
+                </div>
+                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                  Ver Carrinho
+                </span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Header Container - Mantido igual */}
+        {/* Mobile Header Container */}
         <div className="lg:hidden fixed top-0 left-0 right-0 h-[80px] flex items-center justify-between px-4">
           {/* Left: Menu Hamburger + Search */}
           <div className="flex items-center gap-2 z-50">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Toggle menu"
-              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm"
+              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300"
             >
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <button
               onClick={() => setSearchOpen(!searchOpen)}
               aria-label="Buscar"
-              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm"
+              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300"
             >
               <Search size={20} />
             </button>
@@ -172,14 +187,17 @@ const Header = () => {
           <div className="flex items-center gap-2 z-50">
             <button
               aria-label="Carrinho"
-              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm"
+              className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300"
             >
               <ShoppingCart size={20} />
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center">
+                0
+              </div>
             </button>
             <a
               href="/my-account"
               aria-label="Perfil"
-              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm"
+              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300"
             >
               <User size={20} />
             </a>
@@ -201,7 +219,7 @@ const Header = () => {
                       <Link
                         href="#"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="block font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors"
+                        className="block font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors duration-300 hover:scale-105 hover:shadow-sm"
                       >
                         {item}
                       </Link>
@@ -228,7 +246,7 @@ const Header = () => {
                 />
                 <button
                   onClick={() => setSearchOpen(false)}
-                  className="text-gray-500"
+                  className="text-gray-500 hover:scale-110 transition-transform duration-300"
                 >
                   <X size={20} />
                 </button>
@@ -247,13 +265,7 @@ const Header = () => {
             }
           }}
           onMouseLeave={() => setActiveSubmenu(null)}
-          className="hidden lg:block absolute top-20 left-8 xl:left-12 2xl:left-16 right-8 xl:right-12 2xl:right-16 rounded-xl bg-white/[0.7] backdrop-blur-[20px] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:max-h-96 overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] shadow-lg z-[55]"
-          style={{
-            transition:
-              activeSubmenu !== null
-                ? 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0s'
-                : 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.03s 0.27s',
-          }}
+          className="hidden lg:block absolute top-20 left-8 xl:left-12 2xl:left-16 right-8 xl:right-12 2xl:right-16 rounded-xl bg-white/[0.85] backdrop-blur-[20px] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:max-h-96 overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] shadow-xl z-[55] border border-white/20"
         >
           <div className="grid h-full grid-cols-1 grid-rows-1">
             {navItems.map((item) => (
@@ -262,7 +274,10 @@ const Header = () => {
                 data-active={activeSubmenu === item}
                 className="col-start-1 row-start-1 h-full min-h-[300px] pt-20 p-8 transition-opacity duration-200 opacity-0 pointer-events-none data-[active=true]:opacity-100 data-[active=true]:pointer-events-auto"
               >
-                {/* Placeholder for submenu content */}
+                <div className="text-center">
+                  <h3 className="text-2xl font-semibold text-[#2e3091] mb-4">{item}</h3>
+                  <p className="text-gray-600">Conteúdo do submenu para {item}</p>
+                </div>
               </div>
             ))}
           </div>
