@@ -6,7 +6,7 @@ const CategoryShowcase = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Men Section */}
         <Link href="/men" className="block">
-          <div className="relative group overflow-hidden rounded-[14px] min-h-[400px] md:min-h-[500px] lg:h-[75vh] w-full">
+          <div className="relative group overflow-hidden rounded-[14px] min-h-[300px] md:min-h-[350px] lg:h-[50vh] w-full">
             <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
               style={{
@@ -26,7 +26,7 @@ const CategoryShowcase = () => {
 
         {/* Gifts Section */}
         <Link href="/gifts" className="block">
-          <div className="relative group overflow-hidden rounded-[14px] min-h-[400px] md:min-h-[500px] lg:h-[75vh] w-full">
+          <div className="relative group overflow-hidden rounded-[14px] min-h-[300px] md:min-h-[350px] lg:h-[50vh] w-full">
             <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
               style={{
