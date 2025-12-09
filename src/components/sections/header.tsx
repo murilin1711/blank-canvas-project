@@ -32,7 +32,7 @@ const Header = () => {
         <div className="hidden lg:flex fixed top-0 left-0 right-0 h-[80px] items-center justify-between px-[30px] xll:px-[60px] z-50">
           {/* Left Navigation */}
           <div
-            className="flex-1 flex items-center justify-start"
+            className="flex-1 flex items-center justify-start !text-left !px-0"
             onMouseLeave={() => setActiveSubmenu(null)}>
 
             <nav className="flex bg-white/50 backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm !px-px">
