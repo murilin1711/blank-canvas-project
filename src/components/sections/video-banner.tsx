@@ -16,7 +16,7 @@ const VideoBanner = () => {
   };
 
   return (
-    <section className="relative w-full py-4 lg:py-6">
+    <section className="relative w-full py-12 lg:py-16 flex items-center justify-center">
       <div className="relative w-full max-w-[95%] lg:max-w-[90%] mx-auto aspect-video overflow-hidden rounded-xl bg-background-secondary shadow-lg">
         <video
           ref={videoRef}
