@@ -133,7 +133,7 @@ const Header = () => {
         <div
           className="hidden lg:block absolute left-0 top-[25px] mx-[15px] xll:mx-[30px] z-[60]"
           onMouseLeave={() => setActiveSubmenu(null)}>
-          <nav className="flex bg-white/50 backdrop-blur-md rounded-xl px-1 h-[40px] items-center shadow-sm">
+          <nav className="flex bg-white/50 backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm !text-[21px] !px-[31px]">
             <ul className="flex flex-row items-center gap-1.5">
               {navItems.map((item) =>
               <li key={item} className="flex">
@@ -226,4 +226,4 @@ const Header = () => {
 
 };
 
-export default Header; 
+export default Header;
