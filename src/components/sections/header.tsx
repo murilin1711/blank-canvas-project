@@ -9,7 +9,7 @@ const Header = () => {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const navItems = ["Réveillon", "Men", "Women", "Shoes", "Gifts", "Outlet"];
+  const navItems = ["Escolas", "Men", "Women", "Shoes", "Gifts", "Outlet"];
 
   useEffect(() => {
     const handleScroll = () => {
