@@ -92,7 +92,7 @@ const ProductCarousel = () => {
             {filters.map((filter, index) =>
             <button
               key={filter}
-              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors !whitespace-pre-line ${
               index === 0 ?
               'bg-primary text-primary-foreground' :
               'bg-white text-text-primary hover:bg-muted'}`
