@@ -29,8 +29,6 @@ const HeroBanner = () => {
   const [isMuted, setIsMuted] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const bgVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-  const touchStartX = useRef<number>(0);
-  const touchEndX = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
 
   // Detecta se é mobile
@@ -72,24 +70,6 @@ const HeroBanner = () => {
 
   const handleVideoEnd = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.touches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartX.current - touchEndX.current > 50) {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }
-
-    if (touchEndX.current - touchStartX.current > 50) {
-      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-    }
   };
 
   // Efeito para gerenciar slides e vídeos
@@ -204,9 +184,6 @@ const HeroBanner = () => {
       <div 
         id="hero-banner" 
         className="relative z-10 w-full flex items-center justify-center p-4 md:p-6 lg:p-8"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
       >
         <div className="relative w-full max-w-full md:max-w-[85%] lg:max-w-[70%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
           
@@ -252,13 +229,6 @@ const HeroBanner = () => {
             </div>
           ))}
 
-          {/* CTA - Atualizado para seguir o padrão */}
-          <div className="absolute bottom-12 md:bottom-16 lg:bottom-20 left-1/2 -translate-x-1/2 z-30">
-            <button className="bg-[#2e3091] text-white px-6 md:px-8 lg:px-10 py-3 md:py-3.5 lg:py-4 rounded-xl md:rounded-2xl font-semibold hover:bg-[#252a7a] transition-all duration-300 shadow-lg hover:shadow-xl text-sm md:text-base lg:text-lg transform hover:scale-105">
-              Compre Agora
-            </button>
-          </div>
-
           {/* Controle de Som */}
           {slides[currentSlide].type === 'video' && (
             <button
@@ -274,14 +244,14 @@ const HeroBanner = () => {
             </button>
           )}
 
-          {/* Dots */}
-          <div className="absolute bottom-4 md:bottom-6 lg:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+          {/* Dots de navegação */}
+          <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentSlide ? 'bg-white w-6' : 'bg-white/60'
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentSlide ? 'bg-white w-8' : 'bg-white/60 hover:bg-white/80'
                 }`}
                 aria-label={`Ir para slide ${index + 1}`}
               />
