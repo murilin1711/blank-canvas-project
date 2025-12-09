@@ -92,7 +92,7 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted]);
 
   return (
-    <section className="relative w-full h-screen lg:h-screen overflow-hidden">
+    <section className="relative w-full min-h-screen flex items-center justify-center overflow-hidden">
       
       {/* Background Videos */}
       <div className="absolute inset-0 z-0">
@@ -121,15 +121,15 @@ const HeroBanner = () => {
         )}
       </div>
 
-      {/* Slides */}
+      {/* Slides Container - Centralizado verticalmente */}
       <div 
         id="hero-banner" 
-        className="relative z-10 w-full h-full flex items-center justify-center p-4 md:p-6 lg:p-8"
+        className="relative z-10 w-full flex items-center justify-center p-4 md:p-6 lg:p-8"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative w-full h-auto max-w-full md:max-w-[95%] lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
+        <div className="relative w-full max-w-full md:max-w-[95%] lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
           
           {slides.map((slide, index) =>
             <div
@@ -153,6 +153,7 @@ const HeroBanner = () => {
               ) : (
                 <img
                   src={slide.url}
+                  alt="Banner slide"
                   className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
                 />
               )}
@@ -174,7 +175,7 @@ const HeroBanner = () => {
 
           {/* CTA */}
           <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30">
-            <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-#2e3092 hover:bg-white/90 transition-colors duration-200 shadow-lg">
+            <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-600 hover:bg-white/90 transition-colors duration-200 shadow-lg">
               Compre Agora
             </button>
           </div>
