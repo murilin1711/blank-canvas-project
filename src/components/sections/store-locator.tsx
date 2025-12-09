@@ -159,7 +159,7 @@ const StoreLocator = () => {
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900">Fácil Localização</h4>
-                <p className="text-sm text-gray-600">Centro de Anápolis, perto dos principais pontos</p>
+                <p className="text-sm text-gray-600 !whitespace-pre-line">Centro de Anápolis, perto dos principais pontos</p>
               </div>
             </div>
           </div>
