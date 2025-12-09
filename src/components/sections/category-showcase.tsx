@@ -102,7 +102,7 @@ const CategoryShowcase = () => {
         {/* Texto de destaque abaixo */}
         <div className="text-center mt-10 md:mt-14 max-w-2xl mx-auto">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 md:p-8 border border-gray-100">
-            <p className="text-gray-700 text-base md:text-lg mb-4">Independente do seu segmento, temos a solução ideal para uniformes.
+            <p className="text-gray-700 text-base md:text-lg mb-4 !whitespace-pre-line">Independente do seu segmento, temos a solução ideal para uniformes.
 
             </p>
             <button className="bg-[#2e3091] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#252a7a] transition-colors duration-300 shadow-md text-sm md:text-base">
