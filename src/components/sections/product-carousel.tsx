@@ -86,8 +86,8 @@ const products: Product[] = [
   price: "",
   image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/4-removebg-preview-1-1765249932417.png?width=8000&height=8000&resize=contain",
   image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/4-removebg-preview-1-1765249932417.png?width=8000&height=8000&resize=contain"
-}
-];
+}];
+
 
 
 const filters = [
@@ -124,8 +124,8 @@ const ProductCarousel = () => {
     <section className="bg-[#F5F5F5] w-full py-10 lg:py-15">
       {/* Header com título */}
       <div className="px-4 sm:px-6 xll:px-[30px] mb-8">
-        <h2 className="text-2xl lg:text-3xl font-medium tracking-tight text-text-primary max-w-[900px]">
-          Nossa tradição em uniformes escolares...
+        <h2 className="text-2xl lg:text-3xl font-medium tracking-tight text-text-primary max-w-[900px]">Nossa tradição em uniformes escolares garante qualidade para diversas instituições parceiras.
+
         </h2>
       </div>
 
