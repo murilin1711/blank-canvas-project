@@ -98,7 +98,7 @@ const HeroBanner = () => {
 
           {/* Compre Agora Button */}
           <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30">
-            <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-600 hover:bg-white/90 transition-colors duration-200 shadow-lg">
+            <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-#2e3092 hover:bg-white/90 transition-colors duration-200 shadow-lg">
               Compre Agora
             </button>
           </div>
