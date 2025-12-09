@@ -18,53 +18,11 @@ const products: Product[] = [
     image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7542601310_TSHIRT_2-5.jpg"
   },
   {
-    id: 2,
-    name: "Chapéu Algodao Fita",
-    price: "R$ 597",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7527825_CHAPEU_1-6.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7527825_CHAPEU_2-7.jpg"
-  },
-  {
-    id: 3,
-    name: "Pirarucu Mini Box Bag",
-    price: "R$ 1.997",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7041117824_PIRARUCU-MINI-BOX-BAG_1-8.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7041117824_PIRARUCU-MINI-BOX-BAG_2-9.jpg"
-  },
-  {
-    id: 4,
-    name: "Sandália Soho Resort Juta",
-    price: "R$ 697",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7492451_SANDALIA_1-10.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7492451_SANDALIA_2-11.jpg"
-  },
-  {
     id: 5,
     name: "T-shirt Slim Stone Coqueiro Gaze",
     price: "R$ 497",
     image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7467114238_TSHIRT-SLIM-STONE-COQUEIRO-GAZE-MC_1-12.jpg",
     image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7467114238_TSHIRT-SLIM-STONE-COQUEIRO-GAZE-MC_2-13.jpg"
-  },
-  {
-    id: 6,
-    name: "Calça Rustic E-basics",
-    price: "R$ 897",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/5525325_CALCA_1-16.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/5525325_CALCA_2-17.jpg"
-  },
-  {
-    id: 7,
-    name: "Tênis Creeper Made In Brazil Juta",
-    price: "R$ 997",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7268951_TENIS_1-18.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7268951_TENIS-MADE-IN-BRAZIL-JUTA_2-19.jpg"
-  },
-  {
-    id: 8,
-    name: "Calça Atoalhada Garden Party",
-    price: "R$ 1.197",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7528218_CALCA_1-20.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7528218_CALCA_2-21.jpg"
   },
   {
     id: 9,
@@ -73,17 +31,10 @@ const products: Product[] = [
     image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7551104_TSHIRT-VINTAGE-LEAF-MC_1-22.jpg",
     image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7551104_TSHIRT-VINTAGE-LEAF-MC_2-23.jpg"
   },
-  {
-    id: 10,
-    name: "Vestido Nadador Vies A Fio",
-    price: "R$ 797",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7531418_VESTIDO_1-24.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/test-clones/b560228b-ad03-4100-8449-603f81169220-osklen-com-br/assets/images/7531418_VESTIDO_2-25.jpg"
-  },
 ];
 
 const filters = [
-  "Ver Tudo", "Camiseta", "Chapéu", "Acessórios", "Tênis", "Calça", "Vestido", "Camisa", "Bata", "Bijoux", "Sandália", "Lenço", "Vestuário"
+  "Ver Tudo", "Camiseta"
 ];
 
 const ProductCard = ({ product }: { product: Product }) => (
