@@ -92,7 +92,7 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted]);
 
   return (
-    <section className="relative w-full h-screen lg:h-screen overflow-hidden">
+    <section className="relative w-full h-screen overflow-hidden">
       
       {/* Background Videos */}
       <div className="absolute inset-0 z-0">
@@ -121,15 +121,16 @@ const HeroBanner = () => {
         )}
       </div>
 
-      {/* Slides Container - Ajustado para centralizar no desktop */}
+      {/* Slides Container - Apenas para desktop/tablet */}
       <div 
         id="hero-banner" 
-        className="relative z-10 w-full h-full flex items-start lg:items-center justify-center p-4 md:p-6 lg:p-8"
+        className="relative z-10 w-full h-full p-4 md:p-6 lg:p-8"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative w-full h-auto max-w-full md:max-w-[95%] lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video lg:aspect-auto lg:h-[70vh]">
+        {/* Mobile: mantém como estava */}
+        <div className="md:hidden relative w-full h-auto max-w-full overflow-hidden rounded-xl shadow-lg aspect-video">
           
           {slides.map((slide, index) =>
             <div
@@ -141,7 +142,7 @@ const HeroBanner = () => {
               {slide.type === 'video' ? (
                 <video
                   ref={(el) => {videoRefs.current[index] = el;}}
-                  className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+                  className="h-full w-full object-cover rounded-xl"
                   autoPlay
                   loop
                   muted={isMuted}
@@ -153,15 +154,15 @@ const HeroBanner = () => {
               ) : (
                 <img
                   src={slide.url}
-                  className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+                  className="h-full w-full object-cover rounded-xl"
                 />
               )}
 
-              <div className="absolute inset-0 z-10 bg-white/10 rounded-xl lg:rounded-3xl" />
+              <div className="absolute inset-0 z-10 bg-white/10 rounded-xl" />
 
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
                 <div className="flex flex-col items-center gap-4">
-                  <h1 className="text-4xl lg:text-6xl font-medium tracking-tight text-black !whitespace-pre-line">
+                  <h1 className="text-4xl font-medium tracking-tight text-black !whitespace-pre-line">
                     {slide.title}
                   </h1>
                   <a href="#" className="text-sm font-medium tracking-tight underline underline-offset-4 text-black !whitespace-pre-line">
@@ -172,14 +173,14 @@ const HeroBanner = () => {
             </div>
           )}
 
-          {/* CTA */}
+          {/* CTA Mobile */}
           <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30">
             <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-#2e3092 hover:bg-white/90 transition-colors duration-200 shadow-lg">
               Compre Agora
             </button>
           </div>
 
-          {/* Controle de Som */}
+          {/* Controle de Som Mobile */}
           {slides[currentSlide].type === 'video' && (
             <button
               onClick={toggleMute}
@@ -189,7 +190,7 @@ const HeroBanner = () => {
             </button>
           )}
 
-          {/* Dots */}
+          {/* Dots Mobile */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
             {slides.map((_, index) =>
               <button
@@ -201,7 +202,83 @@ const HeroBanner = () => {
               />
             )}
           </div>
+        </div>
 
+        {/* Desktop/Tablet: centralizado verticalmente */}
+        <div className="hidden md:flex items-center justify-center h-full">
+          <div className="relative w-full max-w-[95%] lg:max-w-[90%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
+            
+            {slides.map((slide, index) =>
+              <div
+                key={`desktop-${index}`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+              >
+                {slide.type === 'video' ? (
+                  <video
+                    ref={(el) => {videoRefs.current[index] = el;}}
+                    className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+                    autoPlay
+                    loop
+                    muted={isMuted}
+                    playsInline
+                    onEnded={handleVideoEnd}
+                  >
+                    <source src={slide.url} type="video/mp4" />
+                  </video>
+                ) : (
+                  <img
+                    src={slide.url}
+                    className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+                  />
+                )}
+
+                <div className="absolute inset-0 z-10 bg-white/10 rounded-xl lg:rounded-3xl" />
+
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <h1 className="text-4xl lg:text-6xl font-medium tracking-tight text-black !whitespace-pre-line">
+                      {slide.title}
+                    </h1>
+                    <a href="#" className="text-sm font-medium tracking-tight underline underline-offset-4 text-black !whitespace-pre-line">
+                      {slide.link}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CTA Desktop/Tablet */}
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30">
+              <button className="bg-white px-8 py-3 rounded-lg font-bold text-blue-#2e3092 hover:bg-white/90 transition-colors duration-200 shadow-lg">
+                Compre Agora
+              </button>
+            </div>
+
+            {/* Controle de Som Desktop/Tablet */}
+            {slides[currentSlide].type === 'video' && (
+              <button
+                onClick={toggleMute}
+                className="absolute bottom-8 right-8 z-30 w-10 h-10 flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-full"
+              >
+                {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+              </button>
+            )}
+
+            {/* Dots Desktop/Tablet */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-2">
+              {slides.map((_, index) =>
+                <button
+                  key={`desktop-dot-${index}`}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentSlide ? 'bg-black w-6' : 'bg-black/30'
+                  }`}
+                />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </section>
