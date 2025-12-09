@@ -25,7 +25,7 @@ const CategoryShowcase = () => {
         <Link href="/gifts" className="block">
           <div className="relative group overflow-hidden rounded-[14px] min-h-[400px] md:min-h-[500px] lg:h-[75vh] w-full bg-white border flex items-center justify-center">
             <div className="transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105">
-              <h2 className="text-black"></h2>
+              <h2 className="text-black !whitespace-pre-line"></h2>
             </div>
           </div>
         </Link>
