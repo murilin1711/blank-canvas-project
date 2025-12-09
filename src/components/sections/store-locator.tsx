@@ -10,10 +10,7 @@ const StoreLocator = () => {
             <div className="lg:col-span-2 p-10 lg:p-14 flex flex-col justify-between">
               <div className="bg-background-secondary rounded-lg p-6 lg:p-8">
                 <h2 className="text-3xl lg:text-[40px] font-medium text-text-primary mb-6 leading-none tracking-[-0.02em]">Nossa loja</h2>
-                <p className=<p class="text-base text-text-secondary leading-tight tracking-[-0.02em] !whitespace-pre-line">
-  O local onde tradição e confiança se encontram <strong>há 40 anos</strong>
-</p>
-
+                <p className="text-base text-text-secondary leading-tight tracking-[-0.02em] !whitespace-pre-line">O local onde tradição e confiança se encontram <strong>há 40 anos</strong>
 
                 </p>
               </div>
