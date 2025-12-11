@@ -189,14 +189,47 @@ const ProductCarousel = () => {
           </p>
         </div>
 
+        {/* Filtros - simplificados */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex bg-gray-100 p-1 rounded-xl">
+            <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors bg-[#2e3091] text-white">
+              Ver Tudo
+            </button>
+            <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200">
+              Escolas
+            </button>
+          </div>
+        </div>
+
+        {/* Carrossel de produtos */}
+        <div className="relative mb-10 md:mb-14">
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex gap-6 md:gap-8 pb-4 px-4">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+          
+          {/* Indicador visual de scroll */}
+          <div className="flex justify-center mt-6">
+            <div className="flex items-center gap-1 text-gray-400 text-sm">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+</svg>
+              <span>Arraste para ver mais</span>
+            </div>
+          </div>
+        </div>
+
         {/* Estatísticas animadas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-10 md:mb-14">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
           <div className="bg-white rounded-2xl p-6 md:p-8 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
             <div className="mb-3">
               <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl text-[#2e3091]">🏫</span>
               </div>
-              <AnimatedCounter end={40} suffix="+ anos" />
+              <AnimatedCounter end={40} prefix="+ " suffix=" anos" />
             </div>
             <p className="text-gray-600 text-sm md:text-base font-medium">
               de experiência no mercado
@@ -225,39 +258,6 @@ const ProductCarousel = () => {
             <p className="text-gray-600 text-sm md:text-base font-medium">
               parceiras satisfeitas
             </p>
-          </div>
-        </div>
-
-        {/* Filtros - simplificados */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex bg-gray-100 p-1 rounded-xl">
-            <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors bg-[#2e3091] text-white">
-              Ver Tudo
-            </button>
-            <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200">
-              Escolas
-            </button>
-          </div>
-        </div>
-
-        {/* Carrossel de produtos */}
-        <div className="relative">
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex gap-6 md:gap-8 pb-4 px-4">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
-          
-          {/* Indicador visual de scroll */}
-          <div className="flex justify-center mt-6">
-            <div className="flex items-center gap-1 text-gray-400 text-sm">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-</svg>
-              <span>Arraste para ver mais</span>
-            </div>
           </div>
         </div>
       </div>
