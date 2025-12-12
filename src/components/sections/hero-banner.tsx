@@ -183,7 +183,7 @@ const HeroBanner = () => {
       {/* Slides Container */}
       <div
         id="hero-banner"
-        className="relative z-10 flex items-center justify-center p-4 md:p-6 lg:p-8 !w-full !h-full">
+        className="relative z-10 flex items-center justify-center p-4 md:p-6 lg:p-8 !w-full !h-[533px]">
 
         <div className="relative w-full max-w-full md:max-w-[85%] lg:max-w-[70%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
           
