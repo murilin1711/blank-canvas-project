@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Filter, ChevronDown, Star, ShoppingBag, X } from 'lucide-react';
+import { Filter, ChevronDown, Star, ShoppingCart, X, Plus } from 'lucide-react';
 
 // Tipos
 type Product = {
@@ -87,6 +87,7 @@ const ColegioMilitarProducts = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
   const [showFilters, setShowFilters] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [tempCategory, setTempCategory] = useState<string>("Todos");
   
   // Categorias baseadas no seu negócio
   const categories = ["Todos", "Camisas", "Calças", "Jaquetas", "Bermudas", "Kits", "Acessórios"];
@@ -94,7 +95,6 @@ const ColegioMilitarProducts = () => {
   // Cores da empresa
   const primaryColor = "#2e3091";
   const primaryHover = "#252a7a";
-  const secondaryColor = "#f0f0f0";
 
   // Atualizar contador de filtros ativos
   useEffect(() => {
@@ -123,10 +123,24 @@ const ColegioMilitarProducts = () => {
     setProducts(filtered);
   }, [sortBy, selectedCategory]);
 
+  // Abrir filtros
+  const openFilters = () => {
+    setTempCategory(selectedCategory);
+    setShowFilters(true);
+  };
+
+  // Aplicar filtros do modal
+  const applyFilters = () => {
+    setSelectedCategory(tempCategory);
+    setShowFilters(false);
+  };
+
   // Limpar filtro
   const clearFilters = () => {
     setSelectedCategory("Todos");
     setSortBy("default");
+    setTempCategory("Todos");
+    setShowFilters(false);
   };
 
   return (
@@ -136,20 +150,25 @@ const ColegioMilitarProducts = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Uniformes Colégio Militar</h1>
+              <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>
+                Uniformes Colégio Militar
+              </h1>
               <p className="text-sm text-gray-600 mt-1">{products.length} RESULTADOS</p>
             </div>
             
             <div className="flex items-center gap-4">
               {/* Botão de filtros */}
               <button
-                onClick={() => setShowFilters(!showFilters)}
+                onClick={openFilters}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:border-[#2e3091] transition-colors"
               >
                 <Filter className="w-4 h-4" />
                 Mostrar filtros
                 {activeFiltersCount > 0 && (
-                  <span className="bg-[#2e3091] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  <span 
+                    className="text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: primaryColor }}
+                  >
                     {activeFiltersCount}
                   </span>
                 )}
@@ -181,7 +200,7 @@ const ColegioMilitarProducts = () => {
                   onClick={() => setSelectedCategory(category)}
                   className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     selectedCategory === category
-                      ? `bg-[${primaryColor}] text-white`
+                      ? 'text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                   style={selectedCategory === category ? { backgroundColor: primaryColor } : {}}
@@ -196,29 +215,136 @@ const ColegioMilitarProducts = () => {
 
       {/* Conteúdo Principal */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex gap-8">
-          {/* Filtros (Desktop) */}
-          <div className={`hidden lg:block w-64 flex-shrink-0 ${showFilters ? '' : 'hidden'}`}>
-            <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-semibold text-gray-900">Filtros</h2>
+        {/* Filtro ativo */}
+        {selectedCategory !== "Todos" && (
+          <div className="mb-6 flex items-center gap-2 text-sm">
+            <span className="text-gray-600">Filtro ativo:</span>
+            <span 
+              className="font-medium px-3 py-1 rounded-full text-[#2e3091]" 
+              style={{ backgroundColor: `${primaryColor}10`, color: primaryColor }}
+            >
+              {selectedCategory}
+            </span>
+            <button
+              onClick={clearFilters}
+              className="ml-2 text-gray-500 hover:text-gray-700"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Grid de Produtos */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="group cursor-pointer relative"
+            >
+              {/* Imagem do Produto */}
+              <div className="relative aspect-square overflow-hidden bg-gray-100 rounded-lg mb-4">
+                <Image
+                  src={product.image}
+                  alt={product.name}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                
+                {/* Badge de desconto */}
+                {product.originalPrice && (
+                  <div 
+                    className="absolute top-3 left-3 text-white px-3 py-1 rounded-full text-xs font-semibold"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    -{Math.round((1 - product.price / product.originalPrice) * 100)}%
+                  </div>
+                )}
+              </div>
+
+              {/* Botão de carrinho fixo */}
+              <button 
+                className="absolute top-3 right-3 bg-white text-gray-700 p-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110 group-hover:opacity-100"
+                style={{ opacity: 1 }}
+              >
+                <div className="relative">
+                  <ShoppingCart className="w-5 h-5" />
+                  <Plus className="w-3 h-3 absolute -top-1 -right-1 bg-[#2e3091] text-white rounded-full p-0.5" />
+                </div>
+              </button>
+
+              {/* Informações do Produto */}
+              <div>
+                <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">
+                  {product.name}
+                </h3>
+                
+                <div className="flex items-center gap-1 mb-2">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`w-4 h-4 ${
+                          i < Math.floor(product.rating)
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-600">({product.rating})</span>
+                </div>
+                
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={clearFilters}
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    Limpar tudo
-                  </button>
-                  <button
-                    onClick={() => setShowFilters(false)}
-                    className="lg:hidden text-gray-500 hover:text-gray-700"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  {product.originalPrice && (
+                    <span className="text-sm text-gray-500 line-through">
+                      R$ {product.originalPrice.toFixed(2)}
+                    </span>
+                  )}
+                  <span className="text-lg font-bold text-gray-900">
+                    R$ {product.price.toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className="mt-2">
+                  <span className={`text-xs px-3 py-1 rounded-full ${product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {product.inStock ? 'Em estoque' : 'Esgotado'}
+                  </span>
                 </div>
               </div>
-              
-              {/* Filtros disponíveis */}
+            </div>
+          ))}
+        </div>
+
+        {/* Mensagem se não houver produtos */}
+        {products.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">Nenhum produto encontrado com os filtros selecionados.</p>
+            <button
+              onClick={clearFilters}
+              className="font-medium"
+              style={{ color: primaryColor }}
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Filtros (Desktop e Mobile) */}
+      {showFilters && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Filtros</h2>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
               <div className="space-y-6">
                 <div>
                   <h3 className="font-medium text-gray-900 mb-3">Categorias</h3>
@@ -226,13 +352,13 @@ const ColegioMilitarProducts = () => {
                     {categories.map((category) => (
                       <button
                         key={category}
-                        onClick={() => setSelectedCategory(category)}
-                        className={`flex items-center justify-between w-full text-left px-2 py-3 rounded-lg transition-colors ${
-                          selectedCategory === category
+                        onClick={() => setTempCategory(category)}
+                        className={`flex items-center justify-between w-full text-left px-3 py-3 rounded-lg transition-colors ${
+                          tempCategory === category
                             ? 'bg-[#2e3091]/10 text-[#2e3091] font-medium'
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         }`}
-                        style={selectedCategory === category ? { color: primaryColor } : {}}
+                        style={tempCategory === category ? { color: primaryColor } : {}}
                       >
                         <span>{category}</span>
                       </button>
@@ -246,7 +372,7 @@ const ColegioMilitarProducts = () => {
                     {["Até R$ 100", "R$ 100 - R$ 200", "R$ 200 - R$ 300", "Acima de R$ 300"].map((range) => (
                       <button
                         key={range}
-                        className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        className="flex items-center justify-between w-full text-left px-3 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                       >
                         <span>{range}</span>
                       </button>
@@ -257,206 +383,33 @@ const ColegioMilitarProducts = () => {
                 <div>
                   <h3 className="font-medium text-gray-900 mb-3">Disponibilidade</h3>
                   <div className="space-y-2">
-                    <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    <button className="flex items-center justify-between w-full text-left px-3 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
                       <span>Em estoque</span>
                     </button>
-                    <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                    <button className="flex items-center justify-between w-full text-left px-3 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
                       <span>Pré-venda</span>
                     </button>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Lista de Produtos */}
-          <div className="flex-1">
-            {/* Filtro ativo */}
-            {selectedCategory !== "Todos" && (
-              <div className="mb-6 flex items-center gap-2 text-sm">
-                <span className="text-gray-600">Filtro ativo:</span>
-                <span className="font-medium px-3 py-1 rounded-full bg-[#2e3091]/10 text-[#2e3091]" style={{ color: primaryColor }}>
-                  {selectedCategory}
-                </span>
+            
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6">
+              <div className="flex gap-3">
                 <button
                   onClick={clearFilters}
-                  className="ml-2 text-gray-500 hover:text-gray-700"
+                  className="flex-1 py-3 border border-gray-300 rounded-lg text-sm font-medium hover:border-[#2e3091] transition-colors"
                 >
-                  ×
+                  Limpar tudo
                 </button>
-              </div>
-            )}
-
-            {/* Grid de Produtos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="group cursor-pointer"
-                >
-                  {/* Imagem do Produto */}
-                  <div className="relative aspect-square overflow-hidden bg-gray-100 rounded-lg mb-4">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    
-                    {/* Badge de desconto */}
-                    {product.originalPrice && (
-                      <div className="absolute top-3 left-3 bg-[#2e3091] text-white px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: primaryColor }}>
-                        -{Math.round((1 - product.price / product.originalPrice) * 100)}%
-                      </div>
-                    )}
-                    
-                    {/* Botão de compra */}
-                    <button 
-                      className="absolute bottom-3 right-3 bg-[#2e3091] text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
-                      style={{ backgroundColor: primaryColor }}
-                    >
-                      <ShoppingBag className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Informações do Produto */}
-                  <div>
-                    <h3 className="font-medium text-gray-900 mb-1 line-clamp-1">
-                      {product.name}
-                    </h3>
-                    
-                    <div className="flex items-center gap-1 mb-2">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < Math.floor(product.rating)
-                                ? 'text-yellow-400 fill-yellow-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-gray-600">({product.rating})</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">
-                          R$ {product.originalPrice.toFixed(2)}
-                        </span>
-                      )}
-                      <span className="text-lg font-bold text-gray-900">
-                        R$ {product.price.toFixed(2)}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <span className={`text-xs px-3 py-1 rounded-full ${product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {product.inStock ? 'Em estoque' : 'Esgotado'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Mensagem se não houver produtos */}
-            {products.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">Nenhum produto encontrado com os filtros selecionados.</p>
                 <button
-                  onClick={clearFilters}
-                  className="text-[#2e3091] hover:text-[#252a7a] font-medium"
-                  style={{ color: primaryColor }}
+                  onClick={applyFilters}
+                  className="flex-1 py-3 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: primaryColor }}
                 >
-                  Limpar filtros
+                  Aplicar filtros
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Filtros Mobile (Modal) */}
-      {showFilters && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden">
-          <div className="absolute right-0 top-0 h-full w-3/4 max-w-sm bg-white p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Filtros</h2>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Categorias</h3>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => {
-                        setSelectedCategory(category);
-                      }}
-                      className={`flex items-center justify-between w-full text-left px-2 py-3 rounded-lg transition-colors ${
-                        selectedCategory === category
-                          ? 'bg-[#2e3091]/10 text-[#2e3091] font-medium'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                      style={selectedCategory === category ? { color: primaryColor } : {}}
-                    >
-                      <span>{category}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Preço</h3>
-                <div className="space-y-2">
-                  {["Até R$ 100", "R$ 100 - R$ 200", "R$ 200 - R$ 300", "Acima de R$ 300"].map((range) => (
-                    <button
-                      key={range}
-                      className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900"
-                    >
-                      <span>{range}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-gray-900 mb-3">Disponibilidade</h3>
-                <div className="space-y-2">
-                  <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900">
-                    <span>Em estoque</span>
-                  </button>
-                  <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900">
-                    <span>Pré-venda</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={clearFilters}
-                className="w-full py-3 border border-gray-300 rounded-lg text-sm font-medium mb-3 hover:border-[#2e3091] transition-colors"
-              >
-                Limpar todos os filtros
-              </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="w-full py-3 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: primaryColor }}
-              >
-                Ver produtos
-              </button>
             </div>
           </div>
         </div>
