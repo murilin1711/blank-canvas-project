@@ -157,8 +157,6 @@ export default function LojaEstiloOsklen() {
               <ChevronDown className="w-4 h-4" />
               Filtrar
             </button>
-
-            <button className="p-2 rounded hover:bg-neutral-100">
           </div>
         </div>
       </header>
