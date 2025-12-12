@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Filter, ChevronDown, Star, ShoppingBag } from 'lucide-react';
+import { Filter, ChevronDown, Star, ShoppingBag, X } from 'lucide-react';
 
 // Tipos
 type Product = {
@@ -20,74 +20,89 @@ type Product = {
 const initialProducts: Product[] = [
   {
     id: 1,
-    name: "Tênis Esportivo",
-    price: 299.90,
-    originalPrice: 349.90,
-    image: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800",
-    category: "Corrida",
+    name: "Camisa Polo Oficial",
+    price: 89.90,
+    originalPrice: 109.90,
+    image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800",
+    category: "Camisas",
     rating: 4.8,
     inStock: true
   },
   {
     id: 2,
-    name: "Tênis Casual",
-    price: 249.90,
-    originalPrice: 289.90,
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800",
-    category: "Todos",
-    rating: 4.5,
+    name: "Calça Social",
+    price: 129.90,
+    originalPrice: 149.90,
+    image: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?auto=format&fit=crop&w=800",
+    category: "Calças",
+    rating: 4.6,
     inStock: true
   },
   {
     id: 3,
-    name: "Tênis Academia",
-    price: 279.90,
-    image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=800",
-    category: "Treino & academia",
-    rating: 4.7,
+    name: "Jaqueta Colegial",
+    price: 159.90,
+    image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=800",
+    category: "Jaquetas",
+    rating: 4.9,
     inStock: true
   },
   {
     id: 4,
-    name: "Tênis Performance",
-    price: 399.90,
-    originalPrice: 459.90,
-    image: "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=800",
-    category: "Corrida",
-    rating: 4.9,
+    name: "Bermuda Tactel",
+    price: 79.90,
+    originalPrice: 99.90,
+    image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=800",
+    category: "Bermudas",
+    rating: 4.5,
     inStock: true
   },
   {
     id: 5,
-    name: "Tênis Leve",
-    price: 229.90,
-    image: "https://images.unsplash.com/photo-1605348532760-6753d2c43329?auto=format&fit=crop&w=800",
-    category: "Tênis",
-    rating: 4.4,
+    name: "Kit Completo",
+    price: 349.90,
+    originalPrice: 429.90,
+    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800",
+    category: "Kits",
+    rating: 4.9,
     inStock: true
   },
   {
     id: 6,
-    name: "Tênis Pro",
-    price: 459.90,
-    originalPrice: 499.90,
-    image: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800",
-    category: "Corrida",
-    rating: 4.9,
+    name: "Camisa Social",
+    price: 119.90,
+    originalPrice: 139.90,
+    image: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=800",
+    category: "Camisas",
+    rating: 4.7,
     inStock: true
   }
 ];
 
 type SortOption = "default" | "price-low" | "price-high";
 
-const TennisStore = () => {
+const ColegioMilitarProducts = () => {
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [sortBy, setSortBy] = useState<SortOption>("default");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
   const [showFilters, setShowFilters] = useState(false);
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
   
-  // Categorias (baseado na imagem)
-  const categories = ["Todos", "Tênis", "Corrida", "Treino & academia", "Para prática de tênis", "Tilícias", "Literário"];
+  // Categorias baseadas no seu negócio
+  const categories = ["Todos", "Camisas", "Calças", "Jaquetas", "Bermudas", "Kits", "Acessórios"];
+  
+  // Cores da empresa
+  const primaryColor = "#2e3091";
+  const primaryHover = "#252a7a";
+  const secondaryColor = "#f0f0f0";
+
+  // Atualizar contador de filtros ativos
+  useEffect(() => {
+    let count = 0;
+    if (selectedCategory !== "Todos") count++;
+    if (sortBy !== "default") count++;
+    setActiveFiltersCount(count);
+  }, [selectedCategory, sortBy]);
 
   // Aplicar filtros
   useEffect(() => {
@@ -109,7 +124,7 @@ const TennisStore = () => {
   }, [sortBy, selectedCategory]);
 
   // Limpar filtro
-  const clearFilter = () => {
+  const clearFilters = () => {
     setSelectedCategory("Todos");
     setSortBy("default");
   };
@@ -121,18 +136,23 @@ const TennisStore = () => {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Tênis</h1>
-              <p className="text-sm text-gray-600 mt-1">187 RESULTADOS</p>
+              <h1 className="text-2xl font-bold text-gray-900">Uniformes Colégio Militar</h1>
+              <p className="text-sm text-gray-600 mt-1">{products.length} RESULTADOS</p>
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Botão de filtros para mobile */}
+              {/* Botão de filtros */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="md:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:border-[#2e3091] transition-colors"
               >
                 <Filter className="w-4 h-4" />
                 Mostrar filtros
+                {activeFiltersCount > 0 && (
+                  <span className="bg-[#2e3091] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                    {activeFiltersCount}
+                  </span>
+                )}
               </button>
               
               {/* Ordenação */}
@@ -140,7 +160,8 @@ const TennisStore = () => {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pl-10 pr-8 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-gray-400"
+                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pl-10 pr-8 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
+                  style={{ color: sortBy !== "default" ? primaryColor : "#374151" }}
                 >
                   <option value="default">Ordenar por</option>
                   <option value="price-low">Menor preço</option>
@@ -160,9 +181,10 @@ const TennisStore = () => {
                   onClick={() => setSelectedCategory(category)}
                   className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                     selectedCategory === category
-                      ? 'bg-black text-white'
+                      ? `bg-[${primaryColor}] text-white`
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
+                  style={selectedCategory === category ? { backgroundColor: primaryColor } : {}}
                 >
                   {category}
                 </button>
@@ -175,17 +197,25 @@ const TennisStore = () => {
       {/* Conteúdo Principal */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8">
-          {/* Filtros (Desktop - Escondido por padrão) */}
-          <div className={`hidden md:block w-64 flex-shrink-0 ${showFilters ? 'block' : 'hidden'}`}>
-            <div className="bg-gray-50 rounded-lg p-6 sticky top-8">
+          {/* Filtros (Desktop) */}
+          <div className={`hidden lg:block w-64 flex-shrink-0 ${showFilters ? '' : 'hidden'}`}>
+            <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-semibold text-gray-900">Filtros</h2>
-                <button
-                  onClick={clearFilter}
-                  className="text-sm text-gray-600 hover:text-gray-900"
-                >
-                  Limpar
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    Limpar tudo
+                  </button>
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="lg:hidden text-gray-500 hover:text-gray-700"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
               
               {/* Filtros disponíveis */}
@@ -197,11 +227,12 @@ const TennisStore = () => {
                       <button
                         key={category}
                         onClick={() => setSelectedCategory(category)}
-                        className={`flex items-center justify-between w-full text-left px-2 py-1 rounded text-sm ${
+                        className={`flex items-center justify-between w-full text-left px-2 py-3 rounded-lg transition-colors ${
                           selectedCategory === category
-                            ? 'text-black font-medium'
-                            : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-[#2e3091]/10 text-[#2e3091] font-medium'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         }`}
+                        style={selectedCategory === category ? { color: primaryColor } : {}}
                       >
                         <span>{category}</span>
                       </button>
@@ -212,14 +243,26 @@ const TennisStore = () => {
                 <div>
                   <h3 className="font-medium text-gray-900 mb-3">Preço</h3>
                   <div className="space-y-2">
-                    {["Até R$ 200", "R$ 200 - R$ 400", "R$ 400 - R$ 600", "Acima de R$ 600"].map((range) => (
+                    {["Até R$ 100", "R$ 100 - R$ 200", "R$ 200 - R$ 300", "Acima de R$ 300"].map((range) => (
                       <button
                         key={range}
-                        className="flex items-center justify-between w-full text-left px-2 py-1 rounded text-sm text-gray-600 hover:text-gray-900"
+                        className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                       >
                         <span>{range}</span>
                       </button>
                     ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-3">Disponibilidade</h3>
+                  <div className="space-y-2">
+                    <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                      <span>Em estoque</span>
+                    </button>
+                    <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                      <span>Pré-venda</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -232,9 +275,11 @@ const TennisStore = () => {
             {selectedCategory !== "Todos" && (
               <div className="mb-6 flex items-center gap-2 text-sm">
                 <span className="text-gray-600">Filtro ativo:</span>
-                <span className="font-medium">{selectedCategory}</span>
+                <span className="font-medium px-3 py-1 rounded-full bg-[#2e3091]/10 text-[#2e3091]" style={{ color: primaryColor }}>
+                  {selectedCategory}
+                </span>
                 <button
-                  onClick={clearFilter}
+                  onClick={clearFilters}
                   className="ml-2 text-gray-500 hover:text-gray-700"
                 >
                   ×
@@ -260,13 +305,16 @@ const TennisStore = () => {
                     
                     {/* Badge de desconto */}
                     {product.originalPrice && (
-                      <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                      <div className="absolute top-3 left-3 bg-[#2e3091] text-white px-3 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: primaryColor }}>
                         -{Math.round((1 - product.price / product.originalPrice) * 100)}%
                       </div>
                     )}
                     
                     {/* Botão de compra */}
-                    <button className="absolute bottom-3 right-3 bg-black text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:scale-110">
+                    <button 
+                      className="absolute bottom-3 right-3 bg-[#2e3091] text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110"
+                      style={{ backgroundColor: primaryColor }}
+                    >
                       <ShoppingBag className="w-5 h-5" />
                     </button>
                   </div>
@@ -305,7 +353,9 @@ const TennisStore = () => {
                     </div>
                     
                     <div className="mt-2">
-                      <span className="text-xs text-gray-500">{product.category}</span>
+                      <span className={`text-xs px-3 py-1 rounded-full ${product.inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {product.inStock ? 'Em estoque' : 'Esgotado'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -317,8 +367,9 @@ const TennisStore = () => {
               <div className="text-center py-12">
                 <p className="text-gray-500 mb-4">Nenhum produto encontrado com os filtros selecionados.</p>
                 <button
-                  onClick={clearFilter}
-                  className="text-black hover:text-gray-700 font-medium"
+                  onClick={clearFilters}
+                  className="text-[#2e3091] hover:text-[#252a7a] font-medium"
+                  style={{ color: primaryColor }}
                 >
                   Limpar filtros
                 </button>
@@ -330,7 +381,7 @@ const TennisStore = () => {
 
       {/* Filtros Mobile (Modal) */}
       {showFilters && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 lg:hidden">
           <div className="absolute right-0 top-0 h-full w-3/4 max-w-sm bg-white p-6 overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">Filtros</h2>
@@ -338,7 +389,7 @@ const TennisStore = () => {
                 onClick={() => setShowFilters(false)}
                 className="text-gray-500 hover:text-gray-700"
               >
-                ×
+                <X className="w-6 h-6" />
               </button>
             </div>
             
@@ -351,13 +402,13 @@ const TennisStore = () => {
                       key={category}
                       onClick={() => {
                         setSelectedCategory(category);
-                        setShowFilters(false);
                       }}
-                      className={`flex items-center justify-between w-full text-left px-2 py-3 rounded-lg ${
+                      className={`flex items-center justify-between w-full text-left px-2 py-3 rounded-lg transition-colors ${
                         selectedCategory === category
-                          ? 'bg-gray-100 text-black font-medium'
+                          ? 'bg-[#2e3091]/10 text-[#2e3091] font-medium'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
+                      style={selectedCategory === category ? { color: primaryColor } : {}}
                     >
                       <span>{category}</span>
                     </button>
@@ -368,7 +419,7 @@ const TennisStore = () => {
               <div>
                 <h3 className="font-medium text-gray-900 mb-3">Preço</h3>
                 <div className="space-y-2">
-                  {["Até R$ 200", "R$ 200 - R$ 400", "R$ 400 - R$ 600", "Acima de R$ 600"].map((range) => (
+                  {["Até R$ 100", "R$ 100 - R$ 200", "R$ 200 - R$ 300", "Acima de R$ 300"].map((range) => (
                     <button
                       key={range}
                       className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900"
@@ -378,18 +429,31 @@ const TennisStore = () => {
                   ))}
                 </div>
               </div>
+              
+              <div>
+                <h3 className="font-medium text-gray-900 mb-3">Disponibilidade</h3>
+                <div className="space-y-2">
+                  <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900">
+                    <span>Em estoque</span>
+                  </button>
+                  <button className="flex items-center justify-between w-full text-left px-2 py-3 rounded-lg text-gray-600 hover:text-gray-900">
+                    <span>Pré-venda</span>
+                  </button>
+                </div>
+              </div>
             </div>
             
             <div className="mt-8 pt-6 border-t border-gray-200">
               <button
-                onClick={clearFilter}
-                className="w-full py-3 border border-gray-300 rounded-lg text-sm font-medium mb-3"
+                onClick={clearFilters}
+                className="w-full py-3 border border-gray-300 rounded-lg text-sm font-medium mb-3 hover:border-[#2e3091] transition-colors"
               >
                 Limpar todos os filtros
               </button>
               <button
                 onClick={() => setShowFilters(false)}
-                className="w-full py-3 bg-black text-white rounded-lg text-sm font-medium"
+                className="w-full py-3 text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: primaryColor }}
               >
                 Ver produtos
               </button>
@@ -401,4 +465,4 @@ const TennisStore = () => {
   );
 };
 
-export default TennisStore;
+export default ColegioMilitarProducts;
