@@ -174,7 +174,7 @@ export default function LojaEstiloOsklen() {
                   onClick={() => setSelectedCategory(c)}
                   className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${
                     active
-                      ? "bg-black text-white"
+                      ? "bg-[#2e3091]text-white"
                       : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
                   }`}
                 >
