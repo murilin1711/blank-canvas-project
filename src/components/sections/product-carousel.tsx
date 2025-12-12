@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useInView } from 'framer-motion';
 
 type Product = {
   id: number;
@@ -21,12 +22,12 @@ const products: Product[] = [
     id: 0,
     name: "Colégio Militar",
     price: "",
-    image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/military-uniform-1765435113286.jpg",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/military-uniform-1765435113286.jpg",
+    image1: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
+    image2: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1200&q=80",
     href: "/escolas/colegio-militar",
-    cta: "Comprar Agora",
+    cta: "Comprar agora",
     featured: true,
-    badge: "Destaque do Mês",
+    badge: "Novo",
     accent: "#c9a04f"
   },
   {
@@ -69,7 +70,7 @@ const products: Product[] = [
     name: "Escola Pinguinho de Gente",
     price: "",
     image1: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/3-removebg-preview-1765247533847.png?width=8000&height=8000&resize=contain",
-    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document/uploads/3-removebg-preview-1765247533847.png?width=8000&height=8000&resize=contain"
+    image2: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/3-removebg-preview-1765247533847.png?width=8000&height=8000&resize=contain"
   },
   {
     id: 7,
@@ -163,81 +164,57 @@ const AnimatedCounter = ({ end, duration = 2000, suffix = "", prefix = "" }) => 
 const ProductCard = ({ product }: { product: Product }) => {
   const isFeatured = product.featured;
   const accent = product.accent || "#2e3091";
+  const actionContainer = isFeatured ? "space-y-3" : "flex justify-center";
 
   return (
-    <div className={`flex-shrink-0 ${isFeatured ? "w-[340px] md:w-[400px] lg:w-[450px]" : "w-[280px] md:w-[300px] lg:w-[320px]"}`}>
+    <div className={`flex-shrink-0 ${isFeatured ? "w-[320px] md:w-[350px] lg:w-[380px]" : "w-[280px] md:w-[300px] lg:w-[320px]"}`}>
       <a href={product.href || "#"} className="block group h-full">
-        <div className={`relative overflow-hidden rounded-2xl aspect-[3/4] flex items-center justify-center transition-all duration-500 group-hover:scale-[1.02] ${isFeatured ? "bg-gradient-to-b from-gray-900 to-gray-800 border-2 border-[#c9a04f]/30 shadow-[0_20px_60px_-15px_rgba(201,160,79,0.4)]" : "bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 group-hover:border-[#2e3091] group-hover:shadow-lg"}`}>
-          
-          {/* Efeito de brilho no card em destaque */}
-          {isFeatured && (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#c9a04f]/10 via-transparent to-[#c9a04f]/5" />
+        <div className={`relative overflow-hidden rounded-2xl aspect-[3/4] flex items-center justify-center transition-all duration-500 ${isFeatured ? "bg-gradient-to-br from-[#0b1d2b] via-[#142f48] to-[#0b1d2b] border border-[#c9a04f] shadow-[0_25px_80px_-30px_rgba(11,29,43,0.9)]" : "bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200 group-hover:border-[#2e3091] group-hover:shadow-lg"}`}>
+          {product.badge && (
+            <span className="absolute top-4 left-4 z-20 bg-white/90 text-[#0b1d2b] px-3 py-1 rounded-full text-xs font-semibold tracking-tight shadow-md">
+              {product.badge}
+            </span>
           )}
 
-          {/* Badge especial para o Colégio Militar */}
-          {isFeatured && (
-            <div className="absolute top-4 left-4 right-4 z-20 flex justify-between items-start">
-              <span className="bg-gradient-to-r from-[#c9a04f] to-[#e6c072] text-gray-900 px-4 py-2 rounded-full text-sm font-bold tracking-wide shadow-lg">
-                {product.badge}
-              </span>
-              <span className="bg-white/90 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
-                ⭐ Exclusivo
-              </span>
-            </div>
-          )}
-
-          {/* Imagem com efeitos diferentes */}
-          <div className={`absolute inset-0 ${isFeatured ? "p-2" : "p-6"}`}>
+          <div className="absolute inset-0">
             <Image
               src={product.image1}
               alt={product.name}
-              width={isFeatured ? 450 : 320}
-              height={isFeatured ? 600 : 427}
-              className={`w-full h-full object-contain ${isFeatured ? "opacity-95 group-hover:opacity-100 scale-100 group-hover:scale-105" : "opacity-30 group-hover:opacity-70"} transition-all duration-700`}
+              width={420}
+              height={560}
+              className={`${isFeatured ? "w-full h-full object-cover opacity-80 group-hover:opacity-100 scale-105 transition-all duration-700" : "w-full h-full object-contain p-6 opacity-30 transition-all duration-300 group-hover:opacity-70 group-hover:scale-105"}`}
             />
           </div>
 
-          {/* Overlay gradiente para melhor legibilidade */}
-          <div className={`absolute inset-0 ${isFeatured ? "bg-gradient-to-t from-gray-900/80 via-gray-900/40 to-transparent" : "bg-gradient-to-t from-black/0 via-transparent to-transparent"}`} />
+          <div className={`absolute inset-0 transition-all duration-500 ${isFeatured ? "bg-gradient-to-t from-black/45 via-black/25 to-transparent group-hover:from-black/35" : "bg-gradient-to-t from-black/0 via-transparent to-transparent group-hover:from-black/5"}`}></div>
 
-          {/* Conteúdo do card */}
-          <div className={`absolute bottom-0 left-0 right-0 p-6 ${isFeatured ? "bg-gradient-to-t from-gray-900 via-gray-900/90 to-transparent" : ""}`}>
-            <div className="relative z-20">
-              {isFeatured ? (
-                <>
-                  <h3 className="text-2xl md:text-3xl font-bold text-white mb-2 tracking-tight">
-                    {product.name}
-                  </h3>
-                  <p className="text-gray-300 text-sm md:text-base mb-4 line-clamp-2">
-                    Uniformes militares de alta qualidade com tecidos especiais e acabamento premium
-                  </p>
-                  <button className="w-full bg-gradient-to-r from-[#c9a04f] to-[#e6c072] text-gray-900 font-bold py-3 px-6 rounded-xl text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2">
-                    {product.cta}
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex justify-center">
-                    <button className="bg-[#2e3091] text-white px-8 py-3 rounded-lg text-sm font-medium transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg hover:bg-[#252a7a]">
-                      Em breve
-                    </button>
-                  </div>
-                  <h3 className="text-base lg:text-lg font-medium text-gray-900 leading-tight text-center mt-4 group-hover:text-[#2e3091] transition-colors duration-300">
-                    {product.name}
-                  </h3>
-                </>
-              )}
-            </div>
+          <div className={`absolute bottom-6 left-5 right-5 z-20 ${actionContainer}`}>
+            {isFeatured && (
+              <div className="flex items-center justify-between text-white">
+                <h3 className="text-xl md:text-2xl font-semibold tracking-tight">
+                  {product.name}
+                </h3>
+                <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ backgroundColor: "rgba(201,160,79,0.18)", color: accent }}>
+                  Destaque
+                </span>
+              </div>
+            )}
+
+            <button
+              className={`${product.cta ? "w-full bg-[#c9a04f] text-[#0b1d2b] font-semibold shadow-[0_14px_40px_-18px_rgba(201,160,79,0.95)] hover:shadow-[0_18px_55px_-18px_rgba(201,160,79,0.9)] hover:-translate-y-0.5" : "bg-[#2e3091] text-white hover:bg-[#252a7a]"} px-8 py-3 rounded-lg text-sm transition-all duration-300 group-hover:scale-[1.02]`}
+            >
+              {product.cta ? product.cta : "Em breve"}
+            </button>
           </div>
-
-          {/* Efeito de borda dourada no hover para o card em destaque */}
-          {isFeatured && (
-            <div className="absolute inset-0 border-2 border-transparent group-hover:border-[#c9a04f]/50 rounded-2xl transition-all duration-500" />
-          )}
         </div>
+
+        {!isFeatured && (
+          <div className="mt-4">
+            <h3 className="text-base lg:text-lg font-medium text-gray-900 leading-tight text-center group-hover:text-[#2e3091] transition-colors duration-300">
+              {product.name}
+            </h3>
+          </div>
+        )}
       </a>
     </div>
   );
@@ -257,56 +234,7 @@ const ProductCarousel = () => {
           </p>
         </div>
 
-        {/* Destaque especial para o Colégio Militar */}
-        <div className="mb-10 p-6 bg-gradient-to-r from-[#2e3091]/5 to-[#c9a04f]/5 rounded-2xl border border-gray-200">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="md:w-1/2">
-              <div className="inline-flex items-center gap-2 bg-[#2e3091] text-white px-4 py-2 rounded-full text-sm font-semibold mb-4">
-                <span>⭐</span>
-                <span>Destaque Especial</span>
-              </div>
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                Colégio Militar
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Este mês, estamos com uma linha exclusiva de uniformes para o Colégio Militar. 
-                Qualidade premium, tecidos resistentes e acabamento impecável.
-              </p>
-              <div className="flex flex-wrap gap-3 mb-4">
-                <span className="inline-flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm text-gray-700 border border-gray-300">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  Disponível para compra
-                </span>
-                <span className="inline-flex items-center gap-1 bg-white px-3 py-1 rounded-full text-sm text-gray-700 border border-gray-300">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  Entrega em 7 dias
-                </span>
-              </div>
-              <a 
-                href="/escolas/colegio-militar" 
-                className="inline-flex items-center gap-2 text-[#2e3091] font-semibold hover:text-[#252a7a] transition-colors"
-              >
-                Ver coleção completa
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </a>
-            </div>
-            <div className="md:w-1/2 flex justify-center">
-              <div className="relative w-64 h-64 md:w-80 md:h-80">
-                <Image
-                  src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/military-uniform-1765435113286.jpg"
-                  alt="Uniforme do Colégio Militar"
-                  width={320}
-                  height={320}
-                  className="object-contain w-full h-full rounded-xl shadow-lg"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Filtros */}
+        {/* Filtros - simplificados */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex bg-gray-100 p-1 rounded-xl">
             <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors bg-[#2e3091] text-white">
@@ -314,9 +242,6 @@ const ProductCarousel = () => {
             </button>
             <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200">
               Escolas
-            </button>
-            <button className="py-2 px-6 rounded-lg text-sm font-medium transition-colors text-gray-700 hover:bg-gray-200">
-              Empresas
             </button>
           </div>
         </div>
@@ -334,9 +259,9 @@ const ProductCarousel = () => {
           {/* Indicador visual de scroll */}
           <div className="flex justify-center mt-6">
             <div className="flex items-center gap-1 text-gray-400 text-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+</svg>
               <span>Arraste para ver mais</span>
             </div>
           </div>
@@ -349,7 +274,7 @@ const ProductCarousel = () => {
               <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl text-[#2e3091]">🏫</span>
               </div>
-              <AnimatedCounter end={40} suffix="+ anos" />
+              <AnimatedCounter end={40} prefix="+ " suffix=" anos" />
             </div>
             <p className="text-gray-600 text-sm md:text-base font-medium">
               de experiência no mercado
