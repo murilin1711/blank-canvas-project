@@ -174,7 +174,7 @@ const HeroBanner = () => {
 
                 <source src={slide.url} type="video/mp4" />
               </video>
-              <div className="absolute inset-0 bg-black/20 !w-full !h-[562px]" aria-hidden="true" />
+              <div className="absolute inset-0 bg-black/20 !w-full !h-[506px]" aria-hidden="true" />
             </div> :
         null
         )}
