@@ -148,23 +148,6 @@ export default function LojaEstiloOsklen() {
               </div>
             </div>
           </div>
-          {/* right - icons */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowFiltersModal(true)}
-              className="hidden md:flex items-center gap-2 text-sm px-3 py-2 rounded-full border border-neutral-200 hover:border-neutral-800 transition"
-            >
-              <ChevronDown className="w-4 h-4" />
-              Filtrar
-            </button>
-
-            <button className="p-2 rounded hover:bg-neutral-100">
-              <ShoppingBag className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* ===== Top controls: categorias (pills) e ordenação com ícone ↓ ===== */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
