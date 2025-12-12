@@ -159,7 +159,7 @@ const HeroBanner = () => {
         slide.type === 'video' ?
         <div
           key={`bg-${index}`}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
+          className={`absolute inset-0 transition-opacity duration-1000 !w-full !h-[652px] ${
           index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
           }>
 
