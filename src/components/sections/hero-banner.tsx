@@ -165,7 +165,7 @@ const HeroBanner = () => {
 
               <video
             ref={(el) => {bgVideoRefs.current[index] = el;}}
-            className="object-cover blur-md !w-full !h-[581px] !max-w-full"
+            className="object-cover blur-md !w-full !h-[502px] !max-w-full"
             autoPlay
             loop
             muted={true}
