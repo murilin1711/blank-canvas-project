@@ -5,20 +5,10 @@ import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   Plus,
-  Menu,
   X,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-
-/**
- * Página de produtos no estilo Osklen — tudo em um arquivo
- * Modificações:
- * - carousel com swipe por produto
- * - botão de adicionar sobre a foto que abre modal de seleção de tamanho
- * - controle de colunas no desktop (1-4). Mobile padrão 2.
- * - Clique no produto 1 redireciona para src/app/escolas/colegio-militar/produto1.tsx
- */
 
 /* -------------------- Tipos -------------------- */
 type Product = {
@@ -135,13 +125,25 @@ export default function LojaEstiloOsklen() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const [activeIndexMap, setActiveIndexMap] = useState<Record<number, number>>({});
+  const [activeIndexMap, setActiveIndexMap] = useState<Record<number, number>>(
+    {}
+  );
+
+  // Touch & Pointer tracking
   const touchStartX = useRef<Record<number, number>>({});
   const touchCurrentX = useRef<Record<number, number>>({});
+  const pointerStartX = useRef<Record<number, number>>({});
+  const pointerCurrentX = useRef<Record<number, number>>({});
+
+  // Wheel (trackpad) throttle
+  const lastWheelAt = useRef<Record<number, number>>({});
+  const wheelAccum = useRef<Record<number, number>>({});
 
   const [openAddModal, setOpenAddModal] = useState(false);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
-  const [modalSelectedSize, setModalSelectedSize] = useState<string | null>(null);
+  const [modalSelectedSize, setModalSelectedSize] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     let filtered = [...products];
@@ -186,6 +188,7 @@ export default function LojaEstiloOsklen() {
     setActiveIndex(productId, prev);
   }
 
+  /* ---------- Touch handlers (mobile) ---------- */
   function handleTouchStart(e: React.TouchEvent, productId: number) {
     touchStartX.current[productId] = e.touches[0].clientX;
     touchCurrentX.current[productId] = e.touches[0].clientX;
@@ -211,6 +214,62 @@ export default function LojaEstiloOsklen() {
     touchCurrentX.current[id] = 0;
   }
 
+  /* ---------- Pointer handlers (mouse drag) ---------- */
+  function handlePointerStart(e: React.PointerEvent, productId: number) {
+    // only start pointer if primary button or touch
+    if ((e as any).pointerType === "mouse" && e.button !== 0) return;
+    (e.target as Element).setPointerCapture?.(e.pointerId);
+    pointerStartX.current[productId] = (e as React.PointerEvent).clientX;
+    pointerCurrentX.current[productId] = (e as React.PointerEvent).clientX;
+  }
+
+  function handlePointerMove(e: React.PointerEvent, productId: number) {
+    if (pointerStartX.current[productId] === undefined) return;
+    pointerCurrentX.current[productId] = (e as React.PointerEvent).clientX;
+  }
+
+  function handlePointerEnd(product: Product) {
+    const id = product.id;
+    const start = pointerStartX.current[id];
+    const end = pointerCurrentX.current[id];
+    if (start === undefined || end === undefined) return;
+    const delta = end - start;
+    const threshold = 40;
+    if (delta > threshold) {
+      prevImage(id, product.images.length);
+    } else if (delta < -threshold) {
+      nextImage(id, product.images.length);
+    }
+    pointerStartX.current[id] = 0;
+    pointerCurrentX.current[id] = 0;
+  }
+
+  /* ---------- Wheel handlers (trackpad swipe left/right) ---------- */
+  function handleWheel(
+    e: React.WheelEvent<HTMLDivElement>,
+    productId: number,
+    total: number
+  ) {
+    // Consider only horizontal wheel (trackpad two-finger swipe)
+    const now = Date.now();
+    const last = lastWheelAt.current[productId] ?? 0;
+    // accumulate deltaX (some devices give small values)
+    wheelAccum.current[productId] = (wheelAccum.current[productId] || 0) + e.deltaX;
+
+    // if deltaX large enough and last event far enough in past -> change image
+    if (Math.abs(wheelAccum.current[productId]) > 30 && now - last > 300) {
+      if (wheelAccum.current[productId] > 0) {
+        nextImage(productId, total);
+      } else {
+        prevImage(productId, total);
+      }
+      wheelAccum.current[productId] = 0;
+      lastWheelAt.current[productId] = now;
+    }
+
+    // if user scrolls vertically, do nothing (allow page scroll)
+  }
+
   function openAddToCart(product: Product) {
     setModalProduct(product);
     setModalSelectedSize(null);
@@ -220,7 +279,9 @@ export default function LojaEstiloOsklen() {
   function confirmAddToCart() {
     if (!modalProduct) return;
     // Aqui você pode adicionar a lógica para adicionar ao carrinho
-    console.log(`Adicionado ao carrinho: ${modalProduct.name}, Tamanho: ${modalSelectedSize}`);
+    console.log(
+      `Adicionado ao carrinho: ${modalProduct.name}, Tamanho: ${modalSelectedSize}`
+    );
     setOpenAddModal(false);
     setModalProduct(null);
     setModalSelectedSize(null);
@@ -231,18 +292,16 @@ export default function LojaEstiloOsklen() {
   return (
     <div className="min-h-screen bg-white antialiased text-[15px]">
       {/* ===== Header fixo ===== */}
-      <header className="sticky top-0 z-40 bg-white border-b border-neutral-200">
+      <header className="sticky top-0 z-50 bg-white border-b border-neutral-200">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <button className="md:hidden p-2 rounded hover:bg-neutral-100">
-              <Menu className="w-5 h-5" />
-            </button>
+            {/* menu mobile removido por pedido do usuário (3 pontos) */}
 
-            <div className="flex flex-col">
-              <span className="uppercase text-xs tracking-widest font-medium text-[#2e3091] mb-3 md:mb-4">
+            <div className="flex flex-col select-none">
+              <span className="uppercase text-xs tracking-widest font-medium text-[#2e3091] mb-1 md:mb-2">
                 loja
               </span>
-              <div className="text-2xl font-medium text-[#2e3091] mb-3 md:mb-4">
+              <div className="text-2xl font-medium text-[#2e3091] md:mb-0">
                 <span className="capitalize">colégio militar</span>
               </div>
             </div>
@@ -328,12 +387,9 @@ export default function LojaEstiloOsklen() {
           {queryProducts.map((p) => {
             const idx = getActiveIndex(p.id);
             return (
-              <article
-                key={p.id}
-                className="group relative"
-              >
+              <article key={p.id} className="group relative">
                 {/* Container da imagem com efeito de zoom */}
-                <div 
+                <div
                   className="relative w-full overflow-hidden rounded-2xl bg-neutral-100 aspect-[9/12] group-hover:scale-105 transition-transform duration-300"
                   onClick={() => {
                     // Somente o produto com id 1 redireciona
@@ -344,9 +400,16 @@ export default function LojaEstiloOsklen() {
                 >
                   <div
                     className="w-full h-full relative"
+                    // touch (mobile)
                     onTouchStart={(e) => handleTouchStart(e, p.id)}
                     onTouchMove={(e) => handleTouchMove(e, p.id)}
                     onTouchEnd={() => handleTouchEnd(p)}
+                    // pointer (mouse drag)
+                    onPointerDown={(e) => handlePointerStart(e, p.id)}
+                    onPointerMove={(e) => handlePointerMove(e, p.id)}
+                    onPointerUp={() => handlePointerEnd(p)}
+                    // wheel (trackpad)
+                    onWheel={(e) => handleWheel(e, p.id, p.images.length)}
                   >
                     {p.images.map((src, i) => (
                       <img
@@ -366,27 +429,38 @@ export default function LojaEstiloOsklen() {
 
                     {p.images.length > 1 && (
                       <>
+                        {/* Botões de navegação - minimalistas e com anel azul + branco por baixo */}
                         <button
                           onClick={(ev) => {
                             ev.stopPropagation();
                             prevImage(p.id, p.images.length);
                           }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 rounded-full p-2 shadow hover:shadow-md z-20"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-1"
                           aria-label="Anterior"
                         >
-                          <ChevronLeft className="w-4 h-4" />
+                          <div className="rounded-full bg-white p-1 shadow">
+                            <div className="rounded-full border-2 border-[#2e3091] p-1">
+                              <ChevronLeft className="w-3 h-3 text-[#2e3091]" />
+                            </div>
+                          </div>
                         </button>
+
                         <button
                           onClick={(ev) => {
                             ev.stopPropagation();
                             nextImage(p.id, p.images.length);
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 rounded-full p-2 shadow hover:shadow-md z-20"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-1"
                           aria-label="Próxima"
                         >
-                          <ChevronRight className="w-4 h-4" />
+                          <div className="rounded-full bg-white p-1 shadow">
+                            <div className="rounded-full border-2 border-[#2e3091] p-1">
+                              <ChevronRight className="w-3 h-3 text-[#2e3091]" />
+                            </div>
+                          </div>
                         </button>
 
+                        {/* indicadores */}
                         <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-2 z-20">
                           {p.images.map((_, i) => (
                             <button
@@ -396,7 +470,9 @@ export default function LojaEstiloOsklen() {
                                 setActiveIndex(p.id, i);
                               }}
                               className={`w-2 h-2 rounded-full ${
-                                i === idx ? "bg-black" : "bg-white/70 border border-neutral-200"
+                                i === idx
+                                  ? "bg-[#2e3091]"
+                                  : "bg-white/70 border border-neutral-200"
                               }`}
                               aria-label={`Ir para imagem ${i + 1}`}
                             />
@@ -405,14 +481,15 @@ export default function LojaEstiloOsklen() {
                       </>
                     )}
 
+                    {/* Botão + central */}
                     <button
                       aria-label="Adicionar ao carrinho"
                       onClick={(ev) => {
                         ev.stopPropagation();
                         openAddToCart(p);
                       }}
-                      className="absolute left-1/2 -translate-x-1/2 bottom-6 bg-white rounded-full p-3 shadow-md hover:shadow-lg transition-transform transform active:scale-95 z-20"
-                      style={{ width: 64, height: 64 }}
+                      className="absolute left-1/2 -translate-x-1/2 bottom-4 bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-transform transform active:scale-95 z-20"
+                      style={{ width: 56, height: 56 }}
                     >
                       <div className="relative w-full h-full flex items-center justify-center">
                         <Plus className="w-5 h-5 text-black" />
@@ -496,7 +573,12 @@ export default function LojaEstiloOsklen() {
               <div>
                 <div className="font-medium mb-2">Faixa de preço</div>
                 <div className="flex gap-2 flex-wrap">
-                  {["Até R$100", "R$100–R$300", "R$300–R$600", "Acima R$600"].map((r) => (
+                  {[
+                    "Até R$100",
+                    "R$100–R$300",
+                    "R$300–R$600",
+                    "Acima R$600",
+                  ].map((r) => (
                     <button
                       key={r}
                       className="px-3 py-2 rounded bg-neutral-50 hover:bg-neutral-100 text-sm"
