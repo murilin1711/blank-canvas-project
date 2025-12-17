@@ -25,7 +25,8 @@ const StoreLocator = () => {
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-shadow duration-500">
           <div className="grid grid-cols-1 lg:grid-cols-2">
             {/* Left Column: Informações */}
-            <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-between bg-gradient-to-br from-blue-50/50 to-indigo-50/50">
+            <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-between bg-gradient-to-br from-gray-50 to-gray-100">
+
               <div>
                 {/* Badge de tradição */}
                 <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm mb-6">
