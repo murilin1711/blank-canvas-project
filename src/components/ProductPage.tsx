@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
+import { useCart } from "@/contexts/CartContext";
+import { useFavorites } from "@/contexts/FavoritesContext";
+import { LoginRequiredModal } from "@/components/LoginRequiredModal";
+import { toast } from "sonner";
 
 interface ProductPageProps {
   schoolName: string;
@@ -12,6 +15,7 @@ interface ProductPageProps {
   price: string;
   images: string[];
   sizes?: string[];
+  productId?: number;
 }
 
 export default function ProductPage({
@@ -21,8 +25,11 @@ export default function ProductPage({
   price,
   images,
   sizes = ["PP", "P", "M", "G", "GG"],
+  productId = 1,
 }: ProductPageProps) {
   const navigate = useNavigate();
+  const { addItem } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [openFitFinder, setOpenFitFinder] = useState(false);
@@ -30,6 +37,34 @@ export default function ProductPage({
   const [altura, setAltura] = useState(175);
   const [peso, setPeso] = useState(74);
   const [sexo, setSexo] = useState<"m" | "f" | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const schoolSlug = "colegio-militar";
+  const isFav = isFavorite(productId, schoolSlug);
+
+  const handleFavorite = async () => {
+    const success = await toggleFavorite(productId, schoolSlug);
+    if (!success) {
+      setShowLoginModal(true);
+    }
+  };
+
+  const handleAddToCart = () => {
+    if (!selectedSize) {
+      toast.error("Selecione um tamanho");
+      return;
+    }
+    const priceNum = parseFloat(price.replace("R$ ", "").replace(".", "").replace(",", "."));
+    addItem({
+      productId,
+      productName,
+      productImage: images[0],
+      price: priceNum,
+      size: selectedSize,
+      quantity: 1,
+      schoolSlug,
+    });
+  };
 
   const computeRecommendedSize = (): string => {
     const h = altura / 100;
@@ -144,10 +179,22 @@ export default function ProductPage({
                 >
                   Encontrar minha medida ideal
                 </button>
-                <button className="flex-1 border-2 border-[#2e3091] text-[#2e3091] py-3 px-6 rounded-lg text-sm font-semibold hover:bg-[#2e3091] hover:text-white transition-all">
+                <button
+                  onClick={handleAddToCart}
+                  className="flex-1 border-2 border-[#2e3091] text-[#2e3091] py-3 px-6 rounded-lg text-sm font-semibold hover:bg-[#2e3091] hover:text-white transition-all"
+                >
                   Adicionar ao carrinho
                 </button>
               </div>
+
+              {/* Favoritar */}
+              <button
+                onClick={handleFavorite}
+                className="mt-4 flex items-center gap-2 text-sm text-gray-600 hover:text-red-500 transition-colors"
+              >
+                <Heart className={`w-5 h-5 ${isFav ? "fill-red-500 text-red-500" : ""}`} />
+                {isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+              </button>
             </div>
 
             <div className="mt-6 text-sm text-gray-500 flex items-center gap-2">
@@ -304,6 +351,8 @@ export default function ProductPage({
           </>
         )}
       </AnimatePresence>
+
+      <LoginRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
 
       <Footer />
     </main>
