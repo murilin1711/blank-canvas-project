@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const COOKIE_CONSENT_KEY = "osklen_cookie_consent_dismissed";
 
@@ -32,7 +33,7 @@ export default function CookieBanner() {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[9999] bg-background-secondary border-t border-border-light text-text-secondary shadow-md transition-transform duration-500 ease-out ${
+      className={`fixed bottom-0 left-0 right-0 z-[9999] bg-secondary border-t border-border text-secondary-foreground shadow-md transition-transform duration-500 ease-out ${
         isDismissed ? "translate-y-full" : "translate-y-0"
       }`}
       role="dialog"
@@ -43,12 +44,12 @@ export default function CookieBanner() {
       <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-[30px] py-4">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8">
           <div className="text-center lg:text-left">
-            <h3 className="font-semibold text-base text-text-primary tracking-[-0.02em] leading-[1.1]">
+            <h3 className="font-semibold text-body-lg text-foreground">
               Cookies
             </h3>
-            <p className="mt-2 text-[13px] text-text-tertiary tracking-[-0.02em] leading-snug max-w-lg">
+            <p className="mt-2 text-body-regular text-muted-foreground max-w-lg">
               Utilizamos cookies para melhorar a sua experiência no site. Ao continuar navegando, você concorda com a nossa{" "}
-              <Link href="/politica-de-privacidade" className="cursor-pointer underline hover:text-text-primary transition-colors">
+              <Link to="/politica-de-privacidade" className="underline hover:text-foreground transition-colors">
                 Política de Privacidade
               </Link>
               .
@@ -58,16 +59,16 @@ export default function CookieBanner() {
           <div className="flex items-center gap-4 sm:gap-6 shrink-0">
             <button
               onClick={handleDismiss}
-              className="cursor-pointer text-[14px] underline whitespace-nowrap text-text-secondary hover:text-text-primary tracking-[-0.02em] transition-colors"
+              className="text-body-regular underline whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors"
             >
               Continuar sem aceitar
             </button>
             <button
               onClick={handleDismiss}
               aria-label="Fechar aviso de cookies"
-              className="cursor-pointer w-7 h-7 flex items-center justify-center rounded-full bg-input hover:bg-border transition-colors group"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-muted hover:bg-border transition-colors group"
             >
-              <X size={16} className="text-text-muted group-hover:text-text-secondary transition-colors" />
+              <X size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
           </div>
         </div>

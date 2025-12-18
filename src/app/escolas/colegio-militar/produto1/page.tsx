@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 export default function Produto1Page() {
   const productImages = [
@@ -34,48 +34,66 @@ export default function Produto1Page() {
   const sizes = ["PP", "P", "M", "G", "GG"];
 
   return (
-    <main className="max-w-6xl mx-auto px-6 py-10">
+    <main className="max-w-6xl mx-auto px-6 py-10 bg-background">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        {/* Image Gallery */}
         <div className="space-y-4">
           <div
-            className="relative w-full aspect-[3/4] bg-neutral-100 rounded-2xl overflow-hidden cursor-pointer"
+            className="relative w-full aspect-[3/4] bg-muted rounded-2xl overflow-hidden cursor-pointer"
             onClick={nextImage}
             role="button"
             aria-label="Avançar imagem"
           >
-            <Image src={productImages[activeIndex]} alt="Imagem principal do produto" fill className="object-cover" priority />
+            <img 
+              src={productImages[activeIndex]} 
+              alt="Imagem principal do produto" 
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="grid grid-cols-3 gap-3">
             {productImages.map((img, i) => (
               <div
                 key={img + i}
                 onClick={() => setActiveIndex(i)}
-                className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-transform transform ${activeIndex === i ? "scale-105 ring-2 ring-[#2e3091]" : "hover:scale-[1.03]"}`}
+                className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-transform transform ${
+                  activeIndex === i ? "scale-105 ring-2 ring-primary" : "hover:scale-[1.03]"
+                }`}
                 role="button"
                 aria-label={`Mostrar imagem ${i + 1}`}
               >
-                <Image src={img} alt={`Imagem ${i + 1}`} fill className="object-cover" />
+                <img src={img} alt={`Imagem ${i + 1}`} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
         </div>
 
+        {/* Product Info */}
         <div className="flex flex-col">
-          <span className="uppercase text-xs tracking-widest text-[#2e3091] mb-2 font-medium">Colégio Militar</span>
-          <h1 className="text-2xl font-semibold text-neutral-900 leading-tight">Camisa Nature Jacquard Atoalhado</h1>
-          <p className="mt-4 text-xl font-bold text-neutral-900">R$ 697,00</p>
-          <p className="mt-4 text-sm text-neutral-600 leading-relaxed font-light">
-            Camisa confeccionada em jacquard atoalhado de algodão com textura exclusiva. Modelagem confortável e acabamento premium.
+          <span className="uppercase text-xs tracking-widest text-primary mb-2 font-medium">
+            Colégio Militar
+          </span>
+          <h1 className="text-h2 text-foreground leading-tight">
+            Camisa Nature Jacquard Atoalhado
+          </h1>
+          <p className="mt-4 text-xl font-bold text-foreground">R$ 697,00</p>
+          <p className="mt-4 text-body-regular text-muted-foreground leading-relaxed">
+            Camisa confeccionada em jacquard atoalhado de algodão com textura exclusiva. 
+            Modelagem confortável e acabamento premium.
           </p>
 
+          {/* Size Selection */}
           <div className="mt-6">
-            <div className="text-sm font-medium mb-2">Escolha o tamanho</div>
+            <div className="text-sm font-medium mb-2 text-foreground">Escolha o tamanho</div>
             <div className="flex gap-2">
               {sizes.map((size) => (
                 <button
                   key={size}
                   onClick={() => setSelectedSize(size)}
-                  className={`cursor-pointer px-4 py-2 rounded-md text-sm transition-shadow focus:outline-none ${selectedSize === size ? "bg-[#2e3091] text-white font-semibold" : "bg-white text-neutral-800 border border-neutral-200 hover:shadow-md"}`}
+                  className={`cursor-pointer px-4 py-2 rounded-md text-sm transition-shadow focus:outline-none ${
+                    selectedSize === size
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "bg-background text-foreground border border-border hover:shadow-md"
+                  }`}
                   aria-pressed={selectedSize === size}
                 >
                   {size}
@@ -83,47 +101,123 @@ export default function Produto1Page() {
               ))}
             </div>
 
+            {/* Action Buttons */}
             <div className="mt-4 flex gap-3">
-              <button onClick={() => { setOpenFitFinder(true); setFitStep(1); }} className="cursor-pointer flex-1 bg-[#2e3091] text-white py-3 rounded-md text-sm font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
+              <Button
+                onClick={() => { setOpenFitFinder(true); setFitStep(1); }}
+                className="flex-1"
+              >
                 Encontrar minha medida ideal
-              </button>
-              <button className="cursor-pointer flex-1 border border-neutral-300 py-3 rounded-md text-sm font-semibold hover:shadow-md transition-transform hover:-translate-y-0.5 bg-white text-neutral-900">
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+              >
                 Adicionar ao carrinho
-              </button>
+              </Button>
             </div>
           </div>
 
-          <div className="mt-6 text-sm text-neutral-500">Frete grátis a partir de R$ 200 · Troca ou devolução grátis</div>
+          <div className="mt-6 text-sm text-muted-foreground">
+            Frete grátis a partir de R$ 200 · Troca ou devolução grátis
+          </div>
         </div>
       </div>
 
+      {/* Fit Finder Modal */}
       <AnimatePresence>
         {openFitFinder && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 0.36 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black z-40 cursor-pointer" onClick={() => setOpenFitFinder(false)} />
-            <motion.aside initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ duration: 0.38, ease: "easeInOut" }} className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 p-6 flex flex-col" role="dialog" aria-modal="true">
-              <div className="h-1 w-full bg-neutral-100 rounded mb-6 overflow-hidden">
-                <div className="h-full bg-[#2e3091] transition-all" style={{ width: `${(fitStep / 2) * 100}%` }} />
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.36 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black z-40 cursor-pointer"
+              onClick={() => setOpenFitFinder(false)}
+            />
+            <motion.aside
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.38, ease: "easeInOut" }}
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-background z-50 p-6 flex flex-col"
+              role="dialog"
+              aria-modal="true"
+            >
+              {/* Progress Bar */}
+              <div className="h-1 w-full bg-muted rounded mb-6 overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: `${(fitStep / 2) * 100}%` }}
+                />
               </div>
 
               {fitStep === 1 && (
                 <div className="flex flex-col gap-6">
-                  <h2 className="text-lg font-semibold">Seu perfil</h2>
+                  <h2 className="text-h3 text-foreground">Seu perfil</h2>
                   <div>
-                    <label className="text-sm block mb-1">Altura: <span className="font-medium">{altura} cm</span></label>
-                    <input type="range" min={150} max={200} value={altura} onChange={(e) => setAltura(Number(e.target.value))} className="w-full cursor-pointer" />
+                    <label className="text-sm block mb-1 text-foreground">
+                      Altura: <span className="font-medium">{altura} cm</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={150}
+                      max={200}
+                      value={altura}
+                      onChange={(e) => setAltura(Number(e.target.value))}
+                      className="w-full cursor-pointer"
+                    />
                   </div>
                   <div>
-                    <label className="text-sm block mb-1">Peso: <span className="font-medium">{peso} kg</span></label>
-                    <input type="range" min={45} max={140} value={peso} onChange={(e) => setPeso(Number(e.target.value))} className="w-full cursor-pointer" />
+                    <label className="text-sm block mb-1 text-foreground">
+                      Peso: <span className="font-medium">{peso} kg</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={45}
+                      max={140}
+                      value={peso}
+                      onChange={(e) => setPeso(Number(e.target.value))}
+                      className="w-full cursor-pointer"
+                    />
                   </div>
                   <div className="flex gap-3">
-                    <button onClick={() => setSexo("m")} className={`cursor-pointer flex-1 py-3 border rounded-md text-sm font-semibold transition ${sexo === "m" ? "border-[#2e3091] text-[#2e3091] bg-blue-50" : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"}`}>Masculino</button>
-                    <button onClick={() => setSexo("f")} className={`cursor-pointer flex-1 py-3 border rounded-md text-sm font-semibold transition ${sexo === "f" ? "border-[#2e3091] text-[#2e3091] bg-blue-50" : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"}`}>Feminino</button>
+                    <button
+                      onClick={() => setSexo("m")}
+                      className={`cursor-pointer flex-1 py-3 border rounded-md text-sm font-semibold transition ${
+                        sexo === "m"
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-border text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Masculino
+                    </button>
+                    <button
+                      onClick={() => setSexo("f")}
+                      className={`cursor-pointer flex-1 py-3 border rounded-md text-sm font-semibold transition ${
+                        sexo === "f"
+                          ? "border-primary text-primary bg-primary/10"
+                          : "border-border text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Feminino
+                    </button>
                   </div>
                   <div className="flex gap-3 mt-auto">
-                    <button onClick={() => setOpenFitFinder(false)} className="cursor-pointer flex-1 border border-neutral-200 py-3 rounded-md text-sm hover:shadow-sm">Cancelar</button>
-                    <button onClick={() => setFitStep(2)} disabled={!sexo} className="cursor-pointer flex-1 bg-[#2e3091] text-white py-3 rounded-md text-sm font-semibold disabled:opacity-50 hover:shadow-lg transition-all">Ver resultado</button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setOpenFitFinder(false)}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={() => setFitStep(2)}
+                      disabled={!sexo}
+                      className="flex-1"
+                    >
+                      Ver resultado
+                    </Button>
                   </div>
                 </div>
               )}
@@ -131,13 +225,33 @@ export default function Produto1Page() {
               {fitStep === 2 && (
                 <div className="flex flex-col gap-4">
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-green-800">Caimento ideal identificado</h3>
-                    <p className="mt-2 text-lg font-bold">Tamanho recomendado: <span className="text-green-700">{recommended}</span></p>
-                    <p className="mt-2 text-sm text-neutral-600">Desenvolvido para sua altura e proporção corporal.</p>
+                    <h3 className="text-sm font-semibold text-green-800">
+                      Caimento ideal identificado
+                    </h3>
+                    <p className="mt-2 text-lg font-bold text-foreground">
+                      Tamanho recomendado: <span className="text-green-700">{recommended}</span>
+                    </p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Desenvolvido para sua altura e proporção corporal.
+                    </p>
                   </div>
                   <div className="flex gap-3 mt-auto">
-                    <button onClick={() => setFitStep(1)} className="cursor-pointer flex-1 border border-neutral-200 py-3 rounded-md text-sm hover:shadow-sm">Voltar</button>
-                    <button onClick={() => { setSelectedSize(recommended); setOpenFitFinder(false); }} className="cursor-pointer flex-1 bg-[#2e3091] text-white py-3 rounded-md text-sm font-semibold hover:shadow-lg transition-all">Usar tamanho recomendado</button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setFitStep(1)}
+                      className="flex-1"
+                    >
+                      Voltar
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setSelectedSize(recommended);
+                        setOpenFitFinder(false);
+                      }}
+                      className="flex-1"
+                    >
+                      Usar tamanho recomendado
+                    </Button>
                   </div>
                 </div>
               )}
