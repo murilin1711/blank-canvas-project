@@ -1,4 +1,3 @@
-import AccessibilityWidget from '@/components/sections/accessibility-widget';
 import HeroBanner from '@/components/sections/hero-banner';
 import CategoryShowcase from '@/components/sections/category-showcase';
 import ProductCarousel from '@/components/sections/product-carousel';
@@ -10,7 +9,6 @@ import Footer from '@/components/sections/footer';
 export default function Home() {
   return (
     <main className="relative min-h-screen bg-white antialiased">
-      <AccessibilityWidget />
       <div className="relative">
         <HeroBanner />
         <div className="mt-8 lg:mt-12">
