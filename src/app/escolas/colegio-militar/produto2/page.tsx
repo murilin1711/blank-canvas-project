@@ -10,6 +10,7 @@ export default function Produto2Page() {
       productDescription="Camiseta básica oficial do Colégio Militar em algodão 100%. Tecido macio e respirável, ideal para atividades do dia a dia."
       price="R$ 59,90"
       images={[uniformeImage, uniformeImage, uniformeImage]}
+      productId={2}
     />
   );
 }

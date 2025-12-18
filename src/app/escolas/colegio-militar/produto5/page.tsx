@@ -10,6 +10,7 @@ export default function Produto5Page() {
       productDescription="Bermuda oficial do Colégio Militar em tecido resistente. Confortável e prática para atividades escolares e educação física."
       price="R$ 79,90"
       images={[uniformeImage, uniformeImage, uniformeImage]}
+      productId={5}
     />
   );
 }

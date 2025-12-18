@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-import Header from "@/components/sections/header";
 import Footer from "@/components/sections/footer";
-import { ArrowLeft, Plus, X, Check, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -30,7 +29,7 @@ interface AddressData {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, subtotal, clearCart } = useCart();
+  const { items, removeItem, subtotal, clearCart } = useCart();
   const { user } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("cart");
@@ -75,34 +74,33 @@ export default function CheckoutPage() {
   const nextStep = () => {
     if (currentStep === "cart") {
       if (items.length === 0) {
-        toast.error("Seu carrinho está vazio");
+        toast.error("Seu carrinho está vazio", { duration: 2000 });
         return;
       }
       setCurrentStep("personal");
     } else if (currentStep === "personal") {
       if (!personal.name || !personal.lastName || !personal.email) {
-        toast.error("Preencha todos os campos obrigatórios");
+        toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
         return;
       }
       setCurrentStep("address");
     } else if (currentStep === "address") {
       if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
-        toast.error("Preencha todos os campos obrigatórios");
+        toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
         return;
       }
       setCurrentStep("shipping");
     } else if (currentStep === "shipping") {
       setCurrentStep("payment");
     } else if (currentStep === "payment") {
-      // Finalizar pedido
-      toast.success("Pedido realizado com sucesso!");
+      toast.success("Pedido realizado com sucesso!", { duration: 2000 });
       clearCart();
       navigate("/");
     }
   };
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white pt-[100px]">
       <div className="max-w-3xl mx-auto px-6 py-10">
         {/* Back button */}
         <button
@@ -113,40 +111,7 @@ export default function CheckoutPage() {
           <span className="text-sm font-medium">Voltar</span>
         </button>
 
-        {/* Steps indicator */}
-        <div className="mb-10 space-y-1">
-          {steps.map((step, index) => {
-            const isActive = step.key === currentStep;
-            const isPast = index < stepIndex;
-            const isFuture = index > stepIndex;
-
-            return (
-              <div key={step.key}>
-                <button
-                  onClick={() => goToStep(step.key)}
-                  disabled={isFuture}
-                  className={`w-full text-left py-3 px-1 border-b transition-all ${
-                    isActive
-                      ? "border-[#2e3091] text-gray-900 font-semibold"
-                      : isPast
-                      ? "border-gray-200 text-gray-700 cursor-pointer hover:text-[#2e3091]"
-                      : "border-gray-100 text-gray-300 cursor-not-allowed"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className={isActive ? "text-xl" : "text-lg"}>
-                      {step.label}
-                    </span>
-                    {isPast && <Check className="w-5 h-5 text-green-500" />}
-                    {isActive && <ChevronRight className="w-5 h-5 text-[#2e3091]" />}
-                  </div>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Step content */}
+        {/* Step content - FIRST */}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -512,6 +477,55 @@ export default function CheckoutPage() {
           >
             {currentStep === "payment" ? "Finalizar pedido" : "Continuar"}
           </button>
+        </div>
+
+        {/* Steps indicator - AT BOTTOM with checks */}
+        <div className="mt-12 pt-8 border-t border-gray-100">
+          <div className="space-y-1">
+            {steps.map((step, index) => {
+              const isActive = step.key === currentStep;
+              const isPast = index < stepIndex;
+              const isFuture = index > stepIndex;
+
+              return (
+                <div key={step.key}>
+                  <button
+                    onClick={() => goToStep(step.key)}
+                    disabled={isFuture}
+                    className={`w-full text-left py-3 px-1 border-b transition-all ${
+                      isActive
+                        ? "border-[#2e3091] text-gray-900 font-semibold"
+                        : isPast
+                        ? "border-green-500 text-green-700 cursor-pointer hover:text-green-800"
+                        : "border-gray-100 text-gray-300 cursor-not-allowed"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {isPast && (
+                          <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        )}
+                        {isActive && (
+                          <div className="w-5 h-5 bg-[#2e3091] rounded-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          </div>
+                        )}
+                        {isFuture && (
+                          <div className="w-5 h-5 border-2 border-gray-200 rounded-full" />
+                        )}
+                        <span className={isActive ? "text-lg" : "text-base"}>
+                          {step.label}
+                        </span>
+                      </div>
+                      {isPast && <span className="text-xs text-green-600">Concluído</span>}
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
