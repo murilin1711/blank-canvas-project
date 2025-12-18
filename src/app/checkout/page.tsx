@@ -104,8 +104,19 @@ export default function CheckoutPage() {
       <div className="max-w-3xl mx-auto px-6 py-10">
         {/* Back button */}
         <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[#2e3091] hover:text-[#252a7a] mb-8 transition-colors"
+          type="button"
+          onClick={() => {
+            if (currentStep === "cart") {
+              navigate(-1);
+            } else {
+              const stepOrder: CheckoutStep[] = ["cart", "personal", "address", "shipping", "payment"];
+              const currentIndex = stepOrder.indexOf(currentStep);
+              if (currentIndex > 0) {
+                setCurrentStep(stepOrder[currentIndex - 1]);
+              }
+            }
+          }}
+          className="flex items-center gap-2 text-[#2e3091] hover:text-[#252a7a] mb-8 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Voltar</span>
