@@ -3,6 +3,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
+import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
 import Home from '@/app/page';
 import SobrePage from '@/app/sobre/page';
@@ -24,6 +25,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <FavoritesProvider>
+            <ScrollToTop />
             <Header />
             <Routes>
               <Route path="/" element={<Home />} />
