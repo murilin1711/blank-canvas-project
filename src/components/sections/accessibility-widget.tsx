@@ -14,8 +14,7 @@ const AccessibilityWidget = () => {
 
         <img
           className="vp-access-button w-8 h-8"
-          src=""
-          alt=""
+          alt={altText}
         />
 
         <img
