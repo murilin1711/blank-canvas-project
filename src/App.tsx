@@ -14,7 +14,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/sobre" element={<SobrePage />} />
         <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
-        <Route path="/escolas/colegio-militar/produto:id" element={<Produto1Page />} />
+        <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
       </Routes>
       <Toaster position="top-right" richColors />
     </BrowserRouter>
