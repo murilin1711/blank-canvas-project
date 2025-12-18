@@ -11,6 +11,7 @@ export default function Produto6Page() {
       price="R$ 349,90"
       images={[uniformeImage, uniformeImage, uniformeImage]}
       sizes={["PP", "P", "M", "G", "GG"]}
+      productId={6}
     />
   );
 }

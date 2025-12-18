@@ -1,8 +1,13 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Search, User, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
+  const navigate = useNavigate();
+  const { itemCount } = useCart();
+  const { user, signOut } = useAuth();
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -20,6 +25,15 @@ const Header = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleAccountClick = () => {
+    if (user) {
+      // If logged in, could show profile dropdown or navigate to profile
+      navigate('/auth');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   return (
     <>
@@ -97,15 +111,22 @@ const Header = () => {
               </div>
 
               {/* Account */}
-              <Link to="/my-account" aria-label="Log in" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
-                <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+              <button 
+                onClick={handleAccountClick}
+                aria-label="Log in" 
+                className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md"
+              >
+                <User className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${user ? 'text-[#2e3091]' : ''}`} />
+                {user && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                )}
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-                  Minha Conta
+                  {user ? 'Minha Conta' : 'Entrar'}
                 </span>
-              </Link>
+              </button>
 
               {/* Wishlist */}
-              <Link to="/wishlist" aria-label="Wishlist" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
+              <Link to="/favoritos" aria-label="Wishlist" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
                 <Heart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   Favoritos
@@ -113,16 +134,16 @@ const Header = () => {
               </Link>
 
               {/* Cart */}
-              <button aria-label="open cart" className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap">
+              <Link to="/checkout" aria-label="open cart" className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap">
                 <span className="text-[13px] font-normal tracking-[-0.02em]">Carrinho</span>
                 <ShoppingCart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center">
-                  0
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
+                  {itemCount}
                 </div>
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   Ver Carrinho
                 </span>
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -147,15 +168,18 @@ const Header = () => {
           </Link>
 
           <div className="flex items-center gap-2 z-50">
-            <button aria-label="Carrinho" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <Link to="/checkout" aria-label="Carrinho" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               <ShoppingCart size={20} />
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center">
-                0
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
+                {itemCount}
               </div>
-            </button>
-            <Link to="/my-account" aria-label="Perfil" className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
-              <User size={20} />
             </Link>
+            <button onClick={handleAccountClick} aria-label="Perfil" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+              <User size={20} className={user ? 'text-[#2e3091]' : ''} />
+              {user && (
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+              )}
+            </button>
           </div>
         </div>
 
@@ -214,6 +238,41 @@ const Header = () => {
                       )}
                     </li>
                   ))}
+                  
+                  {/* Mobile menu extras */}
+                  <li className="border-t border-gray-200 pt-4 mt-4">
+                    <Link
+                      to="/favoritos"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors duration-300"
+                    >
+                      <Heart size={20} />
+                      Meus Favoritos
+                    </Link>
+                  </li>
+                  <li>
+                    {user ? (
+                      <button
+                        onClick={() => {
+                          signOut();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center gap-3 font-suisse text-[16px] font-medium text-red-600 py-3 px-4 rounded-lg hover:bg-red-50 transition-colors duration-300 w-full text-left"
+                      >
+                        <User size={20} />
+                        Sair da Conta
+                      </button>
+                    ) : (
+                      <Link
+                        to="/auth"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 font-suisse text-[16px] font-medium text-[#2e3091] py-3 px-4 rounded-lg hover:bg-blue-50 transition-colors duration-300"
+                      >
+                        <User size={20} />
+                        Entrar / Criar Conta
+                      </Link>
+                    )}
+                  </li>
                 </ul>
               </nav>
             </div>
