@@ -10,6 +10,7 @@ export default function Produto1Page() {
       productDescription="Camisa polo oficial do Colégio Militar, confeccionada em malha piquet de algodão com acabamento premium. Modelagem confortável e durável para o dia a dia escolar."
       price="R$ 89,90"
       images={[uniformeImage, uniformeImage, uniformeImage]}
+      productId={1}
     />
   );
 }

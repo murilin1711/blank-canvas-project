@@ -8,6 +8,7 @@ import Home from '@/app/page';
 import SobrePage from '@/app/sobre/page';
 import AuthPage from '@/app/auth/page';
 import CheckoutPage from '@/app/checkout/page';
+import FavoritosPage from '@/app/favoritos/page';
 import ColegioMilitarPage from '@/app/escolas/colegio-militar/page';
 import Produto1Page from '@/app/escolas/colegio-militar/produto1/page';
 import Produto2Page from '@/app/escolas/colegio-militar/produto2/page';
@@ -28,6 +29,7 @@ function App() {
               <Route path="/sobre" element={<SobrePage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/favoritos" element={<FavoritosPage />} />
               <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
               <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
               <Route path="/escolas/colegio-militar/produto2" element={<Produto2Page />} />

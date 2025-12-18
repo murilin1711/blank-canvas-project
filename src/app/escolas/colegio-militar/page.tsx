@@ -16,7 +16,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Heart,
+  ShoppingCart,
 } from "lucide-react";
+import Footer from "@/components/sections/footer";
+import { useCart } from "@/contexts/CartContext";
+import { useFavorites } from "@/contexts/FavoritesContext";
+import { LoginRequiredModal } from "@/components/LoginRequiredModal";
+import { toast } from "sonner";
 
 /* -------------------- Tipos -------------------- */
 type Product = {
@@ -78,6 +85,9 @@ const initialProducts: Product[] = [
 /* -------------------- Componente -------------------- */
 export default function LojaEstiloOsklen() {
   const navigate = useNavigate();
+  const { addItem } = useCart();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [products] = useState<Product[]>(initialProducts);
   const [queryProducts, setQueryProducts] = useState<Product[]>(products);
 
@@ -291,14 +301,30 @@ export default function LojaEstiloOsklen() {
   }
 
   function confirmAddToCart() {
-    if (!modalProduct) return;
-    // Aqui você pode adicionar a lógica para adicionar ao carrinho
-    console.log(
-      `Adicionado ao carrinho: ${modalProduct.name}, Tamanho: ${modalSelectedSize}`
-    );
+    if (!modalProduct || !modalSelectedSize) {
+      toast.error("Selecione um tamanho");
+      return;
+    }
+    addItem({
+      productId: modalProduct.id,
+      productName: modalProduct.name,
+      productImage: modalProduct.images[0],
+      price: modalProduct.price,
+      size: modalSelectedSize,
+      quantity: 1,
+      schoolSlug: "colegio-militar",
+    });
     setOpenAddModal(false);
     setModalProduct(null);
     setModalSelectedSize(null);
+  }
+
+  async function handleFavoriteClick(e: MouseEvent, productId: number) {
+    e.stopPropagation();
+    const success = await toggleFavorite(productId, "colegio-militar");
+    if (!success) {
+      setShowLoginModal(true);
+    }
   }
 
   // New: handle clicking the image — ignore if last interaction was a drag/swipe
@@ -317,34 +343,18 @@ export default function LojaEstiloOsklen() {
   const columns = isSmallScreen ? columnsMobile : columnsDesktop;
 
   return (
-    <div className="min-h-screen bg-white antialiased text-[15px]">
-      {/* ===== Header fixo ===== */}
-      <header className="sticky top-0 z-50 bg-white border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {/* menu mobile removido por pedido do usuário (3 pontos) */}
-
-            <div className="flex flex-col select-none">
-              <span className="uppercase text-xs tracking-widest font-medium text-[#2e3091] mb-1 md:mb-2">
-                loja
-              </span>
-              <div className="text-2xl font-medium text-[#2e3091] md:mb-0">
-                <span className="capitalize">colégio militar</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setShowFiltersModal(true)}
-              className="hidden md:flex items-center gap-2 text-sm px-3 py-2 rounded-full border border-neutral-200 hover:border-neutral-800 transition"
-            >
-              <ChevronDown className="w-4 h-4" />
-              Filtrar
-            </button>
+    <div className="min-h-screen bg-white antialiased text-[15px] pt-[100px]">
+      {/* ===== Título da loja ===== */}
+      <div className="max-w-7xl mx-auto px-6 pb-4">
+        <div className="flex flex-col select-none">
+          <span className="uppercase text-xs tracking-widest font-medium text-[#2e3091] mb-1 md:mb-2">
+            loja
+          </span>
+          <div className="text-2xl font-medium text-[#2e3091] md:mb-0">
+            <span className="capitalize">colégio militar</span>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* ===== Top controls ===== */}
       <div className="max-w-7xl mx-auto px-6 py-6">
@@ -433,8 +443,18 @@ export default function LojaEstiloOsklen() {
         >
           {queryProducts.map((p) => {
             const idx = getActiveIndex(p.id);
+            const isFav = isFavorite(p.id, "colegio-militar");
             return (
               <article key={p.id} className="group relative">
+                {/* Botão de favorito */}
+                <button
+                  onClick={(e) => handleFavoriteClick(e, p.id)}
+                  className="absolute top-3 right-3 z-30 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+                  aria-label={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                >
+                  <Heart className={`w-4 h-4 ${isFav ? "fill-red-500 text-red-500" : "text-gray-600"}`} />
+                </button>
+                
                 {/* Container da imagem com efeito de zoom */}
                 <div
                   className="relative w-full overflow-hidden rounded-2xl bg-neutral-100 aspect-[9/12] group-hover:scale-105 transition-transform duration-300 cursor-pointer"
@@ -758,6 +778,10 @@ export default function LojaEstiloOsklen() {
           cursor: pointer;
         }
       `}</style>
+
+      <LoginRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+      
+      <Footer />
     </div>
   );
 }
