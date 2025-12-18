@@ -100,11 +100,13 @@ const CategoryShowcase = () => {
         </div>
 
         <div className="text-center mt-10 md:mt-14 max-w-2xl mx-auto">
-          <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-between bg-gradient-to-br from-muted/50 to-muted rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)]">
-            <p className="text-foreground/80 text-body-lg mb-4 !whitespace-pre-line">
+          <div className="p-8 md:p-12 lg:p-16 flex flex-col items-center justify-between bg-background-secondary rounded-2xl">
+            <p className="text-text-secondary text-body-lg md:text-xl leading-relaxed mb-6">
               Independente do seu segmento, temos a solução ideal para uniformes.
             </p>
-            <Button className="mx-auto">Falar com um consultor</Button>
+            <button className="bg-[#2e3091] text-white px-8 py-3 rounded-full text-btn font-medium hover:bg-[#252a7a] transition-colors">
+              Falar com um consultor
+            </button>
           </div>
         </div>
       </div>
