@@ -151,21 +151,21 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted, isMobile]);
 
   return (
-    <section className="relative w-full pt-[80px] md:pt-[100px] min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative w-full pt-[80px] md:pt-[100px] min-h-[100svh] flex items-center justify-center overflow-hidden">
       
       {/* Background Videos - SEMPRE sem áudio */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 flex items-center justify-center">
         {slides.map((slide, index) =>
         slide.type === 'video' ?
         <div
           key={`bg-${index}`}
-          className={`absolute inset-0 transition-opacity duration-1000 !w-full !h-[652px] ${
+          className={`absolute inset-0 transition-opacity duration-1000 ${
           index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
           }>
 
               <video
             ref={(el) => {bgVideoRefs.current[index] = el;}}
-            className="object-cover blur-md !w-full !h-[618px] !max-w-full"
+            className="w-full h-full object-cover blur-md scale-110"
             autoPlay
             loop
             muted={true}
@@ -174,7 +174,7 @@ const HeroBanner = () => {
 
                 <source src={slide.url} type="video/mp4" />
               </video>
-              <div className="absolute inset-0 bg-black/20 !w-full !h-[622px]" aria-hidden="true" />
+              <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
             </div> :
         null
         )}
@@ -183,9 +183,9 @@ const HeroBanner = () => {
       {/* Slides Container */}
       <div
         id="hero-banner"
-        className="relative z-10 flex items-center justify-center p-4 md:p-6 lg:p-8 !w-full !h-1/4">
+        className="relative z-10 flex items-center justify-center w-full h-full px-4 py-8 md:px-6 md:py-10 lg:px-8 lg:py-12">
 
-        <div className="relative w-full max-w-full md:max-w-[85%] lg:max-w-[70%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
+        <div className="relative w-full max-w-[90%] md:max-w-[75%] lg:max-w-[60%] xl:max-w-[55%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-[9/16] md:aspect-video">
           
           {slides.map((slide, index) =>
           <div
