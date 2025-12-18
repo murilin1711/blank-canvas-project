@@ -20,19 +20,29 @@ const CategoryShowcase = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                 style={{
-                  backgroundImage: 'url(https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/grupo-de-homens-confiantes-em-uniformes-azuis-posando-em-um-cenario-de-fabrica-1765251165935.jpg?width=8000&height=8000&resize=contain)'
+                  backgroundImage:
+                    'url(https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/grupo-de-homens-confiantes-em-uniformes-azuis-posando-em-um-cenario-de-fabrica-1765251165935.jpg?width=8000&height=8000&resize=contain)',
                 }}
-                aria-label="Uniforme empresarial para empresas" />
+                aria-label="Uniforme empresarial para empresas"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-foreground/20 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
                 <div className="bg-background/90 backdrop-blur-sm rounded-xl p-5 md:p-6 shadow-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-h3 text-primary">
-                      Empresarial
-                    </h3>
+                    <h3 className="text-h3 text-primary">Empresarial</h3>
                     <div className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-full group-hover:bg-primary/90 transition-colors">
-                      <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      <svg
+                        className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -52,19 +62,29 @@ const CategoryShowcase = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                 style={{
-                  backgroundImage: 'url(https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/medio-tiro-jovem-camisa-dobravel-1765251332163.jpg?width=8000&height=8000&resize=contain)'
+                  backgroundImage:
+                    'url(https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/medio-tiro-jovem-camisa-dobravel-1765251332163.jpg?width=8000&height=8000&resize=contain)',
                 }}
-                aria-label="Personalização de uniformes" />
+                aria-label="Personalização de uniformes"
+              />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-foreground/20 to-transparent" />
               <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
                 <div className="bg-background/90 backdrop-blur-sm rounded-xl p-5 md:p-6 shadow-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-h3 text-primary">
-                      Personalização
-                    </h3>
+                    <h3 className="text-h3 text-primary">Personalização</h3>
                     <div className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-full group-hover:bg-primary/90 transition-colors">
-                      <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      <svg
+                        className="w-5 h-5 transform group-hover:translate-x-1 transition-transform"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M14 5l7 7m0 0l-7 7m7-7H3"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -85,9 +105,7 @@ const CategoryShowcase = () => {
             <p className="text-foreground/80 text-body-lg mb-4 !whitespace-pre-line">
               Independente do seu segmento, temos a solução ideal para uniformes.
             </p>
-            <Button className="mx-auto">
-              Falar com um consultor
-            </Button>
+            <Button className="mx-auto">Falar com um consultor</Button>
           </div>
         </div>
       </div>

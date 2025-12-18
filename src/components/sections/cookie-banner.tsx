@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 
 const COOKIE_CONSENT_KEY = "osklen_cookie_consent_dismissed";
 
@@ -44,12 +43,13 @@ export default function CookieBanner() {
       <div className="max-w-[1440px] mx-auto px-4 md:px-6 lg:px-[30px] py-4">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8">
           <div className="text-center lg:text-left">
-            <h3 className="font-semibold text-body-lg text-foreground">
-              Cookies
-            </h3>
+            <h3 className="font-semibold text-body-lg text-foreground">Cookies</h3>
             <p className="mt-2 text-body-regular text-muted-foreground max-w-lg">
               Utilizamos cookies para melhorar a sua experiência no site. Ao continuar navegando, você concorda com a nossa{" "}
-              <Link to="/politica-de-privacidade" className="underline hover:text-foreground transition-colors">
+              <Link
+                to="/politica-de-privacidade"
+                className="underline hover:text-foreground transition-colors"
+              >
                 Política de Privacidade
               </Link>
               .
@@ -68,7 +68,10 @@ export default function CookieBanner() {
               aria-label="Fechar aviso de cookies"
               className="w-7 h-7 flex items-center justify-center rounded-full bg-muted hover:bg-border transition-colors group"
             >
-              <X size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+              <X
+                size={16}
+                className="text-muted-foreground group-hover:text-foreground transition-colors"
+              />
             </button>
           </div>
         </div>
