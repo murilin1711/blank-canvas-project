@@ -186,7 +186,7 @@ const ProductCard = ({ product }: { product: Product }) => {
             )}
 
             <Button
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
                 goToProduct();
               }}
