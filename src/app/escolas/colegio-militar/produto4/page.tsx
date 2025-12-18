@@ -10,6 +10,7 @@ export default function Produto4Page() {
       productDescription="Jaqueta oficial do Colégio Militar em tecido impermeável. Perfeita para dias mais frios, com forro térmico e bolsos frontais."
       price="R$ 159,90"
       images={[uniformeImage, uniformeImage, uniformeImage]}
+      productId={4}
     />
   );
 }
