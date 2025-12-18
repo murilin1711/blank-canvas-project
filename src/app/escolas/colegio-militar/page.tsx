@@ -28,71 +28,49 @@ type Product = {
 };
 
 /* -------------------- Dados (exemplo) -------------------- */
+const uniformeImage = "https://www.iovinouniformes.com.br/image/cache/catalog/produtos-unisex/camiseta-cpmg-550x691.jpg";
+
 const initialProducts: Product[] = [
   {
     id: 1,
-    name: "Camisa Nature Jacquard Atoalhado",
-    price: 697,
-    images: [
-      "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=80",
-    ],
+    name: "Camisa Polo Masculina",
+    price: 89.90,
+    images: [uniformeImage, uniformeImage, uniformeImage],
     category: "Camisas",
   },
   {
     id: 2,
-    name: "Bermuda Jacquard Daisy",
-    price: 597,
-    images: [
-      "https://images.unsplash.com/photo-1539533113208-f6df8cc8b543?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1503342452485-86f7b3e8c2a6?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1544441893-675973e31985?auto=format&fit=crop&w=1200&q=80",
-    ],
-    category: "Bermudas",
-  },
-  {
-    id: 3,
-    name: "T-Shirt Light Linen Alma Brasileira",
-    price: 447,
-    images: [
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1542060746-1a44a1d8b3a9?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1574180045827-681f8a1a9622?auto=format&fit=crop&w=1200&q=80",
-    ],
+    name: "Camiseta Básica Manga Curta",
+    price: 59.90,
+    images: [uniformeImage, uniformeImage, uniformeImage],
     category: "Camisetas",
   },
   {
-    id: 4,
-    name: "Calça Alfaiataria Fluid Linen",
-    price: 847,
-    images: [
-      "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1520975915768-6c6b7b2a5b2b?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=1200&q=80",
-    ],
+    id: 3,
+    name: "Calça Social Masculina",
+    price: 129.90,
+    images: [uniformeImage, uniformeImage, uniformeImage],
     category: "Calças",
   },
   {
+    id: 4,
+    name: "Bermuda Escolar",
+    price: 79.90,
+    images: [uniformeImage, uniformeImage, uniformeImage],
+    category: "Bermudas",
+  },
+  {
     id: 5,
-    name: "Boina Urban",
-    price: 119,
-    images: [
-      "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1585386959984-a41552296b45?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80",
-    ],
+    name: "Jaqueta Escolar",
+    price: 159.90,
+    images: [uniformeImage, uniformeImage, uniformeImage],
     category: "Acessórios",
   },
   {
     id: 6,
-    name: "Kit Completo Minimal",
-    price: 349,
-    images: [
-      "https://www.iovinouniformes.com.br/image/cache/catalog/produtos-unisex/camiseta-cpmg-550x691.jpg",
-      "https://www.iovinouniformes.com.br/image/cache/catalog/produtos-unisex/camiseta-cpmg-550x691.jpg",
-      "https://www.iovinouniformes.com.br/image/cache/catalog/produtos-unisex/camiseta-cpmg-550x691.jpg",
-    ],
+    name: "Kit Completo",
+    price: 349.90,
+    images: [uniformeImage, uniformeImage, uniformeImage],
     category: "Kits",
   },
 ];
@@ -120,7 +98,7 @@ export default function LojaEstiloOsklen() {
   const [search, setSearch] = useState("");
 
   const [columnsDesktop, setColumnsDesktop] = useState<number>(4);
-  const columnsMobile = 2;
+  const [columnsMobile, setColumnsMobile] = useState<number>(2);
 
   const [isSmallScreen, setIsSmallScreen] = useState<boolean>(
     typeof window !== "undefined" ? window.innerWidth < 768 : true
@@ -406,7 +384,8 @@ export default function LojaEstiloOsklen() {
               <ChevronDown className="w-4 h-4 text-neutral-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Desktop columns selector */}
+            <div className="hidden md:flex items-center gap-2">
               <label className="text-sm text-neutral-600">Itens por linha</label>
               <select
                 value={columnsDesktop}
@@ -419,6 +398,21 @@ export default function LojaEstiloOsklen() {
                 <option value={2}>2</option>
                 <option value={3}>3</option>
                 <option value={4}>4</option>
+              </select>
+            </div>
+
+            {/* Mobile columns selector */}
+            <div className="flex md:hidden items-center gap-2">
+              <label className="text-sm text-neutral-600">Colunas</label>
+              <select
+                value={columnsMobile}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  setColumnsMobile(Number(e.target.value))
+                }
+                className="border border-neutral-200 px-3 py-2 rounded text-sm"
+              >
+                <option value={1}>1</option>
+                <option value={2}>2</option>
               </select>
             </div>
 
