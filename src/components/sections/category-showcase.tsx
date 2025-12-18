@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 const CategoryShowcase = () => {
   return (
@@ -17,7 +17,7 @@ const CategoryShowcase = () => {
         {/* Grid de categorias */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
           {/* Seção Empresarial */}
-          <Link to="/empresarial" className="block group">
+          <Link href="/empresarial" className="block group">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 hover:border-blue-200 transition-all duration-300 hover:shadow-xl h-[400px] md:h-[450px]">
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -58,7 +58,7 @@ const CategoryShowcase = () => {
           </Link>
 
           {/* Seção Personalização */}
-          <Link to="/personalizacao" className="block group">
+          <Link href="/personalizacao" className="block group">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-100 hover:border-purple-200 transition-all duration-300 hover:shadow-xl h-[400px] md:h-[450px]">
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"

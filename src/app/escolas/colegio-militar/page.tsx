@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   Plus,
@@ -92,7 +92,7 @@ const initialProducts: Product[] = [
 
 /* -------------------- Componente -------------------- */
 export default function LojaEstiloOsklen() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [products] = useState<Product[]>(initialProducts);
   const [queryProducts, setQueryProducts] = useState<Product[]>(products);
 
@@ -329,7 +329,7 @@ export default function LojaEstiloOsklen() {
       return; // ignore click because user just dragged/swiped
     }
     // navigate to product page (use id-based path)
-    navigate(`/escolas/colegio-militar/produto${p.id}`);
+    router.push(`/escolas/colegio-militar/produto${p.id}`);
   }
 
   const columns = isSmallScreen ? columnsMobile : columnsDesktop;

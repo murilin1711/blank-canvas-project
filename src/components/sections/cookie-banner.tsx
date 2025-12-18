@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 const COOKIE_CONSENT_KEY = "osklen_cookie_consent_dismissed";
 
@@ -49,7 +49,7 @@ export default function CookieBanner() {
             </h3>
             <p className="mt-2 text-[13px] text-text-tertiary tracking-[-0.02em] leading-snug max-w-lg">
               Utilizamos cookies para melhorar a sua experiência no site. Ao continuar navegando, você concorda com a nossa{" "}
-              <Link to="/politica-de-privacidade" className="underline hover:text-text-primary transition-colors">
+              <Link href="/politica-de-privacidade" className="underline hover:text-text-primary transition-colors">
                 Política de Privacidade
               </Link>
               .

@@ -1,8 +1,9 @@
 'use client';
 
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Search, User, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import Image from 'next/image';
 
 const Header = () => {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -40,8 +41,8 @@ const Header = () => {
                     <li key={item} className="relative group">
                       {item === "Sobre" ? (
                         <Link
-                          to="/sobre"
-                          className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm flex items-center"
+                          href="/sobre"
+                          className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm"
                         >
                           {item}
                         </Link>
@@ -62,12 +63,15 @@ const Header = () => {
 
             {/* Center Logo */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <Link to="/" aria-label="Ir para a página inicial/home">
+              <Link href="/" aria-label="Ir para a página inicial/home">
                 <div className="flex items-center justify-center">
-                  <img
+                  <Image
                     src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
                     alt="Goiás Minas Uniformes Logo"
+                    width={320}
+                    height={170}
                     className="object-contain !w-auto !h-[120px] transition-transform duration-300 hover:scale-105"
+                    priority
                   />
                 </div>
               </Link>
@@ -99,20 +103,20 @@ const Header = () => {
               </div>
 
               {/* Account */}
-              <Link to="/my-account" aria-label="Log in" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
+              <a href="/my-account" aria-label="Log in" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
                 <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   Minha Conta
                 </span>
-              </Link>
+              </a>
 
               {/* Wishlist */}
-              <Link to="/wishlist" aria-label="Wishlist" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
+              <a href="/wishlist" aria-label="Wishlist" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
                 <Heart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   Favoritos
                 </span>
-              </Link>
+              </a>
 
               {/* Cart */}
               <button aria-label="open cart" className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap">
@@ -140,11 +144,14 @@ const Header = () => {
             </button>
           </div>
 
-          <Link to="/" aria-label="Ir para a página inicial/home" className="absolute left-1/2 -translate-x-1/2 z-40">
-            <img
+          <Link href="/" aria-label="Ir para a página inicial/home" className="absolute left-1/2 -translate-x-1/2 z-40">
+            <Image
               src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
               alt="Goiás Minas Uniformes Logo"
+              width={120}
+              height={120}
               className="object-contain w-[120px] h-[120px]"
+              priority
             />
           </Link>
 
@@ -155,9 +162,9 @@ const Header = () => {
                 0
               </div>
             </button>
-            <Link to="/my-account" aria-label="Perfil" className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <a href="/my-account" aria-label="Perfil" className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               <User size={20} />
-            </Link>
+            </a>
           </div>
         </div>
 
@@ -172,7 +179,7 @@ const Header = () => {
                     <li key={item}>
                       {item === "Sobre" ? (
                         <Link
-                          to="/sobre"
+                          href="/sobre"
                           onClick={() => setMobileMenuOpen(false)}
                           className="block font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors duration-300 hover:scale-105 hover:shadow-sm w-full text-left"
                         >
@@ -196,7 +203,7 @@ const Header = () => {
                             <ul className="pl-6 mt-2 space-y-2">
                               <li>
                                 <Link
-                                  to="/escolas/colegio-militar"
+                                  href="/escolas/colegio-militar"
                                   onClick={() => setMobileMenuOpen(false)}
                                   className="block text-[#2e3091] font-bold text-[15px] hover:underline"
                                 >
@@ -240,7 +247,7 @@ const Header = () => {
                 {item === "Escolas" ? (
                   <div className="flex flex-col items-center gap-4">
                     <Link
-                      to="/escolas/colegio-militar"
+                      href="/escolas/colegio-militar"
                       className="text-[#2e3091] font-bold text-lg hover:underline"
                     >
                       Colégio Militar
