@@ -6,10 +6,10 @@ const CategoryShowcase = () => {
     <section className="px-4 md:px-6 lg:px-8 py-10 md:py-14 lg:py-20 bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10 md:mb-14 lg:mb-16">
-          <h2 className="text-3xl md:text-4xl lg:text-5xl text-[#2e3091] mb-3 md:mb-4 italic font-serif">
+          <h2 className="text-3xl font-medium text-[#2e3091] mb-3 md:mb-4">
             Conheça Nossos Ramos
           </h2>
-          <p className="text-gray-500 text-base md:text-lg max-w-2xl mx-auto">
+          <p className="text-gray-600 max-w-2xl mx-auto">
             Soluções especializadas em uniformes para diferentes necessidades
           </p>
         </div>
