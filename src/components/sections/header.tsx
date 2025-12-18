@@ -59,7 +59,7 @@ const Header = () => {
             </div>
 
             {/* Center Logo */}
-            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
               <Link to="/" aria-label="Ir para a página inicial/home">
                 <div className="flex items-center justify-center">
                   <img
