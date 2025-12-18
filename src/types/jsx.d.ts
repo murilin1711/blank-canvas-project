@@ -1,10 +1,20 @@
-import type React from "react";
+/// <reference types="react" />
+/// <reference types="react-dom" />
 
-// Ensures JSX types are available even with a Next-style tsconfig (jsx: preserve)
-// in a Vite + React project.
+// Global JSX namespace declaration for Vite + React projects
 declare global {
   namespace JSX {
-    interface IntrinsicElements extends React.JSX.IntrinsicElements {}
+    type Element = React.ReactElement<any, any>;
+    interface ElementClass extends React.Component<any> {
+      render(): React.ReactNode;
+    }
+    interface ElementAttributesProperty {
+      props: {};
+    }
+    interface ElementChildrenAttribute {
+      children: {};
+    }
+    type IntrinsicElements = React.JSX.IntrinsicElements;
   }
 }
 
