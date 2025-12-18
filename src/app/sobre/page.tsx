@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 export default function SobrePage() {
   return (
     <main className="bg-white">
@@ -21,12 +19,10 @@ export default function SobrePage() {
           
           {/* IMAGEM */}
           <div className="relative w-full h-[420px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
-            <Image
+            <img
               src="https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?q=80&w=1600&auto=format&fit=crop"
               alt="Goiás Minas Uniformes"
-              fill
-              className="object-cover"
-              priority
+              className="object-cover w-full h-full"
             />
           </div>
 
@@ -68,4 +64,3 @@ export default function SobrePage() {
     </main>
   );
 }
-

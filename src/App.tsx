@@ -9,6 +9,9 @@ import StoreLocator from '@/components/sections/store-locator';
 import FibrasNobresBanner from '@/components/sections/fibras-nobres-banner';
 import Footer from '@/components/sections/footer';
 import CookieBanner from '@/components/sections/cookie-banner';
+import SobrePage from '@/app/sobre/page';
+import LojaColegioMilitar from '@/app/escolas/colegio-militar/page';
+import Produto1Page from '@/app/escolas/colegio-militar/produto1/page';
 
 function HomePage() {
   return (
@@ -45,6 +48,10 @@ function App() {
       <div className="pt-24">
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/sobre" element={<SobrePage />} />
+          <Route path="/escolas/colegio-militar" element={<LojaColegioMilitar />} />
+          <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
+          <Route path="/escolas/colegio-militar/produto:id" element={<Produto1Page />} />
         </Routes>
       </div>
     </>

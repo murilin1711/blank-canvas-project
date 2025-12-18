@@ -128,6 +128,21 @@
   ::file-selector-button {
     border-color: var(--color-border);
   }
+
+  /* Cursor pointer para todos os elementos clicáveis */
+  a,
+  button,
+  [role="button"],
+  [type="button"],
+  [type="submit"],
+  [type="reset"],
+  select,
+  summary,
+  [tabindex]:not([tabindex="-1"]),
+  label[for],
+  .clickable {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {

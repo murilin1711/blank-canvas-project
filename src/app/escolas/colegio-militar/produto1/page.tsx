@@ -1,19 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
  * Produto 1 — Página com Fit Finder atualizado
- * Alterações pedidas:
- * - Remove passo "como você usa" do finder
- * - Seleção de tamanho com fundo azul total + texto branco
- * - Tipografia principal mais bold
- * - Hover shadow nos botões
- * - Cursor pointer em todos elementos clicáveis
- * - Galeria: clicar thumb torna principal; clicar principal avança imagem
- * - Encontrar minha medida ideal mais destacado (botão preenchido azul)
  */
 
 export default function Produto1Page() {
@@ -30,25 +21,20 @@ export default function Produto1Page() {
 
   /* FIT FINDER (painel lateral) */
   const [openFitFinder, setOpenFitFinder] = useState(false);
-  const [fitStep, setFitStep] = useState(1); // 1 = perfil, 2 = resultado
+  const [fitStep, setFitStep] = useState(1);
 
-  const [altura, setAltura] = useState(175); // cm
-  const [peso, setPeso] = useState(74); // kg
+  const [altura, setAltura] = useState(175);
+  const [peso, setPeso] = useState(74);
   const [sexo, setSexo] = useState<"m" | "f" | null>(null);
 
   /* Resultado (mock) */
   const computeRecommendedSize = (): string => {
-    // algoritmo fictício baseado em BMI e altura — só placeholder
     const h = altura / 100;
     const bmi = peso / (h * h);
-
-    // ajuste por sexo (simples)
     let adjust = 0;
     if (sexo === "m") adjust = 0;
     if (sexo === "f") adjust = -0.2;
-
     const score = bmi + adjust;
-
     if (score < 20) return "P";
     if (score < 24.5) return "M";
     if (score < 29) return "G";
@@ -76,12 +62,10 @@ export default function Produto1Page() {
             role="button"
             aria-label="Avançar imagem"
           >
-            <Image
+            <img
               src={productImages[activeIndex]}
               alt="Imagem principal do produto"
-              fill
-              className="object-cover"
-              priority
+              className="object-cover w-full h-full"
             />
           </div>
 
@@ -90,13 +74,13 @@ export default function Produto1Page() {
               <div
                 key={img + i}
                 onClick={() => setActiveIndex(i)}
-                className={`relative aspect-square rounded-xl overflow-hidden transition-transform transform ${
+                className={`relative aspect-square rounded-xl overflow-hidden transition-transform transform cursor-pointer ${
                   activeIndex === i ? "scale-105 ring-2 ring-[#2e3091]" : "hover:scale-[1.03]"
                 }`}
                 role="button"
                 aria-label={`Mostrar imagem ${i + 1}`}
               >
-                <Image src={img} alt={`Imagem ${i + 1}`} fill className="object-cover" />
+                <img src={img} alt={`Imagem ${i + 1}`} className="object-cover w-full h-full" />
               </div>
             ))}
           </div>
@@ -108,12 +92,10 @@ export default function Produto1Page() {
             Colégio Militar
           </span>
 
-          {/* título principal mais bold */}
           <h1 className="text-2xl font-semibold text-neutral-900 leading-tight">
             Camisa Nature Jacquard Atoalhado
           </h1>
 
-          {/* preço mais forte */}
           <p className="mt-4 text-xl font-bold text-neutral-900">
             R$ 697,00
           </p>
@@ -133,13 +115,12 @@ export default function Produto1Page() {
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 rounded-md text-sm transition-shadow focus:outline-none ${
+                    className={`px-4 py-2 rounded-md text-sm transition-shadow focus:outline-none cursor-pointer ${
                       selected
                         ? "bg-[#2e3091] text-white font-semibold"
                         : "bg-white text-neutral-800 border border-neutral-200 hover:shadow-md"
-                    } cursor-pointer`}
+                    }`}
                     aria-pressed={selected}
-                    role="button"
                   >
                     {size}
                   </button>
@@ -147,7 +128,6 @@ export default function Produto1Page() {
               })}
             </div>
 
-            {/* Encontrar minha medida ideal - agora mais visível (botão preenchido azul) */}
             <div className="mt-4 flex gap-3">
               <button
                 onClick={() => {
@@ -159,12 +139,8 @@ export default function Produto1Page() {
                 Encontrar minha medida ideal
               </button>
 
-              {/* adicionar ao carrinho menos destacado (outline), conforme pedido */}
               <button
                 className="flex-1 border border-neutral-300 py-3 rounded-md text-sm font-semibold hover:shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer bg-white text-neutral-900"
-                onClick={() => {
-                  /* placeholder: ação adicionar */
-                }}
               >
                 Adicionar ao carrinho
               </button>
@@ -177,23 +153,18 @@ export default function Produto1Page() {
         </div>
       </div>
 
-      {/* =========================
-         FIT FINDER (PAINEL LATERAL)
-         - agora com duas etapas: perfil -> resultado
-      ========================= */}
+      {/* FIT FINDER (PAINEL LATERAL) */}
       <AnimatePresence>
         {openFitFinder && (
           <>
-            {/* backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.36 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black z-40"
+              className="fixed inset-0 bg-black z-40 cursor-pointer"
               onClick={() => setOpenFitFinder(false)}
             />
 
-            {/* painel */}
             <motion.aside
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
@@ -203,7 +174,6 @@ export default function Produto1Page() {
               role="dialog"
               aria-modal="true"
             >
-              {/* progresso sutil */}
               <div className="h-1 w-full bg-neutral-100 rounded mb-6 overflow-hidden">
                 <div
                   className="h-full bg-[#2e3091] transition-all"
@@ -211,7 +181,6 @@ export default function Produto1Page() {
                 />
               </div>
 
-              {/* ETAPA 1: perfil */}
               {fitStep === 1 && (
                 <div className="flex flex-col gap-6">
                   <h2 className="text-lg font-semibold">Seu perfil</h2>
@@ -224,7 +193,7 @@ export default function Produto1Page() {
                       max={200}
                       value={altura}
                       onChange={(e) => setAltura(Number(e.target.value))}
-                      className="w-full"
+                      className="w-full cursor-pointer"
                     />
                   </div>
 
@@ -236,33 +205,32 @@ export default function Produto1Page() {
                       max={140}
                       value={peso}
                       onChange={(e) => setPeso(Number(e.target.value))}
-                      className="w-full"
+                      className="w-full cursor-pointer"
                     />
                   </div>
 
                   <div className="flex gap-3">
                     <button
-  onClick={() => setSexo("m")}
-  className={`flex-1 py-3 border rounded-md text-sm font-semibold transition ${
-    sexo === "m"
-      ? "border-[#2e3091] text-[#2e3091] bg-blue-50"
-      : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-  } cursor-pointer`}
->
-  Masculino
-</button>
+                      onClick={() => setSexo("m")}
+                      className={`flex-1 py-3 border rounded-md text-sm font-semibold transition cursor-pointer ${
+                        sexo === "m"
+                          ? "border-[#2e3091] text-[#2e3091] bg-blue-50"
+                          : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                      }`}
+                    >
+                      Masculino
+                    </button>
 
-<button
-  onClick={() => setSexo("f")}
-  className={`flex-1 py-3 border rounded-md text-sm font-semibold transition ${
-    sexo === "f"
-      ? "border-[#2e3091] text-[#2e3091] bg-blue-50"
-      : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
-  } cursor-pointer`}
->
-  Feminino
-</button>
-
+                    <button
+                      onClick={() => setSexo("f")}
+                      className={`flex-1 py-3 border rounded-md text-sm font-semibold transition cursor-pointer ${
+                        sexo === "f"
+                          ? "border-[#2e3091] text-[#2e3091] bg-blue-50"
+                          : "border-neutral-200 text-neutral-700 hover:bg-neutral-50"
+                      }`}
+                    >
+                      Feminino
+                    </button>
                   </div>
 
                   <div className="flex gap-3 mt-auto">
@@ -284,7 +252,6 @@ export default function Produto1Page() {
                 </div>
               )}
 
-              {/* ETAPA 2: resultado */}
               {fitStep === 2 && (
                 <div className="flex flex-col gap-4">
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4">
@@ -307,9 +274,7 @@ export default function Produto1Page() {
 
                   <div className="flex gap-3 mt-auto">
                     <button
-                      onClick={() => {
-                        setFitStep(1);
-                      }}
+                      onClick={() => setFitStep(1)}
                       className="flex-1 border border-neutral-200 py-3 rounded-md text-sm hover:shadow-sm cursor-pointer"
                     >
                       Voltar
@@ -317,7 +282,6 @@ export default function Produto1Page() {
 
                     <button
                       onClick={() => {
-                        // aplica o tamanho recomendado (placeholder: seta selectedSize)
                         setSelectedSize(recommended);
                         setOpenFitFinder(false);
                       }}
@@ -332,15 +296,6 @@ export default function Produto1Page() {
           </>
         )}
       </AnimatePresence>
-
-      {/* estilo extra local */}
-      <style>{`
-        /* Forçar cursor pointer para elementos interativos que possam não receber classes */
-        button, [role="button"], a { cursor: pointer; }
-
-        /* Sombras e transições já aplicadas via Tailwind utilities nas classes dos botões, 
-           mas mantemos esse fallback para navegadores que não suportem tudo */
-      `}</style>
     </main>
   );
 }
