@@ -1,9 +1,9 @@
 "use client";
 
 import React from 'react';
-import Image from 'next/image';
 import { CheckCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 type Product = {
   id: number;
@@ -46,15 +46,15 @@ const products: Product[] = [
 
 const ProductCard = ({ product }: { product: Product }) => {
   const isFeatured = product.featured;
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const goToProduct = () => {
-    if (product.href) router.push(product.href);
+    if (product.href) navigate(product.href);
   };
 
   return (
     <div
-      className={`flex-shrink-0 cursor-pointer ${
+      className={`flex-shrink-0 ${
         isFeatured ? "w-[300px] md:w-[320px] lg:w-[340px]" : "w-[280px] md:w-[300px] lg:w-[320px]"
       }`}
       role={product.href ? "button" : undefined}
@@ -65,23 +65,21 @@ const ProductCard = ({ product }: { product: Product }) => {
         <div
           className={`relative overflow-hidden rounded-2xl aspect-[3/4] flex items-center justify-center transition-all duration-500 ${
             isFeatured
-              ? "bg-gradient-to-b from-white to-gray-50 border-2 border-transparent shadow-lg shadow-[#2e3091]/10"
-              : "bg-gradient-to-b from-gray-50 to-gray-100 border border-gray-200"
+              ? "bg-gradient-to-b from-background to-muted border-2 border-transparent shadow-lg shadow-primary/10"
+              : "bg-gradient-to-b from-muted/50 to-muted border border-border"
           } group-hover:shadow-lg`}
         >
           {product.badge && (
-            <span className="absolute top-4 left-4 z-20 bg-[#2e3091] text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
+            <span className="absolute top-4 left-4 z-20 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
               <CheckCircle className="w-3 h-3" />
               {product.badge}
             </span>
           )}
 
           <div className="absolute inset-0 flex items-center justify-center p-6">
-            <Image
+            <img
               src={product.image1}
               alt={product.name}
-              width={400}
-              height={500}
               className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-105"
             />
           </div>
@@ -89,32 +87,28 @@ const ProductCard = ({ product }: { product: Product }) => {
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%]">
             {isFeatured && (
               <div className="text-center mb-3">
-                <h3 className="text-lg font-semibold text-gray-900 bg-white/90 py-2 px-4 rounded-lg">
+                <h3 className="text-body-lg font-semibold text-foreground bg-background/90 py-2 px-4 rounded-lg">
                   {product.name}
                 </h3>
               </div>
             )}
 
-            <button
-              type="button"
+            <Button
               onClick={(e) => {
                 e.stopPropagation();
                 goToProduct();
               }}
-              className={`cursor-pointer w-full ${
-                product.cta
-                  ? "bg-[#2e3091] hover:bg-[#252a7a] text-white"
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-              } px-6 py-3 rounded-lg text-sm font-medium transition-all shadow-md`}
+              variant={product.cta ? "default" : "secondary"}
+              className="w-full"
             >
               {product.cta ? product.cta : "Em breve"}
-            </button>
+            </Button>
           </div>
         </div>
 
         {!isFeatured && (
           <div className="mt-4 text-center">
-            <h3 className="text-base font-medium text-gray-900 group-hover:text-[#2e3091] transition-colors">
+            <h3 className="text-body-regular font-medium text-foreground group-hover:text-primary transition-colors">
               {product.name}
             </h3>
           </div>
@@ -126,13 +120,13 @@ const ProductCard = ({ product }: { product: Product }) => {
 
 const ProductCarousel = () => {
   return (
-    <section className="py-14 bg-gradient-to-b from-white to-gray-50">
+    <section className="py-14 bg-gradient-to-b from-background to-muted/30">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-medium text-[#2e3091] mb-4">
+          <h2 className="text-h2 text-primary mb-4">
             Escolas que Confiam em Nossa Qualidade
           </h2>
-          <p className="text-gray-600 max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-body-regular max-w-3xl mx-auto">
             Nossa tradição em uniformes escolares conquistou a confiança de diversas instituições de ensino
           </p>
         </div>

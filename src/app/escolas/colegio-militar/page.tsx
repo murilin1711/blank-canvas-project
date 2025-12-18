@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
   Plus,
@@ -92,7 +92,7 @@ const initialProducts: Product[] = [
 
 /* -------------------- Componente -------------------- */
 export default function LojaEstiloOsklen() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [products] = useState<Product[]>(initialProducts);
   const [queryProducts, setQueryProducts] = useState<Product[]>(products);
 
