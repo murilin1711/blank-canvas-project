@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { Search, User, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, User, Heart, ShoppingCart, Menu, X, Package, LogOut } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,6 +13,8 @@ const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState<string | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
 
   const navItems = ["Escolas", "Empresas", "Personalizadas", "Sobre", "FAQ"];
 
@@ -26,10 +28,21 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close account menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+        setAccountMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleAccountClick = () => {
     if (user) {
-      // If logged in, could show profile dropdown or navigate to profile
-      navigate('/auth');
+      setAccountMenuOpen(!accountMenuOpen);
     } else {
       navigate('/auth');
     }
@@ -111,19 +124,45 @@ const Header = () => {
               </div>
 
               {/* Account */}
-              <button 
-                onClick={handleAccountClick}
-                aria-label="Log in" 
-                className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md"
-              >
-                <User className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${user ? 'text-[#2e3091]' : ''}`} />
-                {user && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+              <div className="relative" ref={accountMenuRef}>
+                <button 
+                  onClick={handleAccountClick}
+                  aria-label={user ? "Minha Conta" : "Entrar"} 
+                  className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md"
+                >
+                  <User className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${user ? 'text-[#2e3091]' : ''}`} />
+                  {user && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                  )}
+                  <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                    {user ? 'Minha Conta' : 'Entrar'}
+                  </span>
+                </button>
+
+                {/* Account Dropdown */}
+                {accountMenuOpen && user && (
+                  <div className="absolute top-12 right-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                    <Link
+                      to="/meus-pedidos"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Package className="w-4 h-4" />
+                      Meus Pedidos
+                    </Link>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        setAccountMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sair da Conta
+                    </button>
+                  </div>
                 )}
-                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-                  {user ? 'Minha Conta' : 'Entrar'}
-                </span>
-              </button>
+              </div>
 
               {/* Wishlist */}
               <Link to="/favoritos" aria-label="Wishlist" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-black bg-white/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
