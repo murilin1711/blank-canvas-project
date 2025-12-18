@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -144,87 +144,105 @@ const ProductCard = ({ product }: { product: Product }) => {
 
   return (
     <div
-      className={`flex-shrink-0 ${
-        isFeatured
-          ? "w-[300px] md:w-[320px] lg:w-[340px]"
-          : "w-[280px] md:w-[300px] lg:w-[320px]"
-      }`}
+      className="flex-shrink-0 w-[280px] md:w-[300px] lg:w-[320px]"
       role={product.href ? "button" : undefined}
       tabIndex={product.href ? 0 : -1}
       onClick={product.href ? goToProduct : undefined}
     >
       <div className="block group h-full">
         <div
-          className={`relative overflow-hidden rounded-2xl aspect-[3/4] flex items-center justify-center transition-all duration-500 ${
+          className={`relative overflow-hidden rounded-2xl aspect-[3/4] flex items-center justify-center transition-all duration-500 bg-gradient-to-b from-muted/30 to-muted/60 ${
             isFeatured
-              ? "bg-gradient-to-b from-background to-muted border-2 border-transparent shadow-lg shadow-primary/10"
-              : "bg-gradient-to-b from-muted/50 to-muted border border-border"
-          } group-hover:shadow-lg`}
+              ? "border-2 border-primary/30 shadow-lg"
+              : "border border-border/50"
+          } group-hover:shadow-xl group-hover:border-primary/40`}
         >
+          {/* Badge */}
           {product.badge && (
-            <span className="absolute top-4 left-4 z-20 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" />
+            <span className="absolute top-4 left-4 z-20 bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-xs font-semibold shadow-md flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" />
               {product.badge}
             </span>
           )}
 
-          <div className="absolute inset-0 flex items-center justify-center p-6">
+          {/* Logo da escola */}
+          <div className="absolute inset-0 flex items-center justify-center p-8">
             <img
               src={product.image1}
               alt={product.name}
-              className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-105"
+              className="object-contain w-full h-full max-w-[180px] max-h-[180px] transition-transform duration-700 group-hover:scale-110"
             />
           </div>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[90%]">
-            {isFeatured && (
-              <div className="text-center mb-3">
-                <h3 className="text-body-lg font-semibold text-foreground bg-background/90 py-2 px-4 rounded-lg">
-                  {product.name}
-                </h3>
-              </div>
-            )}
-
+          {/* Botão de ação */}
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[85%]">
             <Button
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                 e.stopPropagation();
                 goToProduct();
               }}
               variant={product.cta ? "default" : "secondary"}
-              className="w-full"
+              className="w-full rounded-lg font-medium"
+              disabled={!product.cta}
             >
               {product.cta ? product.cta : "Em breve"}
             </Button>
           </div>
         </div>
 
-        {!isFeatured && (
-          <div className="mt-4 text-center">
-            <h3 className="text-body-regular font-medium text-foreground group-hover:text-primary transition-colors">
-              {product.name}
-            </h3>
-          </div>
-        )}
+        {/* Nome da escola */}
+        <div className="mt-4 text-center">
+          <h3 className="text-body-regular font-semibold text-foreground group-hover:text-primary transition-colors">
+            {product.name}
+          </h3>
+        </div>
       </div>
     </div>
   );
 };
 
 const ProductCarousel = () => {
+  const [activeTab, setActiveTab] = useState<'all' | 'schools'>('all');
+
   return (
-    <section className="py-14 bg-gradient-to-b from-background to-muted/30">
+    <section className="py-14 bg-background">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <h2 className="text-h2 text-primary mb-4">
             Escolas que Confiam em Nossa Qualidade
           </h2>
-          <p className="text-muted-foreground text-body-regular max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-body-regular max-w-3xl mx-auto mb-8">
             Nossa tradição em uniformes escolares conquistou a confiança de diversas instituições de ensino
           </p>
+
+          {/* Tabs */}
+          <div className="inline-flex items-center bg-muted rounded-full p-1 gap-1">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                activeTab === 'all'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Ver Tudo
+            </button>
+            <button
+              onClick={() => setActiveTab('schools')}
+              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+                activeTab === 'schools'
+                  ? 'bg-primary text-primary-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Escolas
+            </button>
+          </div>
         </div>
 
-        <div className="overflow-x-auto scrollbar-hide">
-          <div className="flex gap-8 pb-4">
+        {/* Carousel */}
+        <div className="overflow-x-auto scrollbar-hide pb-4">
+          <div className="flex gap-6 md:gap-8">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

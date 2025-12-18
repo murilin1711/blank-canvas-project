@@ -15,7 +15,7 @@ const Header = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      const bannerHeight = window.innerHeight;
+      const bannerHeight = window.innerHeight * 0.8;
       setIsScrolled(window.scrollY > bannerHeight);
     };
 
@@ -25,13 +25,22 @@ const Header = () => {
 
   return (
     <>
-      <div className={`fixed top-0 left-0 right-0 bg-background z-40 transition-opacity duration-300 !w-full !h-[79px] ${isScrolled ? 'opacity-0' : 'opacity-100'}`} />
+      {/* Barra branca de fundo - visível apenas quando NÃO scrollou */}
+      <div 
+        className={`fixed top-0 left-0 right-0 h-[80px] bg-background z-40 transition-opacity duration-300 ${
+          isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`} 
+      />
 
-      <header className="fixed w-full z-50">
+      <header className={`fixed w-full z-50 transition-all duration-300 ${isScrolled ? 'top-0' : ''}`}>
+        {/* Desktop Header */}
         <div className="hidden lg:flex fixed top-0 left-0 right-0 h-[80px] items-center z-50">
           <div className="w-full h-full flex items-center justify-between px-8 xl:px-12 2xl:px-16">
+            {/* Nav esquerda */}
             <div className="flex items-center">
-              <nav className="bg-background/50 backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm flex">
+              <nav className={`backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm flex transition-all duration-300 ${
+                isScrolled ? 'bg-background/80' : 'bg-background/50'
+              }`}>
                 <ul className="flex items-center gap-1 px-2">
                   {navItems.map((item) => (
                     <li key={item} className="relative group">
@@ -57,6 +66,7 @@ const Header = () => {
               </nav>
             </div>
 
+            {/* Logo centralizado */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <Link to="/" aria-label="Ir para a página inicial/home">
                 <div className="flex items-center justify-center">
@@ -69,9 +79,12 @@ const Header = () => {
               </Link>
             </div>
 
+            {/* Botões direita */}
             <div className="flex items-center gap-3">
               <div className="relative group">
-                <div className={`h-[38px] bg-background/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${searchOpen ? 'w-[180px] xl:w-[200px]' : 'w-[90px] xl:w-[100px]'} overflow-hidden group-hover:shadow-md group-hover:scale-105`}>
+                <div className={`h-[38px] backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${
+                  isScrolled ? 'bg-background/80' : 'bg-background/50'
+                } ${searchOpen ? 'w-[180px] xl:w-[200px]' : 'w-[90px] xl:w-[100px]'} overflow-hidden group-hover:shadow-md group-hover:scale-105`}>
                   {searchOpen ? (
                     <div className="flex items-center h-full px-3 gap-2">
                       <input
@@ -92,21 +105,27 @@ const Header = () => {
                 </div>
               </div>
 
-              <Link to="/my-account" aria-label="Log in" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-foreground bg-background/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-background/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
+              <Link to="/my-account" aria-label="Log in" className={`relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-foreground backdrop-blur-md rounded-lg shadow-sm hover:bg-background/80 transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                isScrolled ? 'bg-background/80' : 'bg-background/50'
+              }`}>
                 <User className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   Minha Conta
                 </span>
               </Link>
 
-              <Link to="/wishlist" aria-label="Wishlist" className="relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-foreground bg-background/50 backdrop-blur-md rounded-lg shadow-sm hover:bg-background/80 transition-all duration-300 hover:scale-105 hover:shadow-md">
+              <Link to="/wishlist" aria-label="Wishlist" className={`relative group font-suisse flex items-center justify-center w-[38px] h-[38px] text-foreground backdrop-blur-md rounded-lg shadow-sm hover:bg-background/80 transition-all duration-300 hover:scale-105 hover:shadow-md ${
+                isScrolled ? 'bg-background/80' : 'bg-background/50'
+              }`}>
                 <Heart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-foreground text-background text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
                   Favoritos
                 </span>
               </Link>
 
-              <button aria-label="open cart" className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-background/50 backdrop-blur-md rounded-lg text-foreground px-4 shadow-sm hover:bg-background/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap">
+              <button aria-label="open cart" className={`relative group font-suisse flex items-center justify-center gap-2 h-[38px] backdrop-blur-md rounded-lg text-foreground px-4 shadow-sm hover:bg-background/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap ${
+                isScrolled ? 'bg-background/80' : 'bg-background/50'
+              }`}>
                 <span className="text-body-regular">Carrinho</span>
                 <ShoppingCart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
@@ -118,16 +137,23 @@ const Header = () => {
         </div>
 
         {/* Mobile Header */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 h-[80px] flex items-center justify-between px-4">
+        <div className={`lg:hidden fixed top-0 left-0 right-0 h-[80px] flex items-center justify-between px-4 transition-all duration-300 ${
+          isScrolled ? '' : ''
+        }`}>
           <div className="flex items-center gap-2 z-50">
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu" className="w-[48px] h-[48px] flex items-center justify-center bg-background/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu" className={`w-[48px] h-[48px] flex items-center justify-center backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300 ${
+              isScrolled ? 'bg-background/80' : 'bg-background/50'
+            }`}>
               {mobileMenuOpen ? <X size={24} className="text-foreground" /> : <Menu size={24} className="text-foreground" />}
             </button>
-            <button onClick={() => setSearchOpen(!searchOpen)} aria-label="Buscar" className="w-[48px] h-[48px] flex items-center justify-center bg-background/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <button onClick={() => setSearchOpen(!searchOpen)} aria-label="Buscar" className={`w-[48px] h-[48px] flex items-center justify-center backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300 ${
+              isScrolled ? 'bg-background/80' : 'bg-background/50'
+            }`}>
               <Search size={20} className="text-foreground" />
             </button>
           </div>
 
+          {/* Logo centralizado mobile */}
           <Link to="/" aria-label="Ir para a página inicial/home" className="absolute left-1/2 -translate-x-1/2 z-40">
             <img
               src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
@@ -137,13 +163,17 @@ const Header = () => {
           </Link>
 
           <div className="flex items-center gap-2 z-50">
-            <button aria-label="Carrinho" className="relative w-[48px] h-[48px] flex items-center justify-center bg-background/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <button aria-label="Carrinho" className={`relative w-[48px] h-[48px] flex items-center justify-center backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300 ${
+              isScrolled ? 'bg-background/80' : 'bg-background/50'
+            }`}>
               <ShoppingCart size={20} className="text-foreground" />
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center">
                 0
               </div>
             </button>
-            <Link to="/my-account" aria-label="Perfil" className="w-[48px] h-[48px] flex items-center justify-center bg-background/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <Link to="/my-account" aria-label="Perfil" className={`w-[48px] h-[48px] flex items-center justify-center backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300 ${
+              isScrolled ? 'bg-background/80' : 'bg-background/50'
+            }`}>
               <User size={20} className="text-foreground" />
             </Link>
           </div>
