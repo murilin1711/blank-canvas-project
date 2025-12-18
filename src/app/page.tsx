@@ -6,7 +6,6 @@ import VideoBanner from '@/components/sections/video-banner';
 import StoreLocator from '@/components/sections/store-locator';
 import FibrasNobresBanner from '@/components/sections/fibras-nobres-banner';
 import Footer from '@/components/sections/footer';
-import CookieBanner from '@/components/sections/cookie-banner';
 
 export default function Home() {
   return (
@@ -31,7 +30,6 @@ export default function Home() {
         </div>
         <Footer />
       </div>
-      <CookieBanner />
     </main>
   );
 }
