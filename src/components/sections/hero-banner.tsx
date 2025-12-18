@@ -185,7 +185,7 @@ const HeroBanner = () => {
         id="hero-banner"
         className="relative z-10 flex items-center justify-center w-full h-full px-4 py-8 md:px-6 md:py-10 lg:px-8 lg:py-12">
 
-        <div className="relative w-full max-w-[90%] md:max-w-[75%] lg:max-w-[60%] xl:max-w-[55%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-[9/16] md:aspect-video">
+        <div className="relative w-full max-w-[95%] md:max-w-[80%] lg:max-w-[65%] xl:max-w-[55%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
           
           {slides.map((slide, index) =>
           <div
