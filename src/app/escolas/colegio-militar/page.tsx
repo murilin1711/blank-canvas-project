@@ -2,6 +2,13 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import type {
+  ChangeEvent,
+  MouseEvent,
+  PointerEvent,
+  TouchEvent,
+  WheelEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
@@ -179,7 +186,7 @@ export default function LojaEstiloOsklen() {
   }
 
   function setActiveIndex(productId: number, idx: number) {
-    setActiveIndexMap((s) => ({ ...s, [productId]: idx }));
+    setActiveIndexMap((s: Record<number, number>) => ({ ...s, [productId]: idx }));
   }
 
   function nextImage(productId: number, total: number) {
@@ -193,13 +200,13 @@ export default function LojaEstiloOsklen() {
   }
 
   /* ---------- Touch handlers (mobile) ---------- */
-  function handleTouchStart(e: React.TouchEvent, productId: number) {
+  function handleTouchStart(e: TouchEvent, productId: number) {
     touchStartX.current[productId] = e.touches[0].clientX;
     touchCurrentX.current[productId] = e.touches[0].clientX;
     lastInteractionWasDrag.current[productId] = false;
   }
 
-  function handleTouchMove(e: React.TouchEvent, productId: number) {
+  function handleTouchMove(e: TouchEvent, productId: number) {
     touchCurrentX.current[productId] = e.touches[0].clientX;
   }
 
@@ -226,17 +233,17 @@ export default function LojaEstiloOsklen() {
   }
 
   /* ---------- Pointer handlers (mouse drag) ---------- */
-  function handlePointerStart(e: React.PointerEvent, productId: number) {
+  function handlePointerStart(e: PointerEvent, productId: number) {
     if ((e as any).pointerType === "mouse" && e.button !== 0) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
-    pointerStartX.current[productId] = (e as React.PointerEvent).clientX;
-    pointerCurrentX.current[productId] = (e as React.PointerEvent).clientX;
+    pointerStartX.current[productId] = e.clientX;
+    pointerCurrentX.current[productId] = e.clientX;
     lastInteractionWasDrag.current[productId] = false;
   }
 
-  function handlePointerMove(e: React.PointerEvent, productId: number) {
+  function handlePointerMove(e: PointerEvent, productId: number) {
     if (pointerStartX.current[productId] === undefined) return;
-    pointerCurrentX.current[productId] = (e as React.PointerEvent).clientX;
+    pointerCurrentX.current[productId] = e.clientX;
   }
 
   function handlePointerEnd(product: Product) {
@@ -266,7 +273,7 @@ export default function LojaEstiloOsklen() {
      advances only one image, and doesn't cascade through all images.
   */
   function handleWheel(
-    e: React.WheelEvent<HTMLDivElement>,
+    e: WheelEvent<HTMLDivElement>,
     productId: number,
     total: number
   ) {
@@ -317,10 +324,7 @@ export default function LojaEstiloOsklen() {
   }
 
   // New: handle clicking the image — ignore if last interaction was a drag/swipe
-  function handleImageClick(
-    e: React.MouseEvent<HTMLImageElement>,
-    p: Product
-  ) {
+  function handleImageClick(e: MouseEvent<HTMLImageElement>, p: Product) {
     e.stopPropagation();
     const wasDrag = !!lastInteractionWasDrag.current[p.id];
     // reset the flag after checking
@@ -390,7 +394,9 @@ export default function LojaEstiloOsklen() {
             <div className="relative">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  setSortBy(e.target.value as SortOption)
+                }
                 className="appearance-none border border-neutral-200 px-4 py-2 rounded text-sm focus:outline-none"
               >
                 <option value="default">Ordenar</option>
@@ -404,7 +410,9 @@ export default function LojaEstiloOsklen() {
               <label className="text-sm text-neutral-600">Itens por linha</label>
               <select
                 value={columnsDesktop}
-                onChange={(e) => setColumnsDesktop(Number(e.target.value))}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  setColumnsDesktop(Number(e.target.value))
+                }
                 className="border border-neutral-200 px-3 py-2 rounded text-sm"
               >
                 <option value={1}>1</option>
