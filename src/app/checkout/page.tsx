@@ -106,10 +106,10 @@ export default function CheckoutPage() {
           <div className="py-4">
             {items.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">Sua sacola está vazia</p>
+                <p className="text-text-muted mb-4 text-body-regular">Sua sacola está vazia</p>
                 <button
                   onClick={() => navigate("/")}
-                  className="text-gray-900 underline hover:no-underline text-sm"
+                  className="text-text-primary underline hover:no-underline text-body-sm"
                 >
                   Continuar comprando
                 </button>
@@ -119,34 +119,34 @@ export default function CheckoutPage() {
                 {items.map((item, index) => (
                   <div
                     key={`${item.productId}-${item.size}`}
-                    className={`flex gap-4 py-6 ${index !== items.length - 1 ? "border-b border-gray-100" : ""}`}
+                    className={`flex gap-4 py-6 ${index !== items.length - 1 ? "border-b border-border-light" : ""}`}
                   >
                     <img
                       src={item.productImage}
                       alt={item.productName}
-                      className="w-20 h-28 object-cover bg-gray-50"
+                      className="w-20 h-28 object-cover bg-background-secondary"
                     />
                     <div className="flex-1 flex flex-col justify-between">
                       <div>
-                        <h3 className="font-medium text-gray-900 text-sm">
+                        <h3 className="font-medium text-text-primary text-body-regular">
                           {item.productName}
                         </h3>
-                        <p className="text-sm text-gray-500 mt-0.5">
+                        <p className="text-body-sm text-text-muted mt-0.5">
                           {item.size}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="flex items-center border border-gray-200 rounded">
+                        <div className="flex items-center border border-border-light rounded">
                           <button
                             onClick={() => updateQuantity(item.productId, item.size, Math.max(1, item.quantity - 1))}
-                            className="p-2 hover:bg-gray-50 transition-colors"
+                            className="p-2 hover:bg-background-secondary transition-colors"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="px-3 text-sm">{item.quantity}</span>
+                          <span className="px-3 text-body-sm">{item.quantity}</span>
                           <button
                             onClick={() => updateQuantity(item.productId, item.size, item.quantity + 1)}
-                            className="p-2 hover:bg-gray-50 transition-colors"
+                            className="p-2 hover:bg-background-secondary transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -154,12 +154,12 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                     <div className="flex flex-col justify-between items-end">
-                      <p className="font-medium text-gray-900 text-sm">
+                      <p className="font-medium text-text-primary text-body-regular">
                         R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
                       </p>
                       <button
                         onClick={() => removeItem(item.productId, item.size)}
-                        className="text-xs text-gray-500 border border-gray-200 rounded px-3 py-1 hover:bg-gray-50 transition-colors"
+                        className="text-caption text-text-muted border border-border-light rounded px-3 py-1 hover:bg-background-secondary transition-colors"
                       >
                         Remove
                       </button>
@@ -180,14 +180,14 @@ export default function CheckoutPage() {
                 placeholder="Nome *"
                 value={personal.name}
                 onChange={(e) => setPersonal({ ...personal, name: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="w-full px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
               <input
                 type="text"
                 placeholder="Sobrenome *"
                 value={personal.lastName}
                 onChange={(e) => setPersonal({ ...personal, lastName: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="w-full px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,14 +196,14 @@ export default function CheckoutPage() {
                 placeholder="CPF"
                 value={personal.cpf}
                 onChange={(e) => setPersonal({ ...personal, cpf: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="w-full px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
               <input
                 type="text"
                 placeholder="Telefone"
                 value={personal.phone}
                 onChange={(e) => setPersonal({ ...personal, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="w-full px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
             </div>
             <input
@@ -211,7 +211,7 @@ export default function CheckoutPage() {
               placeholder="E-mail *"
               value={personal.email}
               onChange={(e) => setPersonal({ ...personal, email: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+              className="w-full px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
             />
           </div>
         );
@@ -224,7 +224,7 @@ export default function CheckoutPage() {
               placeholder="CEP *"
               value={address.cep}
               onChange={(e) => setAddress({ ...address, cep: e.target.value })}
-              className="w-full md:w-1/3 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+              className="w-full md:w-1/3 px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
             />
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <input
@@ -232,14 +232,14 @@ export default function CheckoutPage() {
                 placeholder="Rua *"
                 value={address.street}
                 onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                className="md:col-span-3 px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="md:col-span-3 px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
               <input
                 type="text"
                 placeholder="Número *"
                 value={address.number}
                 onChange={(e) => setAddress({ ...address, number: e.target.value })}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -248,14 +248,14 @@ export default function CheckoutPage() {
                 placeholder="Complemento"
                 value={address.complement}
                 onChange={(e) => setAddress({ ...address, complement: e.target.value })}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
               <input
                 type="text"
                 placeholder="Bairro *"
                 value={address.neighborhood}
                 onChange={(e) => setAddress({ ...address, neighborhood: e.target.value })}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -264,14 +264,14 @@ export default function CheckoutPage() {
                 placeholder="Cidade *"
                 value={address.city}
                 onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
               <input
                 type="text"
                 placeholder="Estado *"
                 value={address.state}
                 onChange={(e) => setAddress({ ...address, state: e.target.value })}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-sm"
+                className="px-4 py-3 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted"
               />
             </div>
           </div>
@@ -281,10 +281,10 @@ export default function CheckoutPage() {
         return (
           <div className="py-6 space-y-3">
             <label
-              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition ${
+              className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition ${
                 shippingMethod === "standard"
-                  ? "border-gray-900 bg-gray-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-[#2e3091] bg-[#f0f0ff]"
+                  : "border-border-light hover:border-text-muted"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -292,23 +292,23 @@ export default function CheckoutPage() {
                   type="radio"
                   checked={shippingMethod === "standard"}
                   onChange={() => setShippingMethod("standard")}
-                  className="accent-gray-900"
+                  className="accent-[#2e3091]"
                 />
                 <div>
-                  <p className="font-medium text-sm">Envio Padrão</p>
-                  <p className="text-xs text-gray-500">5-10 dias úteis</p>
+                  <p className="font-medium text-body-sm text-text-primary">Envio Padrão</p>
+                  <p className="text-caption text-text-muted">5-10 dias úteis</p>
                 </div>
               </div>
-              <span className={`text-sm ${subtotal >= 200 ? "text-green-600" : ""}`}>
+              <span className={`text-body-sm ${subtotal >= 200 ? "text-green-600 font-medium" : "text-text-secondary"}`}>
                 {subtotal >= 200 ? "Grátis" : "R$ 15,00"}
               </span>
             </label>
 
             <label
-              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition ${
+              className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition ${
                 shippingMethod === "express"
-                  ? "border-gray-900 bg-gray-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-[#2e3091] bg-[#f0f0ff]"
+                  : "border-border-light hover:border-text-muted"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -316,14 +316,14 @@ export default function CheckoutPage() {
                   type="radio"
                   checked={shippingMethod === "express"}
                   onChange={() => setShippingMethod("express")}
-                  className="accent-gray-900"
+                  className="accent-[#2e3091]"
                 />
                 <div>
-                  <p className="font-medium text-sm">Envio Expresso</p>
-                  <p className="text-xs text-gray-500">2-3 dias úteis</p>
+                  <p className="font-medium text-body-sm text-text-primary">Envio Expresso</p>
+                  <p className="text-caption text-text-muted">2-3 dias úteis</p>
                 </div>
               </div>
-              <span className="text-sm">R$ 25,00</span>
+              <span className="text-body-sm text-text-secondary">R$ 25,00</span>
             </label>
           </div>
         );
@@ -332,78 +332,78 @@ export default function CheckoutPage() {
         return (
           <div className="py-6 space-y-3">
             <label
-              className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${
+              className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition ${
                 paymentMethod === "pix"
-                  ? "border-gray-900 bg-gray-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-[#2e3091] bg-[#f0f0ff]"
+                  : "border-border-light hover:border-text-muted"
               }`}
             >
               <input
                 type="radio"
                 checked={paymentMethod === "pix"}
                 onChange={() => setPaymentMethod("pix")}
-                className="accent-gray-900"
+                className="accent-[#2e3091]"
               />
               <div>
-                <p className="font-medium text-sm">PIX</p>
-                <p className="text-xs text-gray-500">Aprovação imediata</p>
+                <p className="font-medium text-body-sm text-text-primary">PIX</p>
+                <p className="text-caption text-text-muted">Aprovação imediata</p>
               </div>
             </label>
 
             <label
-              className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${
+              className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition ${
                 paymentMethod === "credit"
-                  ? "border-gray-900 bg-gray-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-[#2e3091] bg-[#f0f0ff]"
+                  : "border-border-light hover:border-text-muted"
               }`}
             >
               <input
                 type="radio"
                 checked={paymentMethod === "credit"}
                 onChange={() => setPaymentMethod("credit")}
-                className="accent-gray-900"
+                className="accent-[#2e3091]"
               />
               <div>
-                <p className="font-medium text-sm">Cartão de Crédito</p>
-                <p className="text-xs text-gray-500">Em até 12x sem juros</p>
+                <p className="font-medium text-body-sm text-text-primary">Cartão de Crédito</p>
+                <p className="text-caption text-text-muted">Em até 12x sem juros</p>
               </div>
             </label>
 
             <label
-              className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${
+              className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition ${
                 paymentMethod === "boleto"
-                  ? "border-gray-900 bg-gray-50"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-[#2e3091] bg-[#f0f0ff]"
+                  : "border-border-light hover:border-text-muted"
               }`}
             >
               <input
                 type="radio"
                 checked={paymentMethod === "boleto"}
                 onChange={() => setPaymentMethod("boleto")}
-                className="accent-gray-900"
+                className="accent-[#2e3091]"
               />
               <div>
-                <p className="font-medium text-sm">Boleto Bancário</p>
-                <p className="text-xs text-gray-500">Vencimento em 3 dias</p>
+                <p className="font-medium text-body-sm text-text-primary">Boleto Bancário</p>
+                <p className="text-caption text-text-muted">Vencimento em 3 dias</p>
               </div>
             </label>
 
             {/* Final summary */}
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <div className="space-y-2 text-sm">
+            <div className="mt-6 pt-6 border-t border-border-light">
+              <div className="space-y-2 text-body-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Subtotal</span>
-                  <span>R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+                  <span className="text-text-muted">Subtotal</span>
+                  <span className="text-text-secondary">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Frete</span>
-                  <span className={shipping === 0 ? "text-green-600" : ""}>
+                  <span className="text-text-muted">Frete</span>
+                  <span className={shipping === 0 ? "text-green-600 font-medium" : "text-text-secondary"}>
                     {shipping === 0 ? "Grátis" : `R$ ${shipping.toFixed(2).replace(".", ",")}`}
                   </span>
                 </div>
-                <div className="flex justify-between pt-3 border-t border-gray-100 font-medium">
-                  <span>Total</span>
-                  <span>R$ {total.toFixed(2).replace(".", ",")}</span>
+                <div className="flex justify-between pt-3 border-t border-border-light font-medium">
+                  <span className="text-text-primary">Total</span>
+                  <span className="text-text-primary">R$ {total.toFixed(2).replace(".", ",")}</span>
                 </div>
               </div>
             </div>
@@ -434,7 +434,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="min-h-screen bg-white pt-[100px]">
+    <main className="min-h-screen bg-background pt-[100px]">
       <div className="max-w-2xl mx-auto px-6 py-10">
         {/* Back button */}
         <button
@@ -450,10 +450,10 @@ export default function CheckoutPage() {
               }
             }
           }}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-8 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-text-tertiary hover:text-text-primary mb-8 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Voltar</span>
+          <span className="text-body-sm">Voltar</span>
         </button>
 
         {/* Accordion Steps */}
@@ -465,7 +465,7 @@ export default function CheckoutPage() {
             const summary = getStepSummary(step.key);
 
             return (
-              <div key={step.key} className="border-b border-gray-100">
+              <div key={step.key} className="border-b border-border-light">
                 {/* Step Header */}
                 <button
                   onClick={() => {
@@ -473,33 +473,33 @@ export default function CheckoutPage() {
                   }}
                   disabled={isFuture}
                   className={`w-full text-left py-4 flex items-center justify-between transition-colors ${
-                    isFuture ? "cursor-not-allowed" : isPast ? "cursor-pointer hover:bg-gray-50" : ""
+                    isFuture ? "cursor-not-allowed" : isPast ? "cursor-pointer hover:bg-background-secondary" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     {/* Step indicator */}
                     {isPast ? (
-                      <div className="w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center">
+                      <div className="w-5 h-5 bg-[#2e3091] rounded-full flex items-center justify-center">
                         <Check className="w-3 h-3 text-white" />
                       </div>
                     ) : isActive ? (
-                      <div className="w-5 h-5 border-2 border-gray-900 rounded-full flex items-center justify-center">
-                        <div className="w-2 h-2 bg-gray-900 rounded-full" />
+                      <div className="w-5 h-5 border-2 border-[#2e3091] rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-[#2e3091] rounded-full" />
                       </div>
                     ) : (
-                      <div className="w-5 h-5 border border-gray-300 rounded-full" />
+                      <div className="w-5 h-5 border border-border-light rounded-full" />
                     )}
 
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-sm font-medium ${
-                          isFuture ? "text-gray-300" : "text-gray-900"
+                        className={`text-body-regular font-medium ${
+                          isFuture ? "text-text-muted" : "text-text-primary"
                         }`}
                       >
                         {step.label}
                       </span>
                       {step.key === "cart" && items.length > 0 && (
-                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
+                        <span className="bg-background-secondary text-text-tertiary text-caption px-2 py-0.5 rounded-full">
                           {items.length}
                         </span>
                       )}
@@ -508,10 +508,10 @@ export default function CheckoutPage() {
 
                   <div className="flex items-center gap-3">
                     {isPast && summary && (
-                      <span className="text-sm text-gray-500">{summary}</span>
+                      <span className="text-body-sm text-text-muted">{summary}</span>
                     )}
                     {isActive && (
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                      <ChevronDown className="w-4 h-4 text-text-muted" />
                     )}
                   </div>
                 </button>
@@ -532,7 +532,7 @@ export default function CheckoutPage() {
                       <div className="pb-6">
                         <button
                           onClick={completeStep}
-                          className="w-full bg-gray-900 text-white py-4 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+                          className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn"
                         >
                           {currentStep === "payment" ? "Finalizar pedido" : "Continuar"}
                         </button>
@@ -545,12 +545,12 @@ export default function CheckoutPage() {
           })}
         </div>
 
-        {/* Summary bar fixed at bottom on mobile */}
+        {/* Summary bar */}
         {items.length > 0 && currentStep !== "payment" && (
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Subtotal ({items.length} {items.length === 1 ? "item" : "itens"})</span>
-              <span className="font-medium">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+          <div className="mt-8 pt-6 border-t border-border-light">
+            <div className="flex justify-between items-center text-body-sm">
+              <span className="text-text-muted">Subtotal ({items.length} {items.length === 1 ? "item" : "itens"})</span>
+              <span className="font-medium text-text-primary">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
             </div>
           </div>
         )}
