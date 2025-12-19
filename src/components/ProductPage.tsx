@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Heart, User } from "lucide-react";
+import { ArrowLeft, Check, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/sections/footer";
 import { useCart } from "@/contexts/CartContext";
@@ -8,26 +8,9 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
 
-// Custom icons for gender selection
-const MaleIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 100 120" fill="currentColor" className={className}>
-    <circle cx="50" cy="18" r="14" />
-    <rect x="35" y="34" width="30" height="40" rx="4" />
-    <rect x="15" y="36" width="20" height="10" rx="3" />
-    <rect x="65" y="36" width="20" height="10" rx="3" />
-    <rect x="35" y="76" width="12" height="38" rx="3" />
-    <rect x="53" y="76" width="12" height="38" rx="3" />
-  </svg>
-);
-
-const FemaleIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 100 120" fill="currentColor" className={className}>
-    <circle cx="50" cy="18" r="14" />
-    <path d="M30 34 L50 34 L70 34 L75 55 L65 80 L55 80 L55 114 L45 114 L45 80 L35 80 L25 55 Z" />
-    <rect x="15" y="36" width="20" height="10" rx="3" />
-    <rect x="65" y="36" width="20" height="10" rx="3" />
-  </svg>
-);
+// Import gender icons
+import maleIcon from "@/assets/icons/male-icon.png";
+import femaleIcon from "@/assets/icons/female-icon.png";
 
 interface ProductPageProps {
   schoolName: string;
@@ -327,7 +310,7 @@ export default function ProductPage({
                           : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      <MaleIcon className={`w-16 h-16 ${sexo === "m" ? "text-[#2e3091]" : "text-gray-600"}`} />
+                      <img src={maleIcon} alt="Masculino" className="w-16 h-16 object-contain" />
                     </button>
                     <button
                       onClick={() => setSexo("f")}
@@ -337,7 +320,7 @@ export default function ProductPage({
                           : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      <FemaleIcon className={`w-16 h-16 ${sexo === "f" ? "text-[#2e3091]" : "text-gray-600"}`} />
+                      <img src={femaleIcon} alt="Feminino" className="w-16 h-16 object-contain" />
                     </button>
                   </div>
                   <div className="flex gap-3 mt-auto">
