@@ -2,6 +2,7 @@ import HeroBanner from '@/components/sections/hero-banner';
 import CategoryShowcase from '@/components/sections/category-showcase';
 import ProductCarousel from '@/components/sections/product-carousel';
 import VideoBanner from '@/components/sections/video-banner';
+import SuppliersCarousel from '@/components/sections/suppliers-carousel';
 import StoreLocator from '@/components/sections/store-locator';
 import FibrasNobresBanner from '@/components/sections/fibras-nobres-banner';
 import Footer from '@/components/sections/footer';
@@ -19,6 +20,9 @@ export default function Home() {
         </div>
         <div className="mt-8 lg:mt-12 px-[15px] xll:px-[30px]">
           <VideoBanner />
+        </div>
+        <div className="mt-8 lg:mt-12">
+          <SuppliersCarousel />
         </div>
         <div className="mt-8 lg:mt-12">
           <StoreLocator />
