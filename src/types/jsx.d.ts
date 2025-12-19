@@ -1,21 +1,9 @@
-/// <reference types="react" />
-/// <reference types="react-dom" />
+import 'react';
 
-// Global JSX namespace declaration for Vite + React projects
-declare global {
+declare module 'react' {
   namespace JSX {
-    type Element = React.ReactElement<any, any>;
-    interface ElementClass extends React.Component<any> {
-      render(): React.ReactNode;
+    interface IntrinsicElements {
+      [elemName: string]: any;
     }
-    interface ElementAttributesProperty {
-      props: {};
-    }
-    interface ElementChildrenAttribute {
-      children: {};
-    }
-    type IntrinsicElements = React.JSX.IntrinsicElements;
   }
 }
-
-export {};
