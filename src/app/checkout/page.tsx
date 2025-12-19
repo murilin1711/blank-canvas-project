@@ -7,6 +7,38 @@ import { ArrowLeft, Check, Home, MapPin, ChevronDown, CreditCard } from "lucide-
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
+// Input field component - MUST be outside main component to prevent focus loss
+const InputField = ({ 
+  label, 
+  value, 
+  onChange, 
+  placeholder, 
+  required = false,
+  className = "",
+  type = "text"
+}: { 
+  label: string; 
+  value: string; 
+  onChange: (value: string) => void; 
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  type?: string;
+}) => (
+  <div className={className}>
+    <label className="block text-body-sm text-text-primary mb-2">
+      {label}{required && "*"}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="w-full px-5 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted bg-background-primary"
+    />
+  </div>
+);
+
 type CheckoutStep = "login" | "entrega" | "pagamento";
 
 interface PersonalData {
@@ -316,35 +348,6 @@ export default function CheckoutPage() {
     </div>
   );
 
-  // Input field component with Arezzo style
-  const InputField = ({ 
-    label, 
-    value, 
-    onChange, 
-    placeholder, 
-    required = false,
-    className = ""
-  }: { 
-    label: string; 
-    value: string; 
-    onChange: (value: string) => void; 
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-  }) => (
-    <div className={className}>
-      <label className="block text-body-sm text-text-primary mb-2">
-        {label}{required && "*"}
-      </label>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-5 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted bg-background-primary"
-      />
-    </div>
-  );
 
   return (
     <main className="min-h-screen bg-background-primary pt-[100px]">
