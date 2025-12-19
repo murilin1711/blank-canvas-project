@@ -79,35 +79,25 @@ export default function SuppliersCarousel() {
           </p>
         </div>
 
-        {/* Carousel Container */}
-        <div className="relative bg-white rounded-2xl shadow-lg overflow-hidden py-8 px-4">
-          {/* Decorative elements */}
-          <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full -translate-x-10 -translate-y-10"></div>
-          <div className="absolute bottom-0 right-0 w-28 h-28 bg-gradient-to-tr from-purple-50 to-pink-50 rounded-full translate-x-14 translate-y-14"></div>
-
-          {/* Gradient overlays for smooth edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
-
-          <div
-            ref={scrollRef}
-            className="flex overflow-hidden gap-8 lg:gap-12 relative z-0"
-            style={{ scrollBehavior: "auto" }}
-          >
-            {/* Duplicate suppliers for infinite scroll effect */}
-            {[...suppliers, ...suppliers].map((supplier, index) => (
-              <div
-                key={`${supplier.name}-${index}`}
-                className="flex-shrink-0 flex items-center justify-center w-[140px] h-[80px] lg:w-[180px] lg:h-[100px] bg-gray-50/50 rounded-xl p-4 hover:bg-gray-100/70 transition-colors duration-300"
-              >
-                <img
-                  src={supplier.logo}
-                  alt={`Logo ${supplier.name}`}
-                  className="w-full h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                />
-              </div>
-            ))}
-          </div>
+        {/* Carousel */}
+        <div
+          ref={scrollRef}
+          className="flex overflow-hidden gap-6 lg:gap-8"
+          style={{ scrollBehavior: "auto" }}
+        >
+          {/* Duplicate suppliers for infinite scroll effect */}
+          {[...suppliers, ...suppliers].map((supplier, index) => (
+            <div
+              key={`${supplier.name}-${index}`}
+              className="flex-shrink-0 flex items-center justify-center w-[140px] h-[80px] lg:w-[180px] lg:h-[100px] bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all duration-300"
+            >
+              <img
+                src={supplier.logo}
+                alt={`Logo ${supplier.name}`}
+                className="w-full h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+              />
+            </div>
+          ))}
         </div>
       </div>
     </section>
