@@ -1,12 +1,33 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Heart } from "lucide-react";
+import { ArrowLeft, Check, Heart, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/sections/footer";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
+
+// Custom icons for gender selection
+const MaleIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 100 120" fill="currentColor" className={className}>
+    <circle cx="50" cy="18" r="14" />
+    <rect x="35" y="34" width="30" height="40" rx="4" />
+    <rect x="15" y="36" width="20" height="10" rx="3" />
+    <rect x="65" y="36" width="20" height="10" rx="3" />
+    <rect x="35" y="76" width="12" height="38" rx="3" />
+    <rect x="53" y="76" width="12" height="38" rx="3" />
+  </svg>
+);
+
+const FemaleIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 100 120" fill="currentColor" className={className}>
+    <circle cx="50" cy="18" r="14" />
+    <path d="M30 34 L50 34 L70 34 L75 55 L65 80 L55 80 L55 114 L45 114 L45 80 L35 80 L25 55 Z" />
+    <rect x="15" y="36" width="20" height="10" rx="3" />
+    <rect x="65" y="36" width="20" height="10" rx="3" />
+  </svg>
+);
 
 interface ProductPageProps {
   schoolName: string;
@@ -145,8 +166,19 @@ export default function ProductPage({
 
             {/* ===== TAMANHOS ===== */}
             <div className="mt-6">
-              <div className="text-sm font-medium mb-2 text-gray-900">
-                Escolha o tamanho
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-900">
+                  Escolha o tamanho
+                </span>
+                <button
+                  onClick={() => {
+                    setOpenFitFinder(true);
+                    setFitStep(1);
+                  }}
+                  className="text-sm text-[#2e3091] hover:underline font-medium"
+                >
+                  Qual meu tamanho ideal?
+                </button>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {sizes.map((size) => {
@@ -172,12 +204,25 @@ export default function ProductPage({
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
-                    setOpenFitFinder(true);
-                    setFitStep(1);
+                    if (!selectedSize) {
+                      toast.error("Selecione um tamanho");
+                      return;
+                    }
+                    const priceNum = parseFloat(price.replace("R$ ", "").replace(".", "").replace(",", "."));
+                    addItem({
+                      productId,
+                      productName,
+                      productImage: images[0],
+                      price: priceNum,
+                      size: selectedSize,
+                      quantity: 1,
+                      schoolSlug,
+                    });
+                    navigate("/checkout");
                   }}
                   className="flex-1 bg-[#2e3091] text-white py-3 px-6 rounded-lg text-sm font-semibold hover:bg-[#252a7a] hover:shadow-lg transition-all"
                 >
-                  Encontrar minha medida ideal
+                  Comprar Agora
                 </button>
                 <button
                   onClick={handleAddToCart}
@@ -273,26 +318,26 @@ export default function ProductPage({
                       className="w-full accent-[#2e3091]"
                     />
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex gap-4 justify-center">
                     <button
                       onClick={() => setSexo("m")}
-                      className={`flex-1 py-3 border rounded-lg text-sm font-semibold transition ${
+                      className={`flex flex-col items-center justify-center w-28 h-28 border-2 rounded-xl transition ${
                         sexo === "m"
-                          ? "border-[#2e3091] text-[#2e3091] bg-blue-50"
-                          : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      Masculino
+                      <MaleIcon className={`w-16 h-16 ${sexo === "m" ? "text-[#2e3091]" : "text-gray-600"}`} />
                     </button>
                     <button
                       onClick={() => setSexo("f")}
-                      className={`flex-1 py-3 border rounded-lg text-sm font-semibold transition ${
+                      className={`flex flex-col items-center justify-center w-28 h-28 border-2 rounded-xl transition ${
                         sexo === "f"
-                          ? "border-[#2e3091] text-[#2e3091] bg-blue-50"
-                          : "border-gray-200 text-gray-700 hover:bg-gray-50"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      Feminino
+                      <FemaleIcon className={`w-16 h-16 ${sexo === "f" ? "text-[#2e3091]" : "text-gray-600"}`} />
                     </button>
                   </div>
                   <div className="flex gap-3 mt-auto">
