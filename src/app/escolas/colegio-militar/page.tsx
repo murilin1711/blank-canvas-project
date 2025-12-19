@@ -366,10 +366,10 @@ export default function LojaEstiloOsklen() {
                 <button
                   key={c}
                   onClick={() => setSelectedCategory(c)}
-                  className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium transition ${
+                  className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition border ${
                     active
-                      ? "bg-[#2e3091] text-white"
-                      : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                      ? "bg-[#2e3091] text-white border-[#2e3091]"
+                      : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
                   }`}
                 >
                   {c}
@@ -517,8 +517,8 @@ export default function LojaEstiloOsklen() {
                           <ChevronRight className="w-5 h-5 text-[#2e3091]" />
                         </button>
 
-                        {/* indicadores */}
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-2 z-20">
+                        {/* indicadores - linhas finas como na referência */}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-1.5 z-20">
                           {p.images.map((_, i) => (
                             <button
                               key={i}
@@ -526,10 +526,10 @@ export default function LojaEstiloOsklen() {
                                 ev.stopPropagation();
                                 setActiveIndex(p.id, i);
                               }}
-                              className={`w-2 h-2 rounded-full ${
+                              className={`h-[3px] rounded-full transition-all ${
                                 i === idx
-                                  ? "bg-[#2e3091]"
-                                  : "bg-white/70 border border-neutral-200"
+                                  ? "bg-[#2e3091] w-8"
+                                  : "bg-neutral-300 w-5"
                               }`}
                               aria-label={`Ir para imagem ${i + 1}`}
                             />
@@ -538,7 +538,7 @@ export default function LojaEstiloOsklen() {
                       </>
                     )}
 
-                    {/* Botão + central - menor e fiel à foto (36px), hover discreto no desktop, cursor pointer */}
+                    {/* Botão + central - semi-opaco como na referência */}
                     <button
                       aria-label="Adicionar ao carrinho"
                       onClick={(ev) => {
@@ -546,34 +546,28 @@ export default function LojaEstiloOsklen() {
                         openAddToCart(p);
                       }}
                       className={
-                        // visible on mobile by default, on desktop appears on hover (very subtle)
-                        "absolute left-1/2 -translate-x-1/2 bottom-4 bg-white rounded-full flex items-center justify-center shadow-none transition-transform z-20 " +
-                        "w-9 h-9 " + // ~36px (w-9 = 36px)
+                        "absolute left-1/2 -translate-x-1/2 bottom-10 rounded-full flex items-center justify-center transition-all z-20 " +
+                        "w-8 h-8 " +
+                        "bg-white/90 backdrop-blur-sm shadow-md " +
                         (isSmallScreen
                           ? "opacity-100"
                           : "opacity-0 group-hover:opacity-100") +
-                        " hover:scale-[1.03] active:scale-95 cursor-pointer"
+                        " hover:scale-105 hover:bg-white active:scale-95 cursor-pointer"
                       }
-                      style={{
-                        boxShadow: "none",
-                        border: "1px solid rgba(0,0,0,0.06)",
-                      }}
                     >
-                      <Plus className="w-4 h-4 text-black" />
+                      <Plus className="w-4 h-4 text-black" strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <h3 className="text-[13px] font-light text-gray-900 leading-tight line-clamp-1">
+                {/* Nome e preço na mesma linha - nome bold com truncate, preço normal */}
+                <div className="mt-3 flex items-center justify-between gap-2">
+                  <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate flex-1">
                     {p.name}
                   </h3>
-
-                  <div className="mt-1 flex items-center gap-3">
-                    <span className="text-[15px] font-medium text-gray-900">
-                      R$ {p.price.toFixed(2)}
-                    </span>
-                  </div>
+                  <span className="text-[13px] font-normal text-gray-900 whitespace-nowrap">
+                    R$ {p.price.toFixed(2).replace('.', ',')}
+                  </span>
                 </div>
               </article>
             );

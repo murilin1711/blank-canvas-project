@@ -88,11 +88,11 @@ const Header = () => {
             {/* Center Logo */}
             <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
               <Link to="/" aria-label="Ir para a página inicial/home">
-                <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center">
                   <img
                     src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
                     alt="Goiás Minas Uniformes Logo"
-                    className="object-contain !w-auto !h-[120px] transition-transform duration-300 hover:scale-105"
+                    className="object-contain !w-auto !h-[138px] transition-transform duration-300 hover:scale-105"
                   />
                 </div>
               </Link>
@@ -202,7 +202,7 @@ const Header = () => {
             <img
               src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
               alt="Goiás Minas Uniformes Logo"
-              className="object-contain w-[120px] h-[120px]"
+              className="object-contain w-[138px] h-[138px]"
             />
           </Link>
 
