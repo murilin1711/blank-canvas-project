@@ -5,7 +5,7 @@ import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-[#2A2826] font-suisse">
+    <footer className="bg-[#f8f8f8] font-suisse">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
         {/* Logo */}
         <div className="mb-8">
