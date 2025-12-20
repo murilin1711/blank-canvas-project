@@ -8,10 +8,6 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
 
-// Import gender icons
-import maleIcon from "@/assets/icons/male-icon.png";
-import femaleIcon from "@/assets/icons/female-icon.png";
-
 interface ProductPageProps {
   schoolName: string;
   productName: string;
@@ -41,6 +37,7 @@ export default function ProductPage({
   const [altura, setAltura] = useState(175);
   const [peso, setPeso] = useState(74);
   const [sexo, setSexo] = useState<"m" | "f" | null>(null);
+  const [caimento, setCaimento] = useState<"justo" | "regular" | "oversize" | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const schoolSlug = "colegio-militar";
@@ -311,7 +308,7 @@ export default function ProductPage({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.38, ease: "easeInOut" }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 p-6 flex flex-col shadow-2xl"
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 p-6 flex flex-col shadow-2xl overflow-y-auto"
               role="dialog"
               aria-modal="true"
             >
@@ -319,11 +316,11 @@ export default function ProductPage({
               <div className="h-1 w-full bg-gray-100 rounded mb-6 overflow-hidden">
                 <div
                   className="h-full bg-[#2e3091] transition-all"
-                  style={{ width: `${(fitStep / 2) * 100}%` }}
+                  style={{ width: `${(fitStep / 3) * 100}%` }}
                 />
               </div>
 
-              {/* ETAPA 1: perfil */}
+              {/* ETAPA 1: perfil (altura, peso, sexo) */}
               {fitStep === 1 && (
                 <div className="flex flex-col gap-6 flex-1">
                   <h2 className="text-lg font-semibold text-gray-900">
@@ -361,28 +358,36 @@ export default function ProductPage({
                       className="w-full accent-[#2e3091]"
                     />
                   </div>
-                  <div className="flex gap-4 justify-center">
-                    <button
-                      onClick={() => setSexo("m")}
-                      className={`flex flex-col items-center justify-center w-28 h-28 border-2 rounded-xl transition ${
-                        sexo === "m"
-                          ? "border-[#2e3091] bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <img src={maleIcon} alt="Masculino" className="w-16 h-16 object-contain" />
-                    </button>
-                    <button
-                      onClick={() => setSexo("f")}
-                      className={`flex flex-col items-center justify-center w-28 h-28 border-2 rounded-xl transition ${
-                        sexo === "f"
-                          ? "border-[#2e3091] bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <img src={femaleIcon} alt="Feminino" className="w-16 h-16 object-contain" />
-                    </button>
+                  
+                  {/* Sexo - Apenas texto Homem/Mulher */}
+                  <div>
+                    <label className="text-sm block mb-3 text-gray-700">
+                      Gênero
+                    </label>
+                    <div className="flex gap-4 justify-center">
+                      <button
+                        onClick={() => setSexo("m")}
+                        className={`flex items-center justify-center px-8 py-4 border-2 rounded-xl transition text-base font-medium ${
+                          sexo === "m"
+                            ? "border-[#2e3091] bg-blue-50 text-[#2e3091]"
+                            : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                        }`}
+                      >
+                        Homem
+                      </button>
+                      <button
+                        onClick={() => setSexo("f")}
+                        className={`flex items-center justify-center px-8 py-4 border-2 rounded-xl transition text-base font-medium ${
+                          sexo === "f"
+                            ? "border-[#2e3091] bg-blue-50 text-[#2e3091]"
+                            : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                        }`}
+                      >
+                        Mulher
+                      </button>
+                    </div>
                   </div>
+
                   <div className="flex gap-3 mt-auto">
                     <button
                       onClick={() => setOpenFitFinder(false)}
@@ -395,30 +400,141 @@ export default function ProductPage({
                       disabled={!sexo}
                       className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-[#252a7a] hover:shadow-lg transition-all"
                     >
+                      Continuar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ETAPA 2: Preferência de caimento */}
+              {fitStep === 2 && (
+                <div className="flex flex-col gap-6 flex-1">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Como você usa suas roupas?
+                  </h2>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Justo */}
+                    <button
+                      onClick={() => setCaimento("justo")}
+                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
+                        caimento === "justo"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      {/* Silhueta Justo */}
+                      <svg viewBox="0 0 40 80" className="w-10 h-20 mb-2" fill="none">
+                        <ellipse cx="20" cy="10" rx="8" ry="9" fill={caimento === "justo" ? "#2e3091" : "#9CA3AF"} />
+                        <path d="M12 20 L12 55 L14 75 L18 75 L20 50 L22 75 L26 75 L28 55 L28 20 Z" 
+                          fill={caimento === "justo" ? "#2e3091" : "#9CA3AF"} />
+                      </svg>
+                      <span className={`text-xs font-medium ${caimento === "justo" ? "text-[#2e3091]" : "text-gray-600"}`}>
+                        Justo
+                      </span>
+                    </button>
+
+                    {/* Regular */}
+                    <button
+                      onClick={() => setCaimento("regular")}
+                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
+                        caimento === "regular"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      {/* Silhueta Regular */}
+                      <svg viewBox="0 0 40 80" className="w-10 h-20 mb-2" fill="none">
+                        <ellipse cx="20" cy="10" rx="8" ry="9" fill={caimento === "regular" ? "#2e3091" : "#9CA3AF"} />
+                        <path d="M10 20 L8 55 L12 75 L17 75 L20 52 L23 75 L28 75 L32 55 L30 20 Z" 
+                          fill={caimento === "regular" ? "#2e3091" : "#9CA3AF"} />
+                      </svg>
+                      <span className={`text-xs font-medium ${caimento === "regular" ? "text-[#2e3091]" : "text-gray-600"}`}>
+                        Regular
+                      </span>
+                    </button>
+
+                    {/* Oversize */}
+                    <button
+                      onClick={() => setCaimento("oversize")}
+                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
+                        caimento === "oversize"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      {/* Silhueta Oversize */}
+                      <svg viewBox="0 0 40 80" className="w-10 h-20 mb-2" fill="none">
+                        <ellipse cx="20" cy="10" rx="8" ry="9" fill={caimento === "oversize" ? "#2e3091" : "#9CA3AF"} />
+                        <path d="M6 20 L4 55 L10 75 L16 75 L20 55 L24 75 L30 75 L36 55 L34 20 Z" 
+                          fill={caimento === "oversize" ? "#2e3091" : "#9CA3AF"} />
+                      </svg>
+                      <span className={`text-xs font-medium ${caimento === "oversize" ? "text-[#2e3091]" : "text-gray-600"}`}>
+                        Oversize
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="flex gap-3 mt-auto">
+                    <button
+                      onClick={() => setFitStep(1)}
+                      className="flex-1 border border-gray-200 py-3 rounded-lg text-sm hover:shadow-sm text-gray-700"
+                    >
+                      Voltar
+                    </button>
+                    <button
+                      onClick={() => setFitStep(3)}
+                      disabled={!caimento}
+                      className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-[#252a7a] hover:shadow-lg transition-all"
+                    >
                       Ver resultado
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* ETAPA 2: resultado */}
-              {fitStep === 2 && (
+              {/* ETAPA 3: Resultado Premium */}
+              {fitStep === 3 && (
                 <div className="flex flex-col gap-4 flex-1">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                    <h3 className="text-sm font-semibold text-green-800">
+                  {/* Card de resultado premium */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-xs font-bold text-green-700 uppercase tracking-wider">
+                        Resultado Premium
+                      </span>
+                    </div>
+                    
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Caimento ideal identificado
                     </h3>
-                    <p className="mt-2 text-lg font-bold text-gray-900">
-                      Tamanho recomendado:{" "}
-                      <span className="text-green-700">{recommended}</span>
-                    </p>
-                    <p className="mt-2 text-sm text-gray-600">
+                    
+                    <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
+                      <p className="text-sm text-gray-600 mb-1">Tamanho recomendado:</p>
+                      <p className="text-3xl font-bold text-[#2e3091]">{recommended}</p>
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 leading-relaxed">
                       Desenvolvido para sua altura e proporção corporal.
                     </p>
                   </div>
+
+                  {/* Observação de alerta */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-amber-500 text-lg">⚠️</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">Observação</p>
+                      <p className="text-sm text-amber-700 mt-1">
+                        O tamanho {recommended === "P" ? "PP" : recommended === "M" ? "P" : recommended === "G" ? "M" : "G"} pode ficar {caimento === "justo" ? "muito apertado" : caimento === "oversize" ? "menos amplo que o desejado" : "desajustado"} ao seu corpo!
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="flex gap-3 mt-auto">
                     <button
-                      onClick={() => setFitStep(1)}
+                      onClick={() => setFitStep(2)}
                       className="flex-1 border border-gray-200 py-3 rounded-lg text-sm hover:shadow-sm text-gray-700"
                     >
                       Voltar
@@ -430,7 +546,7 @@ export default function ProductPage({
                       }}
                       className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#252a7a] hover:shadow-lg transition-all"
                     >
-                      Usar tamanho recomendado
+                      Usar tamanho {recommended}
                     </button>
                   </div>
                 </div>
