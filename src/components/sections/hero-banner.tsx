@@ -92,17 +92,25 @@ const HeroBanner = () => {
       const currentVideo = videoRefs.current[currentSlide];
       const currentBgVideo = bgVideoRefs.current[currentSlide];
 
-      if (currentVideo) {
-        currentVideo.currentTime = 0;
-        currentVideo.muted = isMuted;
+      // Sincroniza os dois vídeos
+      const syncAndPlay = () => {
+        if (currentVideo && currentBgVideo) {
+          currentVideo.currentTime = 0;
+          currentBgVideo.currentTime = 0;
+          currentVideo.muted = isMuted;
+          currentBgVideo.muted = true;
 
-        const playPromise = currentVideo.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((e) => {
+          // Inicia os dois ao mesmo tempo
+          Promise.all([
+            currentVideo.play().catch((e) => console.log("Main video play error:", e)),
+            currentBgVideo.play().catch((e) => console.log("Background video play error:", e))
+          ]);
+        } else if (currentVideo) {
+          currentVideo.currentTime = 0;
+          currentVideo.muted = isMuted;
+          currentVideo.play().catch((e) => {
             console.log("Autoplay prevented:", e);
-            // No mobile, vídeos autoplay podem ser bloqueados
             if (isMobile) {
-              // Espera interação do usuário
               const enableVideo = () => {
                 currentVideo.play().catch((e) => console.log("Play after interaction error:", e));
                 document.removeEventListener('touchstart', enableVideo);
@@ -111,13 +119,9 @@ const HeroBanner = () => {
             }
           });
         }
-      }
+      };
 
-      if (currentBgVideo) {
-        currentBgVideo.currentTime = 0;
-        currentBgVideo.muted = true;
-        currentBgVideo.play().catch((e) => console.log("Background video play error:", e));
-      }
+      syncAndPlay();
     }
 
     // Pausa outros vídeos
@@ -159,7 +163,7 @@ const HeroBanner = () => {
         slide.type === 'video' ?
         <div
           key={`bg-${index}`}
-          className={`absolute inset-0 transition-opacity duration-1000 ${
+          className={`absolute inset-0 transition-opacity duration-500 ${
           index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
           }>
 
@@ -168,8 +172,9 @@ const HeroBanner = () => {
             className="w-full h-full object-cover blur-md scale-110"
             autoPlay
             loop
-            muted={true}
+            muted
             playsInline
+            preload="auto"
             aria-hidden="true">
 
                 <source src={slide.url} type="video/mp4" />
@@ -190,7 +195,7 @@ const HeroBanner = () => {
           {slides.map((slide, index) =>
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
+            className={`absolute inset-0 transition-opacity duration-500 ${
             index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`
             }>
 
@@ -202,6 +207,7 @@ const HeroBanner = () => {
               loop
               muted={isMuted}
               playsInline
+              preload="auto"
               onEnded={handleVideoEnd}>
 
                   <source src={slide.url} type="video/mp4" />
