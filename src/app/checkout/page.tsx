@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -126,6 +126,15 @@ export default function CheckoutPage() {
 
   const isStepCompleted = (step: CheckoutStep) => completedSteps.includes(step);
 
+  // Ref for step content to scroll to
+  const stepContentRef = useRef<HTMLDivElement>(null);
+
+  const scrollToStepContent = () => {
+    setTimeout(() => {
+      stepContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
   const completeCurrentStep = () => {
     if (currentStep === "login") {
       if (!personal.cpf || !personal.phone) {
@@ -134,6 +143,7 @@ export default function CheckoutPage() {
       }
       setCompletedSteps([...completedSteps, "login"]);
       setCurrentStep("entrega");
+      scrollToStepContent();
     } else if (currentStep === "entrega") {
       if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
         toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
@@ -141,6 +151,7 @@ export default function CheckoutPage() {
       }
       setCompletedSteps([...completedSteps, "entrega"]);
       setCurrentStep("pagamento");
+      scrollToStepContent();
     } else if (currentStep === "pagamento") {
       toast.success("Pedido realizado com sucesso!", { duration: 2000 });
       clearCart();
@@ -366,7 +377,7 @@ export default function CheckoutPage() {
 
         <div className="lg:flex lg:gap-12">
           {/* Main Content */}
-          <div className="lg:flex-1">
+          <div className="lg:flex-1" ref={stepContentRef}>
             {/* Completed Steps Cards */}
             {isStepCompleted("login") && currentStep !== "login" && (
               <CompletedStepCard

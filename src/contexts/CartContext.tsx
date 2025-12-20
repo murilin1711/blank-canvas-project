@@ -61,14 +61,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, { ...item, id: crypto.randomUUID() }];
     });
-    toast.success("Produto adicionado ao carrinho!", { duration: 2000 });
+    toast.success("Produto adicionado ao carrinho!", { duration: 1500, position: "bottom-center" });
   };
 
   const removeItem = (productId: number, size: string) => {
     setItems((prev) =>
       prev.filter((i) => !(i.productId === productId && i.size === size))
     );
-    toast.success("Produto removido do carrinho", { duration: 2000 });
+    toast.success("Produto removido do carrinho", { duration: 1500, position: "bottom-center" });
   };
 
   const updateQuantity = (productId: number, size: string, quantity: number) => {

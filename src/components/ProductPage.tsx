@@ -99,38 +99,98 @@ export default function ProductPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* ===== GALERIA ===== */}
           <div className="space-y-4">
-            <div
-              className="relative w-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden cursor-pointer border border-gray-100"
-              onClick={nextImage}
-              role="button"
-              aria-label="Avançar imagem"
-            >
-              <img
-                src={images[activeIndex]}
-                alt="Imagem principal do produto"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {images.map((img, i) => (
-                <div
-                  key={img + i}
-                  onClick={() => setActiveIndex(i)}
-                  className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${
-                    activeIndex === i
-                      ? "scale-105 ring-2 ring-[#2e3091]"
-                      : "hover:scale-[1.03] border border-gray-100"
-                  }`}
-                  role="button"
-                  aria-label={`Mostrar imagem ${i + 1}`}
-                >
+            {/* Mobile Gallery - infinite scroll style, no borders */}
+            <div className="md:hidden relative w-full aspect-[3/4] bg-white overflow-hidden">
+              <div
+                className="w-full h-full relative touch-pan-x"
+                onTouchStart={(e) => {
+                  const touch = e.touches[0];
+                  (e.currentTarget as any)._touchStartX = touch.clientX;
+                }}
+                onTouchEnd={(e) => {
+                  const startX = (e.currentTarget as any)._touchStartX || 0;
+                  const endX = e.changedTouches[0].clientX;
+                  const diff = startX - endX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                      setActiveIndex((prev) => (prev + 1) % images.length);
+                    } else {
+                      setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+                    }
+                  }
+                }}
+              >
+                {images.map((img, i) => (
                   <img
+                    key={img + i}
                     src={img}
-                    alt={`Imagem ${i + 1}`}
-                    className="w-full h-full object-cover"
+                    alt={`${productName} - ${i + 1}`}
+                    className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${
+                      i === activeIndex
+                        ? "translate-x-0 opacity-100"
+                        : i < activeIndex
+                        ? "-translate-x-full opacity-0"
+                        : "translate-x-full opacity-0"
+                    }`}
+                    draggable={false}
                   />
+                ))}
+              </div>
+              
+              {/* Mobile indicators - minimalist lines */}
+              {images.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveIndex(i)}
+                      className={`h-[2px] rounded-full transition-all ${
+                        i === activeIndex
+                          ? "bg-[#2e3091] w-6"
+                          : "bg-gray-300 w-4"
+                      }`}
+                      aria-label={`Ir para imagem ${i + 1}`}
+                    />
+                  ))}
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* Desktop Gallery - with thumbnails */}
+            <div className="hidden md:block">
+              <div
+                className="relative w-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden cursor-pointer border border-gray-100"
+                onClick={nextImage}
+                role="button"
+                aria-label="Avançar imagem"
+              >
+                <img
+                  src={images[activeIndex]}
+                  alt="Imagem principal do produto"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-3 mt-4">
+                {images.map((img, i) => (
+                  <div
+                    key={img + i}
+                    onClick={() => setActiveIndex(i)}
+                    className={`relative aspect-square rounded-xl overflow-hidden cursor-pointer transition-all ${
+                      activeIndex === i
+                        ? "scale-105 ring-2 ring-[#2e3091]"
+                        : "hover:scale-[1.03] border border-gray-100"
+                    }`}
+                    role="button"
+                    aria-label={`Mostrar imagem ${i + 1}`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Imagem ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
