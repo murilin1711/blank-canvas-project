@@ -6,7 +6,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 const slides = [
 {
   type: 'video' as const,
-  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/Venha-nos-fazer-uma-visita-a-equipe-Goias-Minas-esta-pronta-para-te-atender-1-1765241617616.mp4',
+  url: '/videos/hero-video.mp4',
   title: "",
   link: ""
 },

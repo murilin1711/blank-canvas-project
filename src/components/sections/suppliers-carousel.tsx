@@ -38,7 +38,7 @@ export default function SuppliersCarousel() {
     let scrollPosition = 0;
 
     const scroll = () => {
-      scrollPosition += 0.5;
+      scrollPosition += 1.2;
       if (scrollPosition >= scrollContainer.scrollWidth / 2) {
         scrollPosition = 0;
       }
@@ -94,7 +94,7 @@ export default function SuppliersCarousel() {
               <img
                 src={supplier.logo}
                 alt={`Logo ${supplier.name}`}
-                className="w-full h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                className="w-full h-full object-contain transition-all duration-300"
               />
             </div>
           ))}
