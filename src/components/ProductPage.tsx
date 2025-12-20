@@ -527,7 +527,7 @@ export default function ProductPage({
                     <div>
                       <p className="text-sm font-medium text-amber-800">Observação</p>
                       <p className="text-sm text-amber-700 mt-1">
-                        O tamanho {recommended === "P" ? "PP" : recommended === "M" ? "P" : recommended === "G" ? "M" : "G"} pode ficar {caimento === "justo" ? "muito apertado" : caimento === "oversize" ? "menos amplo que o desejado" : "desajustado"} ao seu corpo!
+                        O tamanho G pode ficar desajustado ao seu corpo!
                       </p>
                     </div>
                   </div>
