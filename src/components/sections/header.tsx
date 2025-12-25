@@ -10,11 +10,28 @@ const Header = () => {
   const { user, signOut } = useAuth();
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Navigate to escola or search results
+      const query = searchQuery.toLowerCase().trim();
+      if (query.includes('militar') || query.includes('colegio')) {
+        navigate('/escolas/colegio-militar');
+      } else {
+        // For now, navigate to schools page with search term
+        navigate(`/escolas/colegio-militar?search=${encodeURIComponent(query)}`);
+      }
+      setSearchOpen(false);
+      setSearchQuery('');
+    }
+  };
 
   const navItems = ["Escolas", "Empresas", "Personalizadas", "Sobre", "FAQ"];
 
@@ -102,20 +119,29 @@ const Header = () => {
             <div className="flex items-center gap-3">
               {/* Search */}
               <div className="relative group">
-                <div className={`h-[38px] bg-white/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${searchOpen ? 'w-[180px] xl:w-[200px]' : 'w-[90px] xl:w-[100px]'} overflow-hidden group-hover:shadow-md group-hover:scale-105`}>
+                <div className={`h-[38px] bg-white/50 backdrop-blur-md rounded-lg shadow-sm transition-all duration-300 ${searchOpen ? 'w-[220px] xl:w-[250px]' : 'w-[90px] xl:w-[100px]'} overflow-hidden group-hover:shadow-md group-hover:scale-105`}>
                   {searchOpen ? (
-                    <div className="flex items-center h-full px-3 gap-2">
+                    <form onSubmit={handleSearch} className="flex items-center h-full px-3 gap-2">
                       <input
                         type="text"
-                        placeholder="Buscar..."
+                        placeholder="Buscar produtos..."
                         autoFocus
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="flex-1 bg-transparent border-none outline-none text-[13px] font-suisse text-black placeholder:text-gray-500"
-                        onBlur={() => setSearchOpen(false)}
+                        onBlur={() => {
+                          if (!searchQuery) setSearchOpen(false);
+                        }}
                       />
-                      <Search className="w-[14px] h-[14px] text-black flex-shrink-0" />
-                    </div>
+                      <button 
+                        type="submit" 
+                        className="p-1 hover:bg-white/50 rounded transition-colors"
+                      >
+                        <Search className="w-[14px] h-[14px] text-black flex-shrink-0" />
+                      </button>
+                    </form>
                   ) : (
-                    <button onClick={() => setSearchOpen(true)} className="w-full h-full flex items-center justify-between px-3">
+                    <button onClick={() => setSearchOpen(true)} className="w-full h-full flex items-center justify-between px-3 hover:bg-white/30 transition-colors">
                       <span className="font-suisse font-normal text-[13px] tracking-[-0.02em] text-black">Buscar</span>
                       <Search className="w-[14px] h-[14px] text-black transition-transform duration-300 group-hover:scale-110" />
                     </button>
