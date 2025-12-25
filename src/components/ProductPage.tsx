@@ -7,7 +7,9 @@ import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
-
+import ectomorphImg from "@/assets/body-types/ectomorph.png";
+import mesomorphImg from "@/assets/body-types/mesomorph.png";
+import endomorphImg from "@/assets/body-types/endomorph.png";
 interface ProductPageProps {
   schoolName: string;
   productName: string;
@@ -406,15 +408,15 @@ export default function ProductPage({
                 </div>
               )}
 
-              {/* ETAPA 2: Preferência de caimento */}
+              {/* ETAPA 2: Tipo de corpo */}
               {fitStep === 2 && (
                 <div className="flex flex-col gap-6 flex-1">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Como você usa suas roupas?
+                    Qual seu tipo de corpo?
                   </h2>
                   
                   <div className="grid grid-cols-3 gap-4">
-                    {/* Justo */}
+                    {/* Ectomorfo */}
                     <button
                       onClick={() => setCaimento("justo")}
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
@@ -423,18 +425,17 @@ export default function ProductPage({
                           : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      {/* Silhueta Justo */}
-                      <svg viewBox="0 0 40 80" className="w-10 h-20 mb-2" fill="none">
-                        <ellipse cx="20" cy="10" rx="8" ry="9" fill={caimento === "justo" ? "#2e3091" : "#9CA3AF"} />
-                        <path d="M12 20 L12 55 L14 75 L18 75 L20 50 L22 75 L26 75 L28 55 L28 20 Z" 
-                          fill={caimento === "justo" ? "#2e3091" : "#9CA3AF"} />
-                      </svg>
+                      <img 
+                        src={ectomorphImg} 
+                        alt="Ectomorfo" 
+                        className="w-12 h-20 object-contain mb-2"
+                      />
                       <span className={`text-xs font-medium ${caimento === "justo" ? "text-[#2e3091]" : "text-gray-600"}`}>
-                        Justo
+                        Ectomorfo
                       </span>
                     </button>
 
-                    {/* Regular */}
+                    {/* Mesomorfo */}
                     <button
                       onClick={() => setCaimento("regular")}
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
@@ -443,18 +444,17 @@ export default function ProductPage({
                           : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      {/* Silhueta Regular */}
-                      <svg viewBox="0 0 40 80" className="w-10 h-20 mb-2" fill="none">
-                        <ellipse cx="20" cy="10" rx="8" ry="9" fill={caimento === "regular" ? "#2e3091" : "#9CA3AF"} />
-                        <path d="M10 20 L8 55 L12 75 L17 75 L20 52 L23 75 L28 75 L32 55 L30 20 Z" 
-                          fill={caimento === "regular" ? "#2e3091" : "#9CA3AF"} />
-                      </svg>
+                      <img 
+                        src={mesomorphImg} 
+                        alt="Mesomorfo" 
+                        className="w-12 h-20 object-contain mb-2"
+                      />
                       <span className={`text-xs font-medium ${caimento === "regular" ? "text-[#2e3091]" : "text-gray-600"}`}>
-                        Regular
+                        Mesomorfo
                       </span>
                     </button>
 
-                    {/* Oversize */}
+                    {/* Endomorfo */}
                     <button
                       onClick={() => setCaimento("oversize")}
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
@@ -463,14 +463,13 @@ export default function ProductPage({
                           : "border-gray-200 hover:bg-gray-50"
                       }`}
                     >
-                      {/* Silhueta Oversize */}
-                      <svg viewBox="0 0 40 80" className="w-10 h-20 mb-2" fill="none">
-                        <ellipse cx="20" cy="10" rx="8" ry="9" fill={caimento === "oversize" ? "#2e3091" : "#9CA3AF"} />
-                        <path d="M6 20 L4 55 L10 75 L16 75 L20 55 L24 75 L30 75 L36 55 L34 20 Z" 
-                          fill={caimento === "oversize" ? "#2e3091" : "#9CA3AF"} />
-                      </svg>
+                      <img 
+                        src={endomorphImg} 
+                        alt="Endomorfo" 
+                        className="w-12 h-20 object-contain mb-2"
+                      />
                       <span className={`text-xs font-medium ${caimento === "oversize" ? "text-[#2e3091]" : "text-gray-600"}`}>
-                        Oversize
+                        Endomorfo
                       </span>
                     </button>
                   </div>
