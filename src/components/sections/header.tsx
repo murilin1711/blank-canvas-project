@@ -219,7 +219,11 @@ const Header = () => {
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu" className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
-            <button onClick={() => setSearchOpen(!searchOpen)} aria-label="Buscar" className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <button 
+              onClick={() => setSearchOpen(!searchOpen)} 
+              aria-label="Buscar" 
+              className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 hover:bg-white/80 transition-all duration-300"
+            >
               <Search size={20} />
             </button>
           </div>
@@ -247,6 +251,31 @@ const Header = () => {
             </button>
           </div>
         </div>
+
+        {/* Mobile Search Overlay */}
+        {searchOpen && (
+          <div className="lg:hidden fixed inset-0 z-[60] pt-[80px]">
+            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setSearchOpen(false)} />
+            <div className="relative bg-white/95 backdrop-blur-xl w-full max-w-sm mx-auto rounded-b-3xl shadow-2xl p-6">
+              <form onSubmit={handleSearch} className="flex items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="Buscar produtos..."
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-gray-100 border-none outline-none text-[16px] font-suisse text-black placeholder:text-gray-500 px-4 py-3 rounded-xl"
+                />
+                <button 
+                  type="submit" 
+                  className="p-3 bg-[#2e3091] text-white rounded-xl hover:bg-[#252a7a] transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
