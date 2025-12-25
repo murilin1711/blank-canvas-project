@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, TouchEvent } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 
 const slides = [
@@ -30,6 +30,8 @@ const HeroBanner = () => {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const bgVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   // Detecta se é mobile
   useEffect(() => {
@@ -70,6 +72,30 @@ const HeroBanner = () => {
 
   const handleVideoEnd = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  // Touch handlers for swipe
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        // Swipe left - next slide
+        setCurrentSlide((prev) => (prev + 1) % slides.length);
+      } else {
+        // Swipe right - previous slide
+        setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+      }
+    }
   };
 
   // Efeito para gerenciar slides e vídeos
@@ -188,7 +214,10 @@ const HeroBanner = () => {
       {/* Slides Container */}
       <div
         id="hero-banner"
-        className="relative z-10 flex items-center justify-center w-full h-full px-4 py-8 md:px-6 md:py-10 lg:px-8 lg:py-12">
+        className="relative z-10 flex items-center justify-center w-full h-full px-4 py-8 md:px-6 md:py-10 lg:px-8 lg:py-12"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}>
 
         <div className="relative w-full max-w-[95%] md:max-w-[80%] lg:max-w-[65%] xl:max-w-[55%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
           

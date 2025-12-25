@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, TouchEvent } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
+import FeedbackModal from './FeedbackModal';
 
 const testimonials = [
   {
@@ -49,6 +50,9 @@ const testimonials = [
 const TestimonialsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const touchStartX = useRef<number>(0);
+  const touchEndX = useRef<number>(0);
 
   const nextTestimonial = () => {
     setCurrentIndex((prevIndex) => 
@@ -64,6 +68,30 @@ const TestimonialsSection = () => {
 
   const goToTestimonial = (index: number) => {
     setCurrentIndex(index);
+  };
+
+  // Touch handlers for swipe
+  const handleTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    setIsAutoPlaying(false);
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    const threshold = 50;
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        nextTestimonial();
+      } else {
+        prevTestimonial();
+      }
+    }
+    setIsAutoPlaying(true);
   };
 
   // Auto-play functionality
@@ -97,9 +125,12 @@ const TestimonialsSection = () => {
 
         {/* Main Testimonial Card */}
         <div 
-          className="relative bg-white rounded-2xl shadow-lg overflow-hidden max-w-3xl mx-auto"
+          className="relative bg-white rounded-2xl shadow-lg overflow-hidden max-w-3xl mx-auto cursor-grab active:cursor-grabbing"
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <div className="p-6 md:p-8">
             {/* Decorative elements - smaller */}
@@ -172,12 +203,21 @@ const TestimonialsSection = () => {
         </div>
         {/* CTA - smaller */}
         <div className="text-center mt-8">
-          <button className="bg-[#2e3091] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[#252a7a] transition-colors duration-300 shadow-md hover:shadow-lg text-sm">
+          <button 
+            onClick={() => setIsFeedbackModalOpen(true)}
+            className="bg-[#2e3091] text-white px-6 py-2.5 rounded-lg font-medium hover:bg-[#252a7a] hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg text-sm"
+          >
             Deixe seu Feedback
           </button>
           <p className="text-gray-500 text-xs mt-2">Ajude outros clientes com sua experiência</p>
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      <FeedbackModal 
+        isOpen={isFeedbackModalOpen} 
+        onClose={() => setIsFeedbackModalOpen(false)} 
+      />
     </section>
   );
 };

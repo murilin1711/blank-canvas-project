@@ -104,9 +104,14 @@ const CategoryShowcase = () => {
             <p className="text-text-secondary text-body-lg md:text-xl leading-relaxed mb-6">
               Independente do seu segmento, temos a solução ideal para uniformes.
             </p>
-            <button className="bg-[#2e3091] text-white px-8 py-3 rounded-full text-btn font-medium hover:bg-[#252a7a] transition-colors">
+            <a 
+              href="https://wa.me/5562991121586?text=Ol%C3%A1%21%20Vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20detalhes…"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#2e3091] text-white px-8 py-3 rounded-full text-btn font-medium hover:bg-[#252a7a] hover:scale-105 transition-all duration-300"
+            >
               Falar com um consultor
-            </button>
+            </a>
           </div>
         </div>
       </div>
