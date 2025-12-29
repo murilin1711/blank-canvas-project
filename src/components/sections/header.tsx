@@ -33,7 +33,7 @@ const Header = () => {
     }
   };
 
-  const navItems = ["Escolas", "Empresas", "Personalizadas", "Sobre", "FAQ"];
+  const navItems = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós", "Perguntas Frequentes (FAQ)"];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -80,7 +80,7 @@ const Header = () => {
                 <ul className="flex items-center gap-1 px-2">
                   {navItems.map((item) => (
                     <li key={item} className="relative group">
-                      {item === "Sobre" ? (
+                      {item === "Sobre Nós" ? (
                         <Link
                           to="/sobre"
                           className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm flex items-center"
@@ -109,7 +109,7 @@ const Header = () => {
                   <img
                     src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
                     alt="Goiás Minas Uniformes Logo"
-                    className="object-contain !w-auto !h-[138px] transition-transform duration-300 hover:scale-105"
+                    className="object-contain !w-auto !h-[166px] transition-transform duration-300 hover:scale-105"
                   />
                 </div>
               </Link>
@@ -232,7 +232,7 @@ const Header = () => {
             <img
               src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png"
               alt="Goiás Minas Uniformes Logo"
-              className="object-contain w-[138px] h-[138px]"
+              className="object-contain w-[166px] h-[166px]"
             />
           </Link>
 
@@ -286,7 +286,7 @@ const Header = () => {
                 <ul className="space-y-4">
                   {navItems.map((item) => (
                     <li key={item}>
-                      {item === "Sobre" ? (
+                      {item === "Sobre Nós" ? (
                         <Link
                           to="/sobre"
                           onClick={() => setMobileMenuOpen(false)}

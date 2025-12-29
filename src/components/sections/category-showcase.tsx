@@ -33,7 +33,7 @@ const CategoryShowcase = () => {
                 <div className="bg-white/90 backdrop-blur-sm rounded-xl p-5 md:p-6 shadow-lg">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xl md:text-2xl lg:text-3xl font-semibold text-[#2e3091]">
-                      Empresarial
+                      Uniformes Empresariais
                     </h3>
                     <div className="w-10 h-10 flex items-center justify-center bg-[#2e3091] text-white rounded-full group-hover:bg-[#252a7a] transition-colors">
                       <svg
@@ -50,7 +50,7 @@ const CategoryShowcase = () => {
                     Uniformes corporativos de alta qualidade para empresas que valorizam profissionalismo
                   </p>
                   <div className="flex items-center mt-4 text-[#2e3091] text-sm font-medium">
-                    <span>Ver soluções empresariais</span>
+                    <span className="underline">Ver linhas empresariais</span>
                   </div>
                 </div>
               </div>
@@ -74,7 +74,7 @@ const CategoryShowcase = () => {
                 <div className="bg-white/90 backdrop-blur-sm rounded-xl p-5 md:p-6 shadow-lg">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xl md:text-2xl lg:text-3xl font-semibold text-[#2e3091]">
-                      Personalização
+                      Camisetas Personalizadas
                     </h3>
                     <div className="w-10 h-10 flex items-center justify-center bg-[#2e3091] text-white rounded-full group-hover:bg-[#252a7a] transition-colors">
                       <svg
@@ -88,10 +88,10 @@ const CategoryShowcase = () => {
                     </div>
                   </div>
                   <p className="text-gray-700 text-sm md:text-base">
-                    Criação de uniformes exclusivos com bordados, estampas e designs personalizados
+                    Camisetas personalizadas para diferentes funcionalidades, com estampas e bordados de alta qualidade
                   </p>
                   <div className="flex items-center mt-4 text-[#2e3091] text-sm font-medium">
-                    <span>Criar projeto personalizado</span>
+                    <span className="underline">Ver tipos de camisetas</span>
                   </div>
                 </div>
               </div>
@@ -105,7 +105,7 @@ const CategoryShowcase = () => {
               Independente do seu segmento, temos a solução ideal para uniformes.
             </p>
             <a 
-              href="https://wa.me/5562991121586?text=Ol%C3%A1%21%20Vim%20pelo%20site%20e%20gostaria%20de%20saber%20mais%20detalhes…"
+              href="https://wa.me/5562991121586?text=Ol%C3%A1!%20Tudo%20bem%3F%0AGostaria%20de%20solicitar%20um%20or%C3%A7amento.%0A%0AO%20que%20voc%C3%AA%20procura%20no%20momento%3F%0A(%20)%20Uniformes%20personalizados%0A(%20)%20Camisetas%20personalizadas%0A(%20)%20Ainda%20n%C3%A3o%20tenho%20certeza%2C%20preciso%20de%20orienta%C3%A7%C3%A3o%0A%0A%F0%9F%91%89%F0%9F%8F%BBPara%20qual%20finalidade%3F%20(empresa%2Cescola%2Cevento%2Ctime%2Cigreja%2C%20outro)%3A%0A%F0%9F%91%89%F0%9F%8F%BBQuantidade%20aproximada%3A%0A%F0%9F%91%89%F0%9F%8F%BBVoc%C3%AA%20j%C3%A1%20possui%20logo%2Farte%3F%20%0A(%20)%20Sim%20(%20)N%C3%A3o"
               target="_blank"
               rel="noopener noreferrer"
               className="bg-[#2e3091] text-white px-8 py-3 rounded-full text-btn font-medium hover:bg-[#252a7a] hover:scale-105 transition-all duration-300"

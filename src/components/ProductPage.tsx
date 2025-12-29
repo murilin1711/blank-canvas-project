@@ -217,7 +217,7 @@ export default function ProductPage({
                     setOpenFitFinder(true);
                     setFitStep(1);
                   }}
-                  className="text-sm text-[#2e3091] hover:underline font-medium"
+                  className="text-sm text-[#2e3091] underline font-medium hover:text-[#252a7a]"
                 >
                   Qual meu tamanho ideal?
                 </button>
@@ -414,6 +414,14 @@ export default function ProductPage({
                   <h2 className="text-lg font-semibold text-gray-900">
                     Qual seu tipo de corpo?
                   </h2>
+                  
+                  {/* Mensagem de atenção */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3">
+                    <span className="text-amber-500 text-lg flex-shrink-0">⚠️</span>
+                    <p className="text-sm text-amber-800">
+                      <strong>Atenção:</strong> escolha de acordo com a imagem que mais se parece com o seu corpo atual.
+                    </p>
+                  </div>
                   
                   <div className="grid grid-cols-3 gap-4">
                     {/* Ectomorfo */}
