@@ -538,7 +538,7 @@ export default function LojaEstiloOsklen() {
                       </>
                     )}
 
-                    {/* Botão + central - semi-opaco como na referência */}
+                    {/* Botão + central - reduzido 50% */}
                     <button
                       aria-label="Adicionar ao carrinho"
                       onClick={(ev) => {
@@ -547,7 +547,7 @@ export default function LojaEstiloOsklen() {
                       }}
                       className={
                         "absolute left-1/2 -translate-x-1/2 bottom-10 rounded-full flex items-center justify-center transition-all z-20 " +
-                        "w-8 h-8 " +
+                        "w-4 h-4 " +
                         "bg-white/90 backdrop-blur-sm shadow-md " +
                         (isSmallScreen
                           ? "opacity-100"
@@ -555,14 +555,14 @@ export default function LojaEstiloOsklen() {
                         " hover:scale-105 hover:bg-white active:scale-95 cursor-pointer"
                       }
                     >
-                      <Plus className="w-4 h-4 text-black" strokeWidth={1.5} />
+                      <Plus className="w-2 h-2 text-black" strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
 
-                {/* Nome e preço na mesma linha - nome bold com truncate, preço normal */}
+                {/* Nome e preço na mesma linha - nome completo sem truncate */}
                 <div className="mt-3 flex items-center justify-between gap-2">
-                  <h3 className="text-[13px] font-semibold text-gray-900 leading-tight truncate flex-1">
+                  <h3 className="text-[13px] font-semibold text-gray-900 leading-tight flex-1">
                     {p.name}
                   </h3>
                   <span className="text-[13px] font-normal text-gray-900 whitespace-nowrap">

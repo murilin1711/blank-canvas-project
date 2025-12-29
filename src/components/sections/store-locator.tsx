@@ -1,10 +1,17 @@
 "use client";
 
-import { MapPin, Clock, Phone, Car, Shield, Sparkles } from 'lucide-react';
+import { MapPin, Clock, Phone, Shield, Sparkles, Navigation } from 'lucide-react';
 import { useState } from 'react';
+
+const WHATSAPP_LINK = "https://wa.me/5562991121586?text=Ol%C3%A1!%20Tudo%20bem%3F%0AGostaria%20de%20solicitar%20um%20or%C3%A7amento.%0A%0AO%20que%20voc%C3%AA%20procura%20no%20momento%3F%0A(%20)%20Uniformes%20personalizados%0A(%20)%20Camisetas%20personalizadas%0A(%20)%20Ainda%20n%C3%A3o%20tenho%20certeza%2C%20preciso%20de%20orienta%C3%A7%C3%A3o%0A%0A%F0%9F%91%89%F0%9F%8F%BBPara%20qual%20finalidade%3F%20(empresa%2Cescola%2Cevento%2Ctime%2Cigreja%2C%20outro)%3A%0A%F0%9F%91%89%F0%9F%8F%BBQuantidade%20aproximada%3A%0A%F0%9F%91%89%F0%9F%8F%BBVoc%C3%AA%20j%C3%A1%20possui%20logo%2Farte%3F%20%0A(%20)%20Sim%20(%20)N%C3%A3o";
+const GOOGLE_MAPS_LINK = "https://maps.app.goo.gl/NRJPnMXutQCrPiGa9?g_st=ic";
+const APPLE_MAPS_LINK = "https://maps.apple/p/MH0IoV0C.S.vEI";
 
 const StoreLocator = () => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
+
+  const openMapChoice = () => setShowMapModal(true);
 
   return (
     <section className="py-16 lg:py-24 bg-gradient-to-b from-white to-gray-50">
@@ -43,14 +50,17 @@ const StoreLocator = () => {
                 {/* Informações principais */}
                 <div className="space-y-6 mb-8">
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0">
-                      <MapPin className="w-5 h-5 text-[#2e3091]" />
-                    </div>
+                    <button
+                      onClick={openMapChoice}
+                      className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 hover:bg-[#2e3091] hover:text-white transition-colors cursor-pointer group"
+                    >
+                      <MapPin className="w-5 h-5 text-[#2e3091] group-hover:text-white" />
+                    </button>
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Endereço</h4>
                       <p className="text-gray-600">
-                        Rua Exemplo, 123 - Centro<br />
-                        Goiânia - GO, 74000-000
+                        R. Guimarães Natal, 51 - Centro<br />
+                        Anápolis - GO, 75040-030
                       </p>
                     </div>
                   </div>
@@ -76,8 +86,15 @@ const StoreLocator = () => {
                     <div>
                       <h4 className="font-medium text-gray-900 mb-1">Telefone</h4>
                       <p className="text-gray-600">
-                        (62) 3222-0000<br />
-                        WhatsApp: (62) 99999-0000
+                        (62) 3324-9150<br />
+                        <a 
+                          href={WHATSAPP_LINK}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#2e3091] underline hover:text-[#252a7a]"
+                        >
+                          WhatsApp
+                        </a>: (62) 99112-1586
                       </p>
                     </div>
                   </div>
@@ -85,12 +102,15 @@ const StoreLocator = () => {
 
                 {/* Destaques */}
                 <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
+                  <button 
+                    onClick={openMapChoice}
+                    className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100 hover:border-[#2e3091] hover:shadow-md transition-all cursor-pointer"
+                  >
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                       <MapPin className="w-4 h-4 text-[#2e3091]" />
                     </div>
                     <p className="text-sm text-gray-700 !whitespace-pre-line">Fácil Localização</p>
-                  </div>
+                  </button>
                   <div className="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-100">
                     <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-2">
                       <Clock className="w-4 h-4 text-[#2e3091]" />
@@ -138,6 +158,16 @@ const StoreLocator = () => {
               tirar todas as suas dúvidas com nossos especialistas e receber um atendimento 
               personalizado para encontrar a solução perfeita para sua necessidade.
             </p>
+            
+            {/* Botão para abrir mapa */}
+            <button
+              onClick={openMapChoice}
+              className="mx-auto mb-6 inline-flex items-center gap-2 bg-[#2e3091] text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-[#252a7a] hover:scale-105 transition-all duration-300"
+            >
+              <Navigation className="w-4 h-4" />
+              Como chegar
+            </button>
+            
             <div className="inline-flex items-center gap-2 text-sm text-gray-600">
               <Shield className="w-4 h-4" />
               <span>Ambiente seguro e climatizado para sua melhor experiência</span>
@@ -145,8 +175,55 @@ const StoreLocator = () => {
           </div>
         </div>
       </div>
-    </section>);
 
+      {/* Modal de escolha de mapa */}
+      {showMapModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowMapModal(false)}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+              Escolha o aplicativo de mapas
+            </h3>
+            <div className="flex flex-col gap-3">
+              <a
+                href={GOOGLE_MAPS_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 bg-[#4285F4] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#3574d4] transition-colors"
+                onClick={() => setShowMapModal(false)}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Google Maps
+              </a>
+              <a
+                href={APPLE_MAPS_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 bg-gray-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                onClick={() => setShowMapModal(false)}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                Mapas Apple
+              </a>
+            </div>
+            <button
+              onClick={() => setShowMapModal(false)}
+              className="mt-4 w-full text-gray-500 text-sm hover:text-gray-700"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 };
 
 export default StoreLocator;
