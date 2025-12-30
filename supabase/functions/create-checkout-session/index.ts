@@ -15,6 +15,7 @@ interface CartItem {
   size: string;
   quantity: number;
   schoolSlug: string;
+  stripePriceId?: string;
 }
 
 interface CheckoutRequest {
@@ -65,7 +66,7 @@ serve(async (req) => {
       shipping,
     });
 
-    // Create line items for Stripe
+    // Create line items for Stripe - use dynamic pricing for now
     const lineItems: Array<{
       price_data: {
         currency: string;
@@ -104,9 +105,9 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
-    // Create checkout session
+    // Create checkout session - using only card payment method
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card", "boleto", "pix"],
+      payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/checkout/sucesso?session_id={CHECKOUT_SESSION_ID}`,
