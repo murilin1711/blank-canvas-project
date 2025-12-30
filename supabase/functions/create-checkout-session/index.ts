@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +15,6 @@ interface CartItem {
   size: string;
   quantity: number;
   schoolSlug: string;
-  stripePriceId?: string;
 }
 
 interface CheckoutRequest {
@@ -48,7 +47,7 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
+      apiVersion: "2025-08-27.basil",
     });
 
     const {
@@ -66,7 +65,7 @@ serve(async (req) => {
       shipping,
     });
 
-    // Create line items for Stripe - use dynamic pricing for now
+    // Create line items for Stripe - use dynamic pricing
     const lineItems: Array<{
       price_data: {
         currency: string;
@@ -105,34 +104,43 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://lovable.dev";
 
-    // Create checkout session - using only card payment method
+    // Create checkout session with card and boleto payment methods
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      payment_method_types: ["card", "boleto"],
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/checkout/sucesso?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/checkout/cancelado`,
       customer_email: customerEmail,
+      payment_method_options: {
+        boleto: {
+          expires_after_days: 3,
+        },
+      },
       metadata: {
         userId,
         customerName,
         shippingAddress: JSON.stringify(shippingAddress),
-        items: JSON.stringify(
-          items.map((i) => ({
-            productId: i.productId,
-            productName: i.productName,
-            productImage: i.productImage,
-            price: i.price,
-            size: i.size,
-            quantity: i.quantity,
-            schoolSlug: i.schoolSlug,
-          }))
-        ),
+        itemsCount: items.length.toString(),
         shipping: shipping.toString(),
       },
       payment_intent_data: {
         metadata: {
           userId,
+          customerName,
+          shippingAddress: JSON.stringify(shippingAddress),
+          itemsJson: JSON.stringify(
+            items.map((i) => ({
+              id: i.productId,
+              name: i.productName,
+              img: i.productImage,
+              price: i.price,
+              size: i.size,
+              qty: i.quantity,
+              school: i.schoolSlug,
+            }))
+          ),
+          shipping: shipping.toString(),
         },
       },
     });
