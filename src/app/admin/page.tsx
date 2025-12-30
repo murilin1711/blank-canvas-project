@@ -11,19 +11,23 @@ import {
   Check, 
   XCircle, 
   MessageCircle,
-  Edit,
-  Trash2,
   Plus,
   TrendingUp,
   Clock,
-  AlertCircle,
   RefreshCw,
-  LogOut
+  LogOut,
+  CreditCard,
+  Star,
+  Eye,
+  EyeOff,
+  Lock,
+  ZoomIn
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 
-type Tab = "pedidos" | "produtos" | "financeiro" | "clientes";
+type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes";
 
 interface BolsaUniformePayment {
   id: string;
@@ -72,6 +76,16 @@ interface AbandonedCart {
   last_interaction: string;
 }
 
+interface Feedback {
+  id: string;
+  user_id: string;
+  user_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  is_visible?: boolean;
+}
+
 export default function AdminPage() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -85,6 +99,13 @@ export default function AdminPage() {
   const [bolsaPayments, setBolsaPayments] = useState<BolsaUniformePayment[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+
+  // Modal states
+  const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
 
   // Check for existing session on mount
   useEffect(() => {
@@ -98,7 +119,6 @@ export default function AdminPage() {
           setIsAuthenticated(true);
           loadData();
         } else {
-          // Session expired
           sessionStorage.removeItem('admin_token');
           sessionStorage.removeItem('admin_expires_at');
         }
@@ -132,7 +152,6 @@ export default function AdminPage() {
         return;
       }
 
-      // Save session
       sessionStorage.setItem('admin_token', data.token);
       sessionStorage.setItem('admin_expires_at', data.expiresAt.toString());
       
@@ -184,6 +203,14 @@ export default function AdminPage() {
       
       if (carts) setAbandonedCarts(carts as unknown as AbandonedCart[]);
 
+      // Load feedbacks
+      const { data: feedbacksData } = await supabase
+        .from("feedbacks")
+        .select("*")
+        .order("created_at", { ascending: false });
+      
+      if (feedbacksData) setFeedbacks(feedbacksData as Feedback[]);
+
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -231,7 +258,6 @@ export default function AdminPage() {
     });
   };
 
-  // Calculate financial data
   const calculateFinancials = () => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -261,6 +287,20 @@ export default function AdminPage() {
     };
   };
 
+  const togglePasswordVisibility = (id: string) => {
+    setRevealedPasswords(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  // Extract password from notes field (stored as "Senha: XXXX")
+  const getPasswordFromNotes = (notes: string | null): string => {
+    if (!notes) return "****";
+    const match = notes.match(/Senha:\s*(\d+)/);
+    return match ? match[1] : "****";
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#2e3091] to-[#1a1c5a] flex items-center justify-center p-4">
@@ -270,8 +310,8 @@ export default function AdminPage() {
           className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl"
         >
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-[#2e3091] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Package className="w-8 h-8 text-white" />
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <img src={goiasMinasLogo} alt="Goiás Minas" className="h-12 w-auto" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Área Administrativa</h1>
             <p className="text-gray-500 mt-2">Goiás Minas Uniformes</p>
@@ -282,14 +322,17 @@ export default function AdminPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Senha de Acesso
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                placeholder="Digite a senha"
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2e3091] focus:ring-2 focus:ring-[#2e3091]/20"
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                  placeholder="Digite a senha"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2e3091] focus:ring-2 focus:ring-[#2e3091]/20"
+                />
+              </div>
             </div>
 
             <button
@@ -307,7 +350,9 @@ export default function AdminPage() {
 
   const tabs = [
     { key: "pedidos" as Tab, label: "Pedidos", icon: ShoppingCart },
+    { key: "bolsa-uniforme" as Tab, label: "Bolsa Uniforme", icon: CreditCard },
     { key: "produtos" as Tab, label: "Produtos", icon: Package },
+    { key: "feedbacks" as Tab, label: "Feedbacks", icon: Star },
     { key: "financeiro" as Tab, label: "Financeiro", icon: DollarSign },
     { key: "clientes" as Tab, label: "Clientes", icon: Users },
   ];
@@ -328,9 +373,7 @@ export default function AdminPage() {
           >
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#2e3091] rounded-xl flex items-center justify-center">
-                  <Package className="w-5 h-5 text-white" />
-                </div>
+                <img src={goiasMinasLogo} alt="Goiás Minas" className="h-10 w-auto" />
                 <div>
                   <h2 className="font-semibold text-gray-900">Admin</h2>
                   <p className="text-xs text-gray-500">Goiás Minas</p>
@@ -351,7 +394,7 @@ export default function AdminPage() {
                 >
                   <tab.icon className="w-5 h-5" />
                   <span className="font-medium">{tab.label}</span>
-                  {tab.key === "pedidos" && pendingPayments.length > 0 && (
+                  {tab.key === "bolsa-uniforme" && pendingPayments.length > 0 && (
                     <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                       {pendingPayments.length}
                     </span>
@@ -401,85 +444,170 @@ export default function AdminPage() {
 
         {/* Content */}
         <main className="flex-1 p-6 overflow-auto">
-          {/* Pedidos Tab */}
+          {/* Pedidos Tab - Only Stripe orders */}
           {activeTab === "pedidos" && (
             <div className="space-y-6">
-              {/* Bolsa Uniforme Payments */}
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Pagamentos Bolsa Uniforme
+                    Pedidos Stripe
                   </h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    Pedidos aguardando aprovação
+                    Pagamentos via cartão/Pix/boleto
                   </p>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Nenhum pedido encontrado</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pagamento</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {orders.map((order) => (
+                          <tr key={order.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 text-sm text-gray-900">{order.id.slice(0, 8)}...</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{order.order_items?.length || 0} itens</td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                order.status === "paid" ? "bg-green-100 text-green-700" :
+                                order.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                                "bg-gray-100 text-gray-700"
+                              }`}>
+                                {order.status === "paid" ? "Pago" : order.status === "pending" ? "Pendente" : order.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{order.payment_method || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Bolsa Uniforme Tab */}
+          {activeTab === "bolsa-uniforme" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900">Pagamentos Bolsa Uniforme</h2>
+                  <p className="text-sm text-gray-500 mt-1">Gerencie todos os pagamentos via Bolsa Uniforme</p>
                 </div>
 
                 {bolsaPayments.length === 0 ? (
                   <div className="p-12 text-center">
-                    <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum pagamento pendente</p>
+                    <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Nenhum pagamento Bolsa Uniforme</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {bolsaPayments.map((payment) => (
-                      <div key={payment.id} className="p-6">
-                        <div className="flex items-start gap-4">
-                          <img
-                            src={payment.qr_code_image}
-                            alt="QR Code"
-                            className="w-20 h-20 object-cover rounded-lg bg-gray-100"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4">
-                              <div>
-                                <h3 className="font-medium text-gray-900">
-                                  {payment.customer_name}
-                                </h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  {payment.customer_phone}
-                                </p>
-                                {payment.customer_email && (
-                                  <p className="text-sm text-gray-500">
-                                    {payment.customer_email}
-                                  </p>
-                                )}
-                              </div>
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  payment.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : payment.status === "approved"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-red-100 text-red-700"
-                                }`}
+                    {bolsaPayments.map((payment, index) => {
+                      const passwordValue = getPasswordFromNotes(payment.notes);
+                      const isPasswordRevealed = revealedPasswords[payment.id];
+                      
+                      return (
+                        <div key={payment.id} className="p-6">
+                          <div className="flex items-start gap-6">
+                            {/* QR Code Image with zoom */}
+                            <div className="relative group">
+                              <img
+                                src={payment.qr_code_image}
+                                alt="QR Code"
+                                className="w-24 h-24 object-cover rounded-lg bg-gray-100 cursor-pointer"
+                                onClick={() => {
+                                  setSelectedPayment(payment);
+                                  setShowImageModal(true);
+                                }}
+                              />
+                              <div 
+                                className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                onClick={() => {
+                                  setSelectedPayment(payment);
+                                  setShowImageModal(true);
+                                }}
                               >
-                                {payment.status === "pending" ? "Pendente" : payment.status === "approved" ? "Aprovado" : "Rejeitado"}
-                              </span>
+                                <ZoomIn className="w-6 h-6 text-white" />
+                              </div>
                             </div>
 
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {Array.isArray(payment.items) && payment.items.map((item: any, idx: number) => (
-                                <span
-                                  key={idx}
-                                  className="text-xs bg-gray-100 px-2 py-1 rounded"
-                                >
-                                  {item.productName} - {item.size} (x{item.quantity})
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <h3 className="font-semibold text-gray-900 text-lg">
+                                    Pedido #{index + 1} - {payment.customer_name}
+                                  </h3>
+                                  <p className="text-sm text-gray-500 mt-1">{payment.customer_phone}</p>
+                                  {payment.customer_email && (
+                                    <p className="text-sm text-gray-500">{payment.customer_email}</p>
+                                  )}
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                  payment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                                  payment.status === "approved" ? "bg-green-100 text-green-700" :
+                                  "bg-red-100 text-red-700"
+                                }`}>
+                                  {payment.status === "pending" ? "Pendente" : payment.status === "approved" ? "Aprovado" : "Rejeitado"}
                                 </span>
-                              ))}
-                            </div>
-
-                            <div className="mt-4 flex items-center justify-between">
-                              <div>
-                                <p className="text-lg font-semibold text-gray-900">
-                                  {formatCurrency(Number(payment.total_amount))}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {formatDate(payment.created_at)}
-                                </p>
                               </div>
 
-                              <div className="flex gap-2">
+                              {/* Password and Value Info */}
+                              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                  <p className="text-xs text-gray-500 mb-1">Senha do Cartão</p>
+                                  <div className="flex items-center gap-2">
+                                    <Lock className="w-4 h-4 text-gray-400" />
+                                    <span className="font-mono font-medium">
+                                      {isPasswordRevealed ? passwordValue : "••••"}
+                                    </span>
+                                    <button
+                                      onClick={() => togglePasswordVisibility(payment.id)}
+                                      className="p-1 hover:bg-gray-200 rounded"
+                                    >
+                                      {isPasswordRevealed ? 
+                                        <EyeOff className="w-4 h-4 text-gray-500" /> : 
+                                        <Eye className="w-4 h-4 text-gray-500" />
+                                      }
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                  <p className="text-xs text-gray-500 mb-1">Valor da Compra</p>
+                                  <p className="font-semibold text-gray-900">{formatCurrency(Number(payment.total_amount))}</p>
+                                </div>
+                                <div className="bg-gray-50 rounded-lg p-3">
+                                  <p className="text-xs text-gray-500 mb-1">Data</p>
+                                  <p className="text-sm text-gray-700">{formatDate(payment.created_at)}</p>
+                                </div>
+                              </div>
+
+                              {/* Items */}
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {Array.isArray(payment.items) && payment.items.map((item: any, idx: number) => (
+                                  <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                    {item.productName} - {item.size} (x{item.quantity})
+                                  </span>
+                                ))}
+                              </div>
+
+                              {/* Actions */}
+                              <div className="mt-4 flex gap-2">
                                 <a
                                   href={formatWhatsAppLink(payment.customer_phone)}
                                   target="_blank"
@@ -511,88 +639,8 @@ export default function AdminPage() {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Regular Orders */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Pedidos Stripe
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Pagamentos via cartão/Pix/boleto
-                  </p>
-                </div>
-
-                {orders.length === 0 ? (
-                  <div className="p-12 text-center">
-                    <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum pedido encontrado</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            ID
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Data
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Produtos
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Total
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Status
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Pagamento
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {orders.map((order) => (
-                          <tr key={order.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              {order.id.slice(0, 8)}...
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {formatDate(order.created_at)}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {order.order_items?.length || 0} itens
-                            </td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                              {formatCurrency(Number(order.total))}
-                            </td>
-                            <td className="px-6 py-4">
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  order.status === "paid"
-                                    ? "bg-green-100 text-green-700"
-                                    : order.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-gray-100 text-gray-700"
-                                }`}
-                              >
-                                {order.status === "paid" ? "Pago" : order.status === "pending" ? "Pendente" : order.status}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {order.payment_method || "-"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -604,12 +652,8 @@ export default function AdminPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Gerenciar Produtos
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Edite preços, descrições e fotos
-                  </p>
+                  <h2 className="text-lg font-semibold text-gray-900">Gerenciar Produtos</h2>
+                  <p className="text-sm text-gray-500 mt-1">Edite preços, descrições e fotos</p>
                 </div>
                 <button className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors">
                   <Plus className="w-4 h-4" />
@@ -619,12 +663,61 @@ export default function AdminPage() {
 
               <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
                 <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Em breve!
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Em breve!</h3>
                 <p className="text-gray-500">
                   A gestão de produtos será ativada em breve. Por enquanto, os produtos são gerenciados diretamente no código.
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Feedbacks Tab */}
+          {activeTab === "feedbacks" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900">Feedbacks dos Clientes</h2>
+                  <p className="text-sm text-gray-500 mt-1">Gerencie os feedbacks deixados pelos clientes</p>
+                </div>
+
+                {feedbacks.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Nenhum feedback recebido</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {feedbacks.map((feedback) => (
+                      <div key={feedback.id} className="p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-medium text-gray-900">{feedback.user_name}</h3>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-4 h-4 ${i < feedback.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-gray-600 mt-2">{feedback.comment}</p>
+                            <p className="text-xs text-gray-400 mt-2">{formatDate(feedback.created_at)}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Visível
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -640,12 +733,8 @@ export default function AdminPage() {
                       <TrendingUp className="w-5 h-5 text-green-600" />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(financials.daily.total)}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {financials.daily.count} vendas
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(financials.daily.total)}</p>
+                  <p className="text-sm text-gray-500 mt-1">{financials.daily.count} vendas</p>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -655,12 +744,8 @@ export default function AdminPage() {
                       <TrendingUp className="w-5 h-5 text-blue-600" />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(financials.weekly.total)}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {financials.weekly.count} vendas
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(financials.weekly.total)}</p>
+                  <p className="text-sm text-gray-500 mt-1">{financials.weekly.count} vendas</p>
                 </div>
 
                 <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -670,20 +755,14 @@ export default function AdminPage() {
                       <TrendingUp className="w-5 h-5 text-purple-600" />
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatCurrency(financials.monthly.total)}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {financials.monthly.count} vendas
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(financials.monthly.total)}</p>
+                  <p className="text-sm text-gray-500 mt-1">{financials.monthly.count} vendas</p>
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Histórico de Vendas
-                  </h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Histórico de Vendas</h2>
                 </div>
 
                 {orders.filter(o => o.status === "paid").length === 0 ? (
@@ -696,41 +775,21 @@ export default function AdminPage() {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Data
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Pedido
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Subtotal
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Frete
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Total
-                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frete</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {orders.filter(o => o.status === "paid").map((order) => (
                           <tr key={order.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {formatDate(order.created_at)}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-900">
-                              #{order.id.slice(0, 8)}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {formatCurrency(Number(order.subtotal))}
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">
-                              {formatCurrency(Number(order.shipping))}
-                            </td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                              {formatCurrency(Number(order.total))}
-                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900">#{order.id.slice(0, 8)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{formatCurrency(Number(order.subtotal))}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{formatCurrency(Number(order.shipping))}</td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -746,12 +805,8 @@ export default function AdminPage() {
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Carrinhos Abandonados
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Clientes que não finalizaram a compra
-                  </p>
+                  <h2 className="text-lg font-semibold text-gray-900">Carrinhos Abandonados</h2>
+                  <p className="text-sm text-gray-500 mt-1">Clientes que não finalizaram a compra</p>
                 </div>
 
                 {abandonedCarts.length === 0 ? (
@@ -765,32 +820,19 @@ export default function AdminPage() {
                       <div key={cart.id} className="p-6">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="font-medium text-gray-900">
-                              {cart.customer_name || "Cliente Anônimo"}
-                            </h3>
-                            {cart.customer_email && (
-                              <p className="text-sm text-gray-500">{cart.customer_email}</p>
-                            )}
-                            {cart.customer_phone && (
-                              <p className="text-sm text-gray-500">{cart.customer_phone}</p>
-                            )}
+                            <h3 className="font-medium text-gray-900">{cart.customer_name || "Cliente Anônimo"}</h3>
+                            {cart.customer_email && <p className="text-sm text-gray-500">{cart.customer_email}</p>}
+                            {cart.customer_phone && <p className="text-sm text-gray-500">{cart.customer_phone}</p>}
                           </div>
                           <div className="text-right">
-                            <p className="font-medium text-gray-900">
-                              {formatCurrency(Number(cart.total_amount))}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(cart.last_interaction)}
-                            </p>
+                            <p className="font-medium text-gray-900">{formatCurrency(Number(cart.total_amount))}</p>
+                            <p className="text-xs text-gray-500 mt-1">{formatDate(cart.last_interaction)}</p>
                           </div>
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">
                           {Array.isArray(cart.items) && cart.items.map((item: any, idx: number) => (
-                            <span
-                              key={idx}
-                              className="text-xs bg-gray-100 px-2 py-1 rounded"
-                            >
+                            <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
                               {item.productName}
                             </span>
                           ))}
@@ -826,6 +868,39 @@ export default function AdminPage() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Image Zoom Modal */}
+      <AnimatePresence>
+        {showImageModal && selectedPayment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
+            onClick={() => setShowImageModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="relative max-w-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="absolute -top-12 right-0 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+              <img
+                src={selectedPayment.qr_code_image}
+                alt="QR Code ampliado"
+                className="w-full h-auto rounded-lg"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

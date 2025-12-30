@@ -381,7 +381,7 @@ export function BolsaUniformePayment({ onComplete, onCancel }: BolsaUniformePaym
                   Pagamento em Processamento
                 </h3>
                 <p className="text-gray-500 mb-8 px-4">
-                  Seu pagamento está sendo processado por um de nossos atendentes… Você receberá uma confirmação em instantes!
+                  Seu pagamento está sendo processado por um de nossos atendentes… Você receberá uma confirmação por e-mail em instantes!
                 </p>
 
                 <div className="space-y-3">

@@ -9,7 +9,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
         {/* Logo */}
         <div className="mb-8">
-          <img src={goiasMinasLogo} alt="Goiás Minas Uniformes" className="h-20 w-auto" />
+          <img src={goiasMinasLogo} alt="Goiás Minas Uniformes" className="h-28 md:h-32 w-auto" />
         </div>
 
         {/* Texto de propriedade intelectual */}

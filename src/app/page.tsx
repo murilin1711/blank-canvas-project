@@ -6,6 +6,7 @@ import SuppliersCarousel from '@/components/sections/suppliers-carousel';
 import StoreLocator from '@/components/sections/store-locator';
 import FibrasNobresBanner from '@/components/sections/fibras-nobres-banner';
 import Footer from '@/components/sections/footer';
+import BolsaUniformeBanner from '@/components/sections/bolsa-uniforme-banner';
 
 export default function Home() {
   return (
@@ -32,6 +33,7 @@ export default function Home() {
         </div>
         <Footer />
       </div>
+      <BolsaUniformeBanner />
     </main>
   );
 }
