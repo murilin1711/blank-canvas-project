@@ -9,6 +9,8 @@ import Home from '@/app/page';
 import SobrePage from '@/app/sobre/page';
 import AuthPage from '@/app/auth/page';
 import CheckoutPage from '@/app/checkout/page';
+import CheckoutSucessoPage from '@/app/checkout/sucesso/page';
+import CheckoutCanceladoPage from '@/app/checkout/cancelado/page';
 import FavoritosPage from '@/app/favoritos/page';
 import MeusPedidosPage from '@/app/meus-pedidos/page';
 import ColegioMilitarPage from '@/app/escolas/colegio-militar/page';
@@ -32,6 +34,8 @@ function App() {
               <Route path="/sobre" element={<SobrePage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/checkout/sucesso" element={<CheckoutSucessoPage />} />
+              <Route path="/checkout/cancelado" element={<CheckoutCanceladoPage />} />
               <Route path="/favoritos" element={<FavoritosPage />} />
               <Route path="/meus-pedidos" element={<MeusPedidosPage />} />
               <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
