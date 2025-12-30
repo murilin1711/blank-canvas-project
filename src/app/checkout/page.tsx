@@ -886,12 +886,45 @@ export default function CheckoutPage() {
             {/* Bolsa Uniforme Modal */}
             {showBolsaUniformeModal && (
               <BolsaUniformePayment
-                onComplete={(data) => {
+                onComplete={async (data) => {
                   console.log("Bolsa Uniforme payment data:", data);
-                  setShowBolsaUniformeModal(false);
-                  toast.success("Pagamento enviado! Aguarde a confirmação.");
-                  // Here you would send the data to your backend
-                  navigate("/checkout/sucesso");
+                  // Save to database
+                  try {
+                    const { error } = await supabase.from("bolsa_uniforme_payments" as any).insert({
+                      user_id: user?.id,
+                      qr_code_image: data.qrCodeImage,
+                      customer_name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Cliente",
+                      customer_phone: personal.phone,
+                      customer_email: user?.email,
+                      total_amount: total,
+                      items: items.map(item => ({
+                        productId: item.productId,
+                        productName: item.productName,
+                        productImage: item.productImage,
+                        price: item.price,
+                        size: item.size,
+                        quantity: item.quantity,
+                        schoolSlug: item.schoolSlug,
+                      })),
+                      shipping_address: {
+                        cep: address.cep,
+                        street: address.street,
+                        number: address.number,
+                        complement: address.complement,
+                        neighborhood: address.neighborhood,
+                        city: address.city,
+                        state: address.state,
+                      },
+                      status: "pending",
+                    } as any);
+                    if (error) {
+                      console.error("Error saving bolsa uniforme payment:", error);
+                    } else {
+                      clearCart();
+                    }
+                  } catch (err) {
+                    console.error("Error:", err);
+                  }
                 }}
                 onCancel={() => setShowBolsaUniformeModal(false)}
               />

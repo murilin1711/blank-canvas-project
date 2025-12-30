@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Camera, AlertCircle, Check, Shield, Lock, X, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Camera, AlertCircle, Check, Shield, Lock, X, Eye, EyeOff, Loader2, Clock, ShoppingBag, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface BolsaUniformePaymentProps {
@@ -8,9 +9,10 @@ interface BolsaUniformePaymentProps {
   onCancel: () => void;
 }
 
-type Step = "photo" | "password" | "consent" | "success";
+type Step = "photo" | "password" | "consent" | "processing";
 
 export function BolsaUniformePayment({ onComplete, onCancel }: BolsaUniformePaymentProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>("photo");
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [password, setPassword] = useState("");
@@ -56,18 +58,24 @@ export function BolsaUniformePayment({ onComplete, onCancel }: BolsaUniformePaym
     // Simulate processing
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    setStep("success");
+    setStep("processing");
     setIsProcessing(false);
     
-    // Wait a bit then complete
-    setTimeout(() => {
-      onComplete({ qrCodeImage: qrCodeImage!, password });
-    }, 2000);
+    // Call onComplete but don't navigate - stay on popup
+    onComplete({ qrCodeImage: qrCodeImage!, password });
+  };
+
+  const handleGoToOrders = () => {
+    navigate("/meus-pedidos");
+  };
+
+  const handleContinueShopping = () => {
+    navigate("/");
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={step !== "processing" ? onCancel : undefined} />
       
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -75,40 +83,41 @@ export function BolsaUniformePayment({ onComplete, onCancel }: BolsaUniformePaym
         exit={{ opacity: 0, scale: 0.95 }}
         className="relative bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl"
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white p-6 pb-4 border-b border-gray-100 z-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Bolsa Uniforme</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {step === "photo" && "Passo 1 de 3 - Foto do QR Code"}
-                {step === "password" && "Passo 2 de 3 - Senha"}
-                {step === "consent" && "Passo 3 de 3 - Confirmação"}
-                {step === "success" && "Concluído!"}
-              </p>
+        {/* Header - hide on processing step */}
+        {step !== "processing" && (
+          <div className="sticky top-0 bg-white p-6 pb-4 border-b border-gray-100 z-10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Bolsa Uniforme</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {step === "photo" && "Passo 1 de 3 - Foto do QR Code"}
+                  {step === "password" && "Passo 2 de 3 - Senha"}
+                  {step === "consent" && "Passo 3 de 3 - Confirmação"}
+                </p>
+              </div>
+              <button
+                onClick={onCancel}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
             </div>
-            <button
-              onClick={onCancel}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
+            
+            {/* Progress bar */}
+            <div className="flex gap-2 mt-4">
+              {["photo", "password", "consent"].map((s, i) => (
+                <div
+                  key={s}
+                  className={`flex-1 h-1 rounded-full transition-colors ${
+                    ["photo", "password", "consent", "processing"].indexOf(step) >= i
+                      ? "bg-[#2e3091]"
+                      : "bg-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
           </div>
-          
-          {/* Progress bar */}
-          <div className="flex gap-2 mt-4">
-            {["photo", "password", "consent"].map((s, i) => (
-              <div
-                key={s}
-                className={`flex-1 h-1 rounded-full transition-colors ${
-                  ["photo", "password", "consent", "success"].indexOf(step) >= i
-                    ? "bg-[#2e3091]"
-                    : "bg-gray-200"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
+        )}
 
         <div className="p-6">
           <AnimatePresence mode="wait">
@@ -352,10 +361,10 @@ export function BolsaUniformePayment({ onComplete, onCancel }: BolsaUniformePaym
               </motion.div>
             )}
 
-            {/* Success */}
-            {step === "success" && (
+            {/* Processing State - with buttons */}
+            {step === "processing" && (
               <motion.div
-                key="success"
+                key="processing"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-8"
@@ -364,16 +373,33 @@ export function BolsaUniformePayment({ onComplete, onCancel }: BolsaUniformePaym
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", delay: 0.2 }}
-                  className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
+                  className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6"
                 >
-                  <Check className="w-10 h-10 text-green-600" />
+                  <Clock className="w-10 h-10 text-yellow-600" />
                 </motion.div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Pagamento Enviado!
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                  Pagamento em Processamento
                 </h3>
-                <p className="text-gray-500">
-                  Seu pagamento está sendo processado. Você receberá uma confirmação em breve.
+                <p className="text-gray-500 mb-8 px-4">
+                  Seu pagamento está sendo processado por um de nossos atendentes… Você receberá uma confirmação em instantes!
                 </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={handleGoToOrders}
+                    className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    Meus Pedidos
+                  </button>
+                  <button
+                    onClick={handleContinueShopping}
+                    className="w-full py-4 border border-gray-200 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                  >
+                    Continuar Comprando
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

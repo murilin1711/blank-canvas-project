@@ -14,6 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
+      abandoned_carts: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          items: Json
+          last_interaction: string
+          recovered: boolean | null
+          session_id: string | null
+          total_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items: Json
+          last_interaction?: string
+          recovered?: boolean | null
+          session_id?: string | null
+          total_amount: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          last_interaction?: string
+          recovered?: boolean | null
+          session_id?: string | null
+          total_amount?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      bolsa_uniforme_payments: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          items: Json
+          notes: string | null
+          order_id: string | null
+          processed_at: string | null
+          processed_by: string | null
+          qr_code_image: string
+          shipping_address: Json | null
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          items: Json
+          notes?: string | null
+          order_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          qr_code_image: string
+          shipping_address?: Json | null
+          status?: string
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          qr_code_image?: string
+          shipping_address?: Json | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bolsa_uniforme_payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cart_items: {
         Row: {
           created_at: string
@@ -196,6 +303,48 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string | null
+          id: number
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          price: number
+          school_slug: string
+          sizes: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: number
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          price: number
+          school_slug: string
+          sizes?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: number
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          school_slug?: string
+          sizes?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           cpf: string | null
@@ -229,15 +378,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -364,6 +540,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
