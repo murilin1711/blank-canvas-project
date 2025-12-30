@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import Footer from "@/components/sections/footer";
-import { ArrowLeft, Check, Home, MapPin, ChevronDown, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, Home, MapPin, ChevronDown, CreditCard, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -113,6 +114,7 @@ export default function CheckoutPage() {
   
   const [showOrderItems, setShowOrderItems] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(true);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: "login", label: "Login" },
@@ -152,10 +154,61 @@ export default function CheckoutPage() {
       setCompletedSteps([...completedSteps, "entrega"]);
       setCurrentStep("pagamento");
       scrollToStepContent();
-    } else if (currentStep === "pagamento") {
-      toast.success("Pedido realizado com sucesso!", { duration: 2000 });
-      clearCart();
-      navigate("/");
+    }
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!user) {
+      toast.error("Você precisa estar logado para finalizar a compra");
+      return;
+    }
+
+    setIsProcessingPayment(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: {
+          items: items.map((item) => ({
+            productId: item.productId,
+            productName: item.productName,
+            productImage: item.productImage,
+            price: item.price,
+            size: item.size,
+            quantity: item.quantity,
+            schoolSlug: item.schoolSlug,
+          })),
+          customerEmail: user.email,
+          customerName: user.user_metadata?.name || user.email?.split("@")[0],
+          shippingAddress: {
+            cep: address.cep,
+            street: address.street,
+            number: address.number,
+            complement: address.complement,
+            neighborhood: address.neighborhood,
+            city: address.city,
+            state: address.state,
+          },
+          shipping,
+          userId: user.id,
+        },
+      });
+
+      if (error) {
+        console.error("Error creating checkout session:", error);
+        toast.error("Erro ao processar pagamento. Tente novamente.");
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Erro ao redirecionar para o pagamento");
+      }
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast.error("Erro ao processar pagamento. Tente novamente.");
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -896,10 +949,18 @@ export default function CheckoutPage() {
                 <MobileOrderSummary />
 
                 <button
-                  onClick={completeCurrentStep}
-                  className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase"
+                  onClick={handleStripeCheckout}
+                  disabled={isProcessingPayment}
+                  className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Concluir Compra
+                  {isProcessingPayment ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    "Pagar com Stripe"
+                  )}
                 </button>
               </div>
             )}
