@@ -538,7 +538,7 @@ export default function LojaEstiloOsklen() {
                       </>
                     )}
 
-                    {/* Botão + central - aumentado 15% */}
+                    {/* Botão + central - reduzido 15% */}
                     <button
                       aria-label="Adicionar ao carrinho"
                       onClick={(ev) => {
@@ -547,13 +547,13 @@ export default function LojaEstiloOsklen() {
                       }}
                       className={
                         "absolute left-1/2 -translate-x-1/2 bottom-10 rounded-full flex items-center justify-center transition-all z-20 " +
-                        "w-9 h-9 " +
+                        "w-[30px] h-[30px] " +
                         "bg-white/90 backdrop-blur-sm shadow-md " +
                         "opacity-100 " +
                         "hover:scale-105 hover:bg-white active:scale-95 cursor-pointer"
                       }
                     >
-                      <Plus className="w-4 h-4 text-black" strokeWidth={2} />
+                      <Plus className="w-3.5 h-3.5 text-black" strokeWidth={2} />
                     </button>
                   </div>
                 </div>
