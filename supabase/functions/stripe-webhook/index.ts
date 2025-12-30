@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +25,7 @@ serve(async (req) => {
     }
 
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: "2023-10-16",
+      apiVersion: "2025-08-27.basil",
     });
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -35,10 +35,10 @@ serve(async (req) => {
 
     let event: Stripe.Event;
 
-    // Verify webhook signature if secret is configured
+    // Verify webhook signature if secret is configured - use async version
     if (webhookSecret && signature) {
       try {
-        event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+        event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       } catch (err: any) {
         console.error("Webhook signature verification failed:", err.message);
         return new Response(JSON.stringify({ error: "Invalid signature" }), {
@@ -59,19 +59,23 @@ serve(async (req) => {
 
       console.log("Processing completed checkout:", session.id);
 
-      const metadata = session.metadata;
+      // Get payment intent to retrieve items from its metadata
+      const paymentIntentId = session.payment_intent as string;
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      const metadata = paymentIntent.metadata;
       if (!metadata) {
-        throw new Error("No metadata found in session");
+        throw new Error("No metadata found in payment intent");
       }
 
       const userId = metadata.userId;
       const shippingAddress = JSON.parse(metadata.shippingAddress || "{}");
-      const items = JSON.parse(metadata.items || "[]");
+      const items = JSON.parse(metadata.itemsJson || "[]");
       const shipping = parseFloat(metadata.shipping || "0");
 
       // Calculate subtotal
       const subtotal = items.reduce(
-        (acc: number, item: any) => acc + item.price * item.quantity,
+        (acc: number, item: any) => acc + item.price * item.qty,
         0
       );
 
@@ -100,12 +104,12 @@ serve(async (req) => {
       // Create order items
       const orderItems = items.map((item: any) => ({
         order_id: order.id,
-        product_id: item.productId,
-        product_name: item.productName,
-        product_image: item.productImage,
+        product_id: item.id,
+        product_name: item.name,
+        product_image: item.img,
         price: item.price,
         size: item.size,
-        quantity: item.quantity,
+        quantity: item.qty,
       }));
 
       const { error: itemsError } = await supabase
