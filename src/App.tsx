@@ -20,6 +20,7 @@ import Produto3Page from '@/app/escolas/colegio-militar/produto3/page';
 import Produto4Page from '@/app/escolas/colegio-militar/produto4/page';
 import Produto5Page from '@/app/escolas/colegio-militar/produto5/page';
 import Produto6Page from '@/app/escolas/colegio-militar/produto6/page';
+import AdminPage from '@/app/admin/page';
 
 function App() {
   return (
@@ -28,23 +29,33 @@ function App() {
         <CartProvider>
           <FavoritesProvider>
             <ScrollToTop />
-            <Header />
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/sobre" element={<SobrePage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/checkout/sucesso" element={<CheckoutSucessoPage />} />
-              <Route path="/checkout/cancelado" element={<CheckoutCanceladoPage />} />
-              <Route path="/favoritos" element={<FavoritosPage />} />
-              <Route path="/meus-pedidos" element={<MeusPedidosPage />} />
-              <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
-              <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
-              <Route path="/escolas/colegio-militar/produto2" element={<Produto2Page />} />
-              <Route path="/escolas/colegio-militar/produto3" element={<Produto3Page />} />
-              <Route path="/escolas/colegio-militar/produto4" element={<Produto4Page />} />
-              <Route path="/escolas/colegio-militar/produto5" element={<Produto5Page />} />
-              <Route path="/escolas/colegio-militar/produto6" element={<Produto6Page />} />
+              {/* Admin route without header */}
+              <Route path="/admin" element={<AdminPage />} />
+              
+              {/* Regular routes with header */}
+              <Route path="/*" element={
+                <>
+                  <Header />
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/sobre" element={<SobrePage />} />
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/checkout/sucesso" element={<CheckoutSucessoPage />} />
+                    <Route path="/checkout/cancelado" element={<CheckoutCanceladoPage />} />
+                    <Route path="/favoritos" element={<FavoritosPage />} />
+                    <Route path="/meus-pedidos" element={<MeusPedidosPage />} />
+                    <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
+                    <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
+                    <Route path="/escolas/colegio-militar/produto2" element={<Produto2Page />} />
+                    <Route path="/escolas/colegio-militar/produto3" element={<Produto3Page />} />
+                    <Route path="/escolas/colegio-militar/produto4" element={<Produto4Page />} />
+                    <Route path="/escolas/colegio-militar/produto5" element={<Produto5Page />} />
+                    <Route path="/escolas/colegio-militar/produto6" element={<Produto6Page />} />
+                  </Routes>
+                </>
+              } />
             </Routes>
             <Toaster position="top-right" richColors />
           </FavoritesProvider>
