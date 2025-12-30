@@ -63,21 +63,21 @@ interface AddressData {
   isDefault: boolean;
 }
 
-interface CreditCardData {
-  number: string;
-  holder: string;
-  expiryMonth: string;
-  expiryYear: string;
-  cvv: string;
-  installments: string;
-}
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, subtotal, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("login");
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      toast.info("Faça login para continuar com a compra");
+      navigate("/auth", { state: { from: "/checkout" } });
+    }
+  }, [user, loading, navigate]);
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
   
   const [personal, setPersonal] = useState<PersonalData>({
@@ -102,15 +102,6 @@ export default function CheckoutPage() {
   });
 
   const [shippingMethod, setShippingMethod] = useState<"economico" | "expresso" | "loja">("economico");
-  const [paymentMethod, setPaymentMethod] = useState<"credit" | "pix" | "gpay" | "clicktopay" | "gift">("credit");
-  const [creditCard, setCreditCard] = useState<CreditCardData>({
-    number: "",
-    holder: "",
-    expiryMonth: "",
-    expiryYear: "",
-    cvv: "",
-    installments: "1",
-  });
   
   const [showOrderItems, setShowOrderItems] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(true);
@@ -759,193 +750,44 @@ export default function CheckoutPage() {
                 </h2>
 
                 <div className="bg-background-secondary rounded-2xl overflow-hidden mb-6">
-                  {/* Payment Methods */}
-                  <div className="divide-y divide-border-light">
-                    {/* Cartão de Crédito */}
-                    <div>
-                      <button
-                        onClick={() => setPaymentMethod("credit")}
-                        className="w-full flex items-center justify-between p-5"
-                      >
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            checked={paymentMethod === "credit"}
-                            onChange={() => setPaymentMethod("credit")}
-                            className="w-5 h-5 accent-[#2e3091]"
-                          />
-                          <CreditCard className="w-5 h-5 text-text-muted" />
-                          <span className="text-body-sm font-medium text-text-primary">Cartão de Crédito</span>
-                        </div>
-                        <ChevronDown className={`w-5 h-5 text-text-muted transition-transform ${paymentMethod === "credit" ? "rotate-180" : ""}`} />
-                      </button>
-
-                      <AnimatePresence>
-                        {paymentMethod === "credit" && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="px-5 pb-5 space-y-4">
-                              <div className="flex justify-end">
-                                <button className="text-body-sm text-text-primary underline">
-                                  COMPRAR COM 2 CARTÕES
-                                </button>
-                              </div>
-
-                              <InputField
-                                label="Número do cartão"
-                                value={creditCard.number}
-                                onChange={(v) => setCreditCard({ ...creditCard, number: v })}
-                                required
-                              />
-
-                              <InputField
-                                label="Nome do titular"
-                                value={creditCard.holder}
-                                onChange={(v) => setCreditCard({ ...creditCard, holder: v })}
-                                placeholder="Nome gravado no cartão"
-                                required
-                              />
-
-                              <div className="grid grid-cols-3 gap-4">
-                                <div>
-                                  <label className="block text-body-sm text-text-primary mb-2">Validade*</label>
-                                  <input
-                                    type="text"
-                                    value={creditCard.expiryMonth}
-                                    onChange={(e) => setCreditCard({ ...creditCard, expiryMonth: e.target.value })}
-                                    placeholder="Mês"
-                                    className="w-full px-4 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted bg-background-primary"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-body-sm text-text-primary mb-2 opacity-0">Ano</label>
-                                  <input
-                                    type="text"
-                                    value={creditCard.expiryYear}
-                                    onChange={(e) => setCreditCard({ ...creditCard, expiryYear: e.target.value })}
-                                    placeholder="Ano"
-                                    className="w-full px-4 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted bg-background-primary"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-body-sm text-text-primary mb-2">CVV*</label>
-                                  <input
-                                    type="text"
-                                    value={creditCard.cvv}
-                                    onChange={(e) => setCreditCard({ ...creditCard, cvv: e.target.value })}
-                                    placeholder="3 dígitos"
-                                    className="w-full px-4 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted bg-background-primary"
-                                  />
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-body-sm text-text-primary mb-2">Selecione o número de parcelas*</label>
-                                <div className="relative">
-                                  <select
-                                    value={creditCard.installments}
-                                    onChange={(e) => setCreditCard({ ...creditCard, installments: e.target.value })}
-                                    className="w-full px-5 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary bg-background-primary appearance-none pr-10"
-                                  >
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
-                                      <option key={n} value={n}>
-                                        {n}x R$ {(total / n).toFixed(2).replace(".", ",")} sem juros
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <ChevronDown className="w-5 h-5 text-text-muted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Pix */}
-                    <button
-                      onClick={() => setPaymentMethod("pix")}
-                      className="w-full flex items-center justify-between p-5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          checked={paymentMethod === "pix"}
-                          onChange={() => setPaymentMethod("pix")}
-                          className="w-5 h-5 accent-[#2e3091]"
-                        />
-                        <svg className="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="p-6 space-y-4">
+                    <p className="text-body-sm text-text-secondary">
+                      Você será redirecionado para o Stripe para finalizar o pagamento de forma segura. 
+                      Lá você poderá escolher entre:
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-4 bg-background-primary rounded-xl">
+                        <CreditCard className="w-5 h-5 text-[#2e3091]" />
+                        <span className="text-body-sm font-medium text-text-primary">Cartão de Crédito/Débito</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 p-4 bg-background-primary rounded-xl">
+                        <svg className="w-5 h-5 text-[#2e3091]" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12.69 12.008l4.387 4.387a1.854 1.854 0 010 2.627l-.613.613a1.854 1.854 0 01-2.627 0l-1.822-1.822-1.823 1.822a1.854 1.854 0 01-2.627 0l-.613-.613a1.854 1.854 0 010-2.627l4.387-4.387a.927.927 0 011.351 0zm-1.351-4.387L6.952 3.234a1.854 1.854 0 010-2.627l.613-.613a1.854 1.854 0 012.627 0L12.015 1.816l1.822-1.822a1.854 1.854 0 012.627 0l.613.613a1.854 1.854 0 010 2.627l-4.387 4.387a.927.927 0 01-1.351 0z"/>
                         </svg>
                         <span className="text-body-sm font-medium text-text-primary">Pix</span>
                       </div>
-                      <ChevronDown className="w-5 h-5 text-text-muted" />
-                    </button>
-
-                    {/* Google Pay */}
-                    <button
-                      onClick={() => setPaymentMethod("gpay")}
-                      className="w-full flex items-center justify-between p-5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          checked={paymentMethod === "gpay"}
-                          onChange={() => setPaymentMethod("gpay")}
-                          className="w-5 h-5 accent-[#2e3091]"
-                        />
-                        <div className="border border-border-light rounded px-2 py-1 text-caption font-medium">G Pay</div>
-                        <span className="text-body-sm font-medium text-text-primary">Google Pay</span>
-                      </div>
-                      <ChevronDown className="w-5 h-5 text-text-muted" />
-                    </button>
-
-                    {/* Click to Pay */}
-                    <button
-                      onClick={() => setPaymentMethod("clicktopay")}
-                      className="w-full flex items-center justify-between p-5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          checked={paymentMethod === "clicktopay"}
-                          onChange={() => setPaymentMethod("clicktopay")}
-                          className="w-5 h-5 accent-[#2e3091]"
-                        />
-                        <div className="text-text-muted text-lg">▷▷</div>
-                        <span className="text-body-sm font-medium text-text-primary">Click to Pay</span>
-                      </div>
-                      <ChevronDown className="w-5 h-5 text-text-muted" />
-                    </button>
-
-                    {/* Cartão Presente */}
-                    <button
-                      onClick={() => setPaymentMethod("gift")}
-                      className="w-full flex items-center justify-between p-5"
-                    >
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="radio"
-                          checked={paymentMethod === "gift"}
-                          onChange={() => setPaymentMethod("gift")}
-                          className="w-5 h-5 accent-[#2e3091]"
-                        />
-                        <svg className="w-5 h-5 text-text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="8" width="18" height="13" rx="2"/>
-                          <path d="M12 8V21M3 12h18M7 8c0-2 1-4 3-4s3 2 3 4M14 8c0-2 1-4 3-4s3 2 3 4"/>
+                      
+                      <div className="flex items-center gap-3 p-4 bg-background-primary rounded-xl">
+                        <svg className="w-5 h-5 text-[#2e3091]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M4 4h16v2H4V4zm0 4h16v2H4V8zm0 4h10v2H4v-2zm0 4h10v2H4v-2z"/>
                         </svg>
-                        <span className="text-body-sm font-medium text-text-primary">Cartão Presente</span>
+                        <span className="text-body-sm font-medium text-text-primary">Boleto Bancário</span>
                       </div>
-                      <ChevronDown className="w-5 h-5 text-text-muted" />
-                    </button>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 pt-2">
+                      <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M9 12l2 2 4-4"/>
+                      </svg>
+                      <span className="text-caption text-text-muted">Pagamento 100% seguro via Stripe</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Mobile summary and button */}
+                {/* Mobile summary */}
                 <MobileOrderSummary />
 
                 <button
@@ -959,7 +801,7 @@ export default function CheckoutPage() {
                       Processando...
                     </>
                   ) : (
-                    "Pagar com Stripe"
+                    "Ir para pagamento"
                   )}
                 </button>
               </div>
