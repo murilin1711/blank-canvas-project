@@ -71,8 +71,8 @@ const Header = () => {
       <div className={`fixed top-0 left-0 right-0 bg-white z-40 transition-opacity duration-300 !w-full !h-[79px] ${isScrolled ? 'opacity-0' : 'opacity-100'}`} />
 
       <header className="fixed w-full z-50">
-        {/* Desktop Header */}
-        <div className="hidden lg:flex fixed top-0 left-0 right-0 h-[80px] items-center z-50">
+        {/* Desktop Header - Only show on xl and above (1280px+) */}
+        <div className="hidden xl:flex fixed top-0 left-0 right-0 h-[80px] items-center z-50">
           <div className="w-full h-full flex items-center justify-between px-8 xl:px-12 2xl:px-16">
             {/* Left Navigation */}
             <div className="flex items-center">
@@ -213,8 +213,8 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 h-[80px] flex items-center justify-between px-4">
+        {/* Mobile Header - Show on lg and below (below 1280px) */}
+        <div className="xl:hidden fixed top-0 left-0 right-0 h-[80px] flex items-center justify-between px-4">
           <div className="flex items-center gap-2 z-50">
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu" className="w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -243,18 +243,44 @@ const Header = () => {
                 {itemCount}
               </div>
             </Link>
-            <button onClick={handleAccountClick} aria-label="Perfil" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
-              <User size={20} className={user ? 'text-[#2e3091]' : ''} />
-              {user && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+            <div className="relative" ref={accountMenuRef}>
+              <button onClick={handleAccountClick} aria-label="Perfil" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+                <User size={20} className={user ? 'text-[#2e3091]' : ''} />
+                {user && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                )}
+              </button>
+              
+              {/* Mobile Account Dropdown */}
+              {accountMenuOpen && user && (
+                <div className="absolute top-14 right-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                  <Link
+                    to="/meus-pedidos"
+                    onClick={() => setAccountMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Package className="w-4 h-4" />
+                    Meus Pedidos
+                  </Link>
+                  <button
+                    onClick={() => {
+                      signOut();
+                      setAccountMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair da Conta
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
 
         {/* Mobile Search Overlay */}
         {searchOpen && (
-          <div className="lg:hidden fixed inset-0 z-[60] pt-[80px]">
+          <div className="xl:hidden fixed inset-0 z-[60] pt-[80px]">
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setSearchOpen(false)} />
             <div className="relative bg-white/95 backdrop-blur-xl w-full max-w-sm mx-auto rounded-b-3xl shadow-2xl p-6">
               <form onSubmit={handleSearch} className="flex items-center gap-3">
@@ -279,7 +305,7 @@ const Header = () => {
 
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
-          <div className="lg:hidden fixed inset-0 z-40 pt-[80px]">
+          <div className="xl:hidden fixed inset-0 z-40 pt-[80px]">
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
             <div className="relative bg-white/95 backdrop-blur-xl w-full max-w-sm mx-auto rounded-b-3xl shadow-2xl p-6">
               <nav>
@@ -379,7 +405,7 @@ const Header = () => {
           data-menu-open={activeSubmenu !== null && activeSubmenu !== "Sobre"}
           onMouseEnter={() => { if (activeSubmenu !== null && activeSubmenu !== "Sobre") setActiveSubmenu(activeSubmenu); }}
           onMouseLeave={() => setActiveSubmenu(null)}
-          className="hidden lg:block absolute top-20 left-8 xl:left-12 2xl:left-16 right-8 xl:right-12 2xl:right-16 rounded-xl bg-white/[0.85] backdrop-blur-[20px] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:max-h-96 overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] shadow-xl z-[55] border border-white/20"
+          className="hidden xl:block absolute top-20 left-8 xl:left-12 2xl:left-16 right-8 xl:right-12 2xl:right-16 rounded-xl bg-white/[0.85] backdrop-blur-[20px] opacity-0 max-h-0 data-[menu-open=true]:opacity-100 data-[menu-open=true]:max-h-96 overflow-hidden transition-[max-height,opacity] duration-300 ease-[cubic-bezier(.16,1,.3,1)] shadow-xl z-[55] border border-white/20"
         >
           <div className="grid h-full grid-cols-1 grid-rows-1">
             {navItems.map((item) => (
