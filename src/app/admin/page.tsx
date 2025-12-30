@@ -23,8 +23,6 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
-const ADMIN_PASSWORD = "171095gm";
-
 type Tab = "pedidos" | "produtos" | "financeiro" | "clientes";
 
 interface BolsaUniformePayment {
@@ -81,23 +79,77 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>("pedidos");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // Data states
   const [bolsaPayments, setBolsaPayments] = useState<BolsaUniformePayment[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
 
-  const handleLogin = () => {
-    if (password === ADMIN_PASSWORD) {
+  // Check for existing session on mount
+  useEffect(() => {
+    const checkSession = () => {
+      const token = sessionStorage.getItem('admin_token');
+      const expiresAt = sessionStorage.getItem('admin_expires_at');
+      
+      if (token && expiresAt) {
+        const expiry = parseInt(expiresAt, 10);
+        if (Date.now() < expiry) {
+          setIsAuthenticated(true);
+          loadData();
+        } else {
+          // Session expired
+          sessionStorage.removeItem('admin_token');
+          sessionStorage.removeItem('admin_expires_at');
+        }
+      }
+    };
+    
+    checkSession();
+  }, []);
+
+  const handleLogin = async () => {
+    if (!password.trim()) {
+      toast.error("Digite a senha");
+      return;
+    }
+
+    setIsLoggingIn(true);
+    
+    try {
+      const response = await supabase.functions.invoke('admin-auth', {
+        body: { password }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      // Save session
+      sessionStorage.setItem('admin_token', data.token);
+      sessionStorage.setItem('admin_expires_at', data.expiresAt.toString());
+      
       setIsAuthenticated(true);
       toast.success("Acesso autorizado!");
       loadData();
-    } else {
-      toast.error("Senha incorreta");
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error("Erro ao fazer login. Tente novamente.");
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem('admin_token');
+    sessionStorage.removeItem('admin_expires_at');
     setIsAuthenticated(false);
     setPassword("");
   };
@@ -242,9 +294,10 @@ export default function AdminPage() {
 
             <button
               onClick={handleLogin}
-              className="w-full bg-[#2e3091] text-white py-4 rounded-xl font-medium hover:bg-[#252a7a] transition-colors"
+              disabled={isLoggingIn}
+              className="w-full bg-[#2e3091] text-white py-4 rounded-xl font-medium hover:bg-[#252a7a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Entrar
+              {isLoggingIn ? "Entrando..." : "Entrar"}
             </button>
           </div>
         </motion.div>
