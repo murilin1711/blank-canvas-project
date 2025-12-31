@@ -21,7 +21,9 @@ import {
   Eye,
   EyeOff,
   Lock,
-  ZoomIn
+  ZoomIn,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -106,6 +108,8 @@ export default function AdminPage() {
   const [showImageModal, setShowImageModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
+  const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -292,6 +296,18 @@ export default function AdminPage() {
       ...prev,
       [id]: !prev[id]
     }));
+  };
+
+  const togglePaymentExpanded = (id: string) => {
+    setExpandedPayments(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const openPaymentDetails = (payment: BolsaUniformePayment) => {
+    setSelectedPayment(payment);
+    setShowDetailsModal(true);
   };
 
   // Extract password from notes field (stored as "Senha: XXXX")
@@ -519,125 +535,126 @@ export default function AdminPage() {
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {bolsaPayments.map((payment, index) => {
-                      const passwordValue = getPasswordFromNotes(payment.notes);
-                      const isPasswordRevealed = revealedPasswords[payment.id];
+                      const isExpanded = expandedPayments[payment.id];
                       
                       return (
-                        <div key={payment.id} className="p-6">
-                          <div className="flex items-start gap-6">
-                            {/* QR Code Image with zoom */}
-                            <div className="relative group">
-                              <img
-                                src={payment.qr_code_image}
-                                alt="QR Code"
-                                className="w-24 h-24 object-cover rounded-lg bg-gray-100 cursor-pointer"
-                                onClick={() => {
-                                  setSelectedPayment(payment);
-                                  setShowImageModal(true);
-                                }}
-                              />
-                              <div 
-                                className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                onClick={() => {
-                                  setSelectedPayment(payment);
-                                  setShowImageModal(true);
-                                }}
-                              >
-                                <ZoomIn className="w-6 h-6 text-white" />
-                              </div>
+                        <div key={payment.id} className="transition-all">
+                          {/* Header compacto - sempre visível */}
+                          <div 
+                            className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
+                            onClick={() => togglePaymentExpanded(payment.id)}
+                          >
+                            <button className="p-1 hover:bg-gray-200 rounded transition-colors">
+                              {isExpanded ? (
+                                <ChevronUp className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
+                              )}
+                            </button>
+                            
+                            <div className="flex-1 flex items-center gap-4 min-w-0">
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                #{index + 1} - {payment.customer_name}
+                              </span>
+                              <span className="text-sm text-gray-500 hidden sm:inline">
+                                {formatCurrency(Number(payment.total_amount))}
+                              </span>
                             </div>
+                            
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              payment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                              payment.status === "approved" ? "bg-green-100 text-green-700" :
+                              "bg-red-100 text-red-700"
+                            }`}>
+                              {payment.status === "pending" ? "Pendente" : payment.status === "approved" ? "Aprovado" : "Rejeitado"}
+                            </span>
+                            
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openPaymentDetails(payment);
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Ver detalhes
+                            </button>
+                          </div>
 
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <h3 className="font-semibold text-gray-900 text-lg">
-                                    Pedido #{index + 1} - {payment.customer_name}
-                                  </h3>
-                                  <p className="text-sm text-gray-500 mt-1">{payment.customer_phone}</p>
-                                  {payment.customer_email && (
-                                    <p className="text-sm text-gray-500">{payment.customer_email}</p>
-                                  )}
-                                </div>
-                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  payment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                  payment.status === "approved" ? "bg-green-100 text-green-700" :
-                                  "bg-red-100 text-red-700"
-                                }`}>
-                                  {payment.status === "pending" ? "Pendente" : payment.status === "approved" ? "Aprovado" : "Rejeitado"}
-                                </span>
-                              </div>
+                          {/* Conteúdo expandido */}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="px-4 pb-4 pt-1 bg-gray-50/50 border-t border-gray-100">
+                                  <div className="flex items-start gap-4">
+                                    {/* Info básica */}
+                                    <div className="flex-1 space-y-2">
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="text-gray-500">Telefone:</span>
+                                        <span className="text-gray-900">{payment.customer_phone}</span>
+                                      </div>
+                                      {payment.customer_email && (
+                                        <div className="flex items-center gap-2 text-sm">
+                                          <span className="text-gray-500">Email:</span>
+                                          <span className="text-gray-900">{payment.customer_email}</span>
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <span className="text-gray-500">Data:</span>
+                                        <span className="text-gray-900">{formatDate(payment.created_at)}</span>
+                                      </div>
+                                      
+                                      {/* Items */}
+                                      <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {Array.isArray(payment.items) && payment.items.map((item: any, idx: number) => (
+                                          <span key={idx} className="text-xs bg-gray-200 px-2 py-0.5 rounded">
+                                            {item.productName} - {item.size} (x{item.quantity})
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
 
-                              {/* Password and Value Info */}
-                              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                  <p className="text-xs text-gray-500 mb-1">Senha do Cartão</p>
-                                  <div className="flex items-center gap-2">
-                                    <Lock className="w-4 h-4 text-gray-400" />
-                                    <span className="font-mono font-medium">
-                                      {isPasswordRevealed ? passwordValue : "••••"}
-                                    </span>
-                                    <button
-                                      onClick={() => togglePasswordVisibility(payment.id)}
-                                      className="p-1 hover:bg-gray-200 rounded"
+                                  {/* Actions */}
+                                  <div className="mt-3 flex gap-2">
+                                    <a
+                                      href={formatWhatsAppLink(payment.customer_phone)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                                     >
-                                      {isPasswordRevealed ? 
-                                        <EyeOff className="w-4 h-4 text-gray-500" /> : 
-                                        <Eye className="w-4 h-4 text-gray-500" />
-                                      }
-                                    </button>
+                                      <MessageCircle className="w-3.5 h-3.5" />
+                                      WhatsApp
+                                    </a>
+                                    {payment.status === "pending" && (
+                                      <>
+                                        <button
+                                          onClick={() => updatePaymentStatus(payment.id, "approved")}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
+                                        >
+                                          <Check className="w-3.5 h-3.5" />
+                                          Aprovar
+                                        </button>
+                                        <button
+                                          onClick={() => updatePaymentStatus(payment.id, "rejected")}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                        >
+                                          <XCircle className="w-3.5 h-3.5" />
+                                          Reprovar
+                                        </button>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                  <p className="text-xs text-gray-500 mb-1">Valor da Compra</p>
-                                  <p className="font-semibold text-gray-900">{formatCurrency(Number(payment.total_amount))}</p>
-                                </div>
-                                <div className="bg-gray-50 rounded-lg p-3">
-                                  <p className="text-xs text-gray-500 mb-1">Data</p>
-                                  <p className="text-sm text-gray-700">{formatDate(payment.created_at)}</p>
-                                </div>
-                              </div>
-
-                              {/* Items */}
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                {Array.isArray(payment.items) && payment.items.map((item: any, idx: number) => (
-                                  <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                                    {item.productName} - {item.size} (x{item.quantity})
-                                  </span>
-                                ))}
-                              </div>
-
-                              {/* Actions */}
-                              <div className="mt-4 flex gap-2">
-                                <a
-                                  href={formatWhatsAppLink(payment.customer_phone)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                >
-                                  <MessageCircle className="w-4 h-4" />
-                                  WhatsApp
-                                </a>
-                                {payment.status === "pending" && (
-                                  <>
-                                    <button
-                                      onClick={() => updatePaymentStatus(payment.id, "approved")}
-                                      className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
-                                    >
-                                      <Check className="w-4 h-4" />
-                                      Aprovar
-                                    </button>
-                                    <button
-                                      onClick={() => updatePaymentStatus(payment.id, "rejected")}
-                                      className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                    >
-                                      <XCircle className="w-4 h-4" />
-                                      Reprovar
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
@@ -897,6 +914,97 @@ export default function AdminPage() {
                 alt="QR Code ampliado"
                 className="w-full h-auto rounded-lg"
               />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Details Modal - Como na imagem de referência */}
+      <AnimatePresence>
+        {showDetailsModal && selectedPayment && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowDetailsModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 bg-[#2e3091] text-white">
+                <h3 className="font-semibold">
+                  Detalhes do Pedido #{bolsaPayments.findIndex(p => p.id === selectedPayment.id) + 1} - {selectedPayment.customer_name}
+                </h3>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <p className="text-sm font-medium text-gray-700 mb-3">QR Code do Cliente</p>
+                
+                <div className="flex gap-6">
+                  {/* QR Code grande */}
+                  <div className="border border-gray-200 rounded-lg p-2 bg-white">
+                    <img
+                      src={selectedPayment.qr_code_image}
+                      alt="QR Code"
+                      className="w-48 h-48 object-contain"
+                    />
+                  </div>
+
+                  {/* Informações ao lado */}
+                  <div className="flex-1 space-y-4">
+                    {/* Senha do Cartão */}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Senha do Cartão:</p>
+                      <div className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-gray-400" />
+                        <span className="font-mono font-medium text-lg">
+                          {revealedPasswords[selectedPayment.id] ? getPasswordFromNotes(selectedPayment.notes) : "••••"}
+                        </span>
+                        <button
+                          onClick={() => togglePasswordVisibility(selectedPayment.id)}
+                          className="p-1 hover:bg-gray-100 rounded"
+                        >
+                          {revealedPasswords[selectedPayment.id] ? 
+                            <EyeOff className="w-4 h-4 text-gray-500" /> : 
+                            <Eye className="w-4 h-4 text-gray-500" />
+                          }
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Valor da Compra */}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Valor da Compra:</p>
+                      <p className="font-semibold text-lg text-gray-900">
+                        {formatCurrency(Number(selectedPayment.total_amount))}
+                      </p>
+                    </div>
+
+                    {/* Valor a Receber */}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Valor a Receber:</p>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                        <p className="font-semibold text-lg text-gray-900">
+                          {formatCurrency(Number(selectedPayment.total_amount))}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
