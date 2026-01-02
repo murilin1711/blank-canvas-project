@@ -4,8 +4,9 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Footer from "@/components/sections/footer";
-import { ArrowLeft, Check, Home, MapPin, ChevronDown, CreditCard, Loader2, Wallet } from "lucide-react";
+import { ArrowLeft, Check, Home, MapPin, ChevronDown, CreditCard, Loader2, Wallet, X } from "lucide-react";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -109,6 +110,7 @@ export default function CheckoutPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "bolsa-uniforme">("stripe");
   const [showBolsaUniformeModal, setShowBolsaUniformeModal] = useState(false);
+  const [showStripeCheckout, setShowStripeCheckout] = useState(false);
 
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: "login", label: "Login" },
@@ -748,138 +750,183 @@ export default function CheckoutPage() {
             {/* Pagamento Step */}
             {currentStep === "pagamento" && (
               <div>
-                <h2 className="text-h3 font-medium text-text-primary mb-6">
-                  Selecionar forma de pagamento
-                </h2>
+                {!showStripeCheckout ? (
+                  <>
+                    <h2 className="text-h3 font-medium text-text-primary mb-6">
+                      Selecionar forma de pagamento
+                    </h2>
 
-                {/* Payment Method Selection */}
-                <div className="space-y-4 mb-6">
-                  {/* Stripe Option */}
-                  <label 
-                    className={`block cursor-pointer rounded-2xl border-2 transition-all ${
-                      paymentMethod === "stripe" 
-                        ? "border-[#2e3091] bg-[#2e3091]/5" 
-                        : "border-gray-200 bg-background-secondary hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center gap-3 mb-4">
-                        <input
-                          type="radio"
-                          checked={paymentMethod === "stripe"}
-                          onChange={() => setPaymentMethod("stripe")}
-                          className="w-5 h-5 accent-[#2e3091]"
-                        />
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="w-5 h-5 text-[#2e3091]" />
-                          <span className="text-body-regular font-medium text-text-primary">
-                            Cartão / Pix / Boleto
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {paymentMethod === "stripe" && (
-                        <div className="ml-8 space-y-2">
-                          <p className="text-body-sm text-text-secondary">
-                            Você será redirecionado para o Stripe para escolher:
-                          </p>
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <span className="text-xs bg-white px-3 py-1.5 rounded-full border border-gray-200">
-                              💳 Cartão de Crédito/Débito
-                            </span>
-                            <span className="text-xs bg-white px-3 py-1.5 rounded-full border border-gray-200">
-                              📱 Pix
-                            </span>
-                            <span className="text-xs bg-white px-3 py-1.5 rounded-full border border-gray-200">
-                              📄 Boleto Bancário
-                            </span>
+                    {/* Payment Method Selection */}
+                    <div className="space-y-4 mb-6">
+                      {/* Stripe Option */}
+                      <label 
+                        className={`block cursor-pointer rounded-2xl border-2 transition-all ${
+                          paymentMethod === "stripe" 
+                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                            : "border-gray-200 bg-background-secondary hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="p-5">
+                          <div className="flex items-center gap-3 mb-4">
+                            <input
+                              type="radio"
+                              checked={paymentMethod === "stripe"}
+                              onChange={() => setPaymentMethod("stripe")}
+                              className="w-5 h-5 accent-[#2e3091]"
+                            />
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="w-5 h-5 text-[#2e3091]" />
+                              <span className="text-body-regular font-medium text-text-primary">
+                                Cartão / Pix / Boleto
+                              </span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 pt-2">
-                            <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                              <path d="M9 12l2 2 4-4"/>
-                            </svg>
-                            <span className="text-caption text-text-muted">Pagamento 100% seguro via Stripe</span>
+                          
+                          {paymentMethod === "stripe" && (
+                            <div className="ml-8 space-y-2">
+                              <p className="text-body-sm text-text-secondary">
+                                Escolha sua forma de pagamento preferida:
+                              </p>
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                <span className="text-xs bg-white px-3 py-1.5 rounded-full border border-gray-200">
+                                  💳 Cartão de Crédito/Débito
+                                </span>
+                                <span className="text-xs bg-white px-3 py-1.5 rounded-full border border-gray-200">
+                                  📱 Pix
+                                </span>
+                                <span className="text-xs bg-white px-3 py-1.5 rounded-full border border-gray-200">
+                                  📄 Boleto Bancário
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 pt-2">
+                                <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                  <path d="M9 12l2 2 4-4"/>
+                                </svg>
+                                <span className="text-caption text-text-muted">Pagamento 100% seguro via Stripe</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </label>
+
+                      {/* Bolsa Uniforme Option */}
+                      <label 
+                        className={`block cursor-pointer rounded-2xl border-2 transition-all ${
+                          paymentMethod === "bolsa-uniforme" 
+                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                            : "border-gray-200 bg-background-secondary hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="p-5">
+                          <div className="flex items-center gap-3 mb-2">
+                            <input
+                              type="radio"
+                              checked={paymentMethod === "bolsa-uniforme"}
+                              onChange={() => setPaymentMethod("bolsa-uniforme")}
+                              className="w-5 h-5 accent-[#2e3091]"
+                            />
+                            <div className="flex items-center gap-2">
+                              <Wallet className="w-5 h-5 text-[#2e3091]" />
+                              <span className="text-body-regular font-medium text-text-primary">
+                                Bolsa Uniforme
+                              </span>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                Crédito Escolar
+                              </span>
+                            </div>
                           </div>
+                          
+                          {paymentMethod === "bolsa-uniforme" && (
+                            <div className="ml-8 mt-3">
+                              <p className="text-body-sm text-text-secondary">
+                                Pague com o saldo do seu cartão Bolsa Uniforme. 
+                                Você precisará:
+                              </p>
+                              <ul className="text-body-sm text-text-secondary mt-2 space-y-1">
+                                <li className="flex items-center gap-2">
+                                  <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">1</span>
+                                  Foto do QR Code do cartão
+                                </li>
+                                <li className="flex items-center gap-2">
+                                  <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">2</span>
+                                  Sua senha do cartão
+                                </li>
+                              </ul>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </label>
                     </div>
-                  </label>
 
-                  {/* Bolsa Uniforme Option */}
-                  <label 
-                    className={`block cursor-pointer rounded-2xl border-2 transition-all ${
-                      paymentMethod === "bolsa-uniforme" 
-                        ? "border-[#2e3091] bg-[#2e3091]/5" 
-                        : "border-gray-200 bg-background-secondary hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="p-5">
-                      <div className="flex items-center gap-3 mb-2">
-                        <input
-                          type="radio"
-                          checked={paymentMethod === "bolsa-uniforme"}
-                          onChange={() => setPaymentMethod("bolsa-uniforme")}
-                          className="w-5 h-5 accent-[#2e3091]"
-                        />
-                        <div className="flex items-center gap-2">
-                          <Wallet className="w-5 h-5 text-[#2e3091]" />
-                          <span className="text-body-regular font-medium text-text-primary">
-                            Bolsa Uniforme
-                          </span>
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                            Crédito Escolar
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {paymentMethod === "bolsa-uniforme" && (
-                        <div className="ml-8 mt-3">
-                          <p className="text-body-sm text-text-secondary">
-                            Pague com o saldo do seu cartão Bolsa Uniforme. 
-                            Você precisará:
-                          </p>
-                          <ul className="text-body-sm text-text-secondary mt-2 space-y-1">
-                            <li className="flex items-center gap-2">
-                              <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">1</span>
-                              Foto do QR Code do cartão
-                            </li>
-                            <li className="flex items-center gap-2">
-                              <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">2</span>
-                              Sua senha do cartão
-                            </li>
-                          </ul>
-                        </div>
+                    {/* Mobile summary */}
+                    <MobileOrderSummary />
+
+                    <button
+                      onClick={() => {
+                        if (paymentMethod === "stripe") {
+                          setShowStripeCheckout(true);
+                        } else {
+                          setShowBolsaUniformeModal(true);
+                        }
+                      }}
+                      disabled={isProcessingPayment}
+                      className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {paymentMethod === "stripe" ? (
+                        "Ir para pagamento"
+                      ) : (
+                        "Pagar com Bolsa Uniforme"
                       )}
+                    </button>
+                  </>
+                ) : (
+                  /* Stripe Embedded Checkout */
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-h3 font-medium text-text-primary">
+                        Pagamento
+                      </h2>
+                      <button
+                        onClick={() => setShowStripeCheckout(false)}
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        Voltar
+                      </button>
                     </div>
-                  </label>
-                </div>
-
-                {/* Mobile summary */}
-                <MobileOrderSummary />
-
-                <button
-                  onClick={() => {
-                    if (paymentMethod === "stripe") {
-                      handleStripeCheckout();
-                    } else {
-                      setShowBolsaUniformeModal(true);
-                    }
-                  }}
-                  disabled={isProcessingPayment}
-                  className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isProcessingPayment ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Processando...
-                    </>
-                  ) : paymentMethod === "stripe" ? (
-                    "Ir para pagamento"
-                  ) : (
-                    "Pagar com Bolsa Uniforme"
-                  )}
-                </button>
+                    
+                    <div className="bg-background-secondary rounded-2xl p-4 mb-6">
+                      <p className="text-sm text-text-secondary mb-4">
+                        Complete seu pagamento abaixo de forma segura:
+                      </p>
+                      <StripeEmbeddedCheckout
+                        items={items.map(item => ({
+                          productId: item.productId,
+                          productName: item.productName,
+                          productImage: item.productImage,
+                          price: item.price,
+                          size: item.size,
+                          quantity: item.quantity,
+                          schoolSlug: item.schoolSlug,
+                        }))}
+                        customerEmail={user?.email || ""}
+                        customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+                        shippingAddress={{
+                          cep: address.cep,
+                          street: address.street,
+                          number: address.number,
+                          complement: address.complement,
+                          neighborhood: address.neighborhood,
+                          city: address.city,
+                          state: address.state,
+                        }}
+                        shipping={shipping}
+                        userId={user?.id || ""}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
