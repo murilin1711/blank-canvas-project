@@ -195,6 +195,7 @@ export type Database = {
           comment: string
           created_at: string
           id: string
+          is_visible: boolean | null
           rating: number
           updated_at: string
           user_id: string
@@ -204,6 +205,7 @@ export type Database = {
           comment: string
           created_at?: string
           id?: string
+          is_visible?: boolean | null
           rating: number
           updated_at?: string
           user_id: string
@@ -213,6 +215,7 @@ export type Database = {
           comment?: string
           created_at?: string
           id?: string
+          is_visible?: boolean | null
           rating?: number
           updated_at?: string
           user_id?: string
