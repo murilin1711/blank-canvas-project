@@ -236,14 +236,14 @@ const Header = () => {
             />
           </Link>
 
-          <div className="flex items-center gap-2 z-50">
+          <div className="flex items-center gap-2 z-[60]">
             <Link to="/checkout" aria-label="Carrinho" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               <ShoppingCart size={20} />
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
                 {itemCount}
               </div>
             </Link>
-            <div className="relative" ref={accountMenuRef}>
+            <div className="relative">
               <button onClick={handleAccountClick} aria-label="Perfil" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
                 <User size={20} className={user ? 'text-[#2e3091]' : ''} />
                 {user && (
@@ -253,24 +253,28 @@ const Header = () => {
               
               {/* Mobile Account Dropdown */}
               {accountMenuOpen && user && (
-                <div className="absolute top-14 right-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                <div className="absolute top-14 right-0 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[70]">
                   <Link
                     to="/meus-pedidos"
                     onClick={() => setAccountMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
-                    <Package className="w-4 h-4" />
-                    Meus Pedidos
+                    <div className="flex items-center gap-3">
+                      <Package className="w-4 h-4" />
+                      Meus Pedidos
+                    </div>
                   </Link>
                   <button
                     onClick={() => {
                       signOut();
                       setAccountMenuOpen(false);
                     }}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                    className="block px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
                   >
-                    <LogOut className="w-4 h-4" />
-                    Sair da Conta
+                    <div className="flex items-center gap-3">
+                      <LogOut className="w-4 h-4" />
+                      Sair da Conta
+                    </div>
                   </button>
                 </div>
               )}
