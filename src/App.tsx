@@ -8,6 +8,7 @@ import Header from '@/components/sections/header';
 import Home from '@/app/page';
 import SobrePage from '@/app/sobre/page';
 import AuthPage from '@/app/auth/page';
+import CarrinhoPage from '@/app/carrinho/page';
 import CheckoutPage from '@/app/checkout/page';
 import CheckoutSucessoPage from '@/app/checkout/sucesso/page';
 import CheckoutCanceladoPage from '@/app/checkout/cancelado/page';
@@ -41,6 +42,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/sobre" element={<SobrePage />} />
                     <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/carrinho" element={<CarrinhoPage />} />
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="/checkout/sucesso" element={<CheckoutSucessoPage />} />
                     <Route path="/checkout/cancelado" element={<CheckoutCanceladoPage />} />

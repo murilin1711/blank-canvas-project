@@ -156,6 +156,10 @@ export default function AdminPage() {
     is_active: true
   });
 
+  // Produtos - aba por escola
+  const schoolSlugs = [...new Set(products.map(p => p.school_slug))];
+  const [activeSchool, setActiveSchool] = useState("colegio-militar");
+
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = () => {
@@ -870,8 +874,6 @@ export default function AdminPage() {
 
               {/* Abas por escola */}
               {(() => {
-                const schoolSlugs = [...new Set(products.map(p => p.school_slug))];
-                const [activeSchool, setActiveSchool] = React.useState(schoolSlugs[0] || "colegio-militar");
                 const filteredProducts = products.filter(p => p.school_slug === activeSchool);
                 
                 const schoolNames: Record<string, string> = {

@@ -33,7 +33,8 @@ const Header = () => {
     }
   };
 
-  const navItems = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós", "Perguntas Frequentes (FAQ)"];
+  const navItems = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós", "FAQ"];
+  const navItemsMobile = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós", "Perguntas Frequentes (FAQ)"];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -199,7 +200,7 @@ const Header = () => {
               </Link>
 
               {/* Cart */}
-              <Link to="/checkout" aria-label="open cart" className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap">
+              <Link to="/carrinho" aria-label="open cart" className="relative group font-suisse flex items-center justify-center gap-2 h-[38px] bg-white/50 backdrop-blur-md rounded-lg text-black px-4 shadow-sm hover:bg-white/80 transition-all duration-300 hover:scale-105 hover:shadow-md whitespace-nowrap">
                 <span className="text-[13px] font-normal tracking-[-0.02em]">Carrinho</span>
                 <ShoppingCart className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
@@ -237,7 +238,7 @@ const Header = () => {
           </Link>
 
           <div className="flex items-center gap-2 z-[60]">
-            <Link to="/checkout" aria-label="Carrinho" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
+            <Link to="/carrinho" aria-label="Carrinho" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               <ShoppingCart size={20} />
               <div className="absolute -top-1 -right-1 w-5 h-5 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center font-semibold">
                 {itemCount}
@@ -314,7 +315,7 @@ const Header = () => {
             <div className="relative bg-white/95 backdrop-blur-xl w-full max-w-sm mx-auto rounded-b-3xl shadow-2xl p-6">
               <nav>
                 <ul className="space-y-4">
-                  {navItems.map((item) => (
+                  {navItemsMobile.map((item) => (
                     <li key={item}>
                       {item === "Sobre Nós" ? (
                         <Link
