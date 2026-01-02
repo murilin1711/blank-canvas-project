@@ -74,23 +74,23 @@ const Header = () => {
         {/* Desktop Header - Only show on xl and above (1280px+) */}
         <div className="hidden xl:flex fixed top-0 left-0 right-0 h-[80px] items-center z-50">
           <div className="w-full h-full flex items-center justify-between px-8 xl:px-12 2xl:px-16">
-            {/* Left Navigation */}
-            <div className="flex items-center">
+            {/* Left Navigation - posicionado para não ficar atrás da logo */}
+            <div className="flex items-center max-w-[45%]">
               <nav className="bg-white/50 backdrop-blur-md rounded-xl h-[40px] items-center shadow-sm flex">
-                <ul className="flex items-center gap-1 px-2">
+                <ul className="flex items-center gap-0.5 px-1.5">
                   {navItems.map((item) => (
                     <li key={item} className="relative group">
                       {item === "Sobre Nós" ? (
                         <Link
                           to="/sobre"
-                          className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm flex items-center"
+                          className="font-suisse font-normal text-[13px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-2.5 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm flex items-center"
                         >
                           {item}
                         </Link>
                       ) : (
                         <button
                           onMouseEnter={() => setActiveSubmenu(item)}
-                          className="font-suisse font-normal text-[14px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-3 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm"
+                          className="font-suisse font-normal text-[13px] -tracking-[0.02em] text-black hover:bg-white/80 h-[34px] px-2.5 rounded-lg transition-all duration-300 whitespace-nowrap group-hover:scale-105 group-hover:shadow-sm"
                         >
                           {item}
                         </button>

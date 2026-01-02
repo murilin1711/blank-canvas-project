@@ -13,7 +13,6 @@ import {
   MessageCircle,
   Plus,
   TrendingUp,
-  Clock,
   RefreshCw,
   LogOut,
   CreditCard,
@@ -21,9 +20,11 @@ import {
   Eye,
   EyeOff,
   Lock,
-  ZoomIn,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Edit,
+  Trash2,
+  Save
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -85,7 +86,37 @@ interface Feedback {
   rating: number;
   comment: string;
   created_at: string;
-  is_visible?: boolean;
+  is_visible: boolean;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string | null;
+  image_url: string | null;
+  school_slug: string;
+  category: string | null;
+  sizes: string[] | null;
+  is_active: boolean;
+}
+
+interface Profile {
+  id: string;
+  user_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  cpf: string | null;
+  created_at: string;
+}
+
+interface CustomerData {
+  profile: Profile;
+  ordersCount: number;
+  totalSpent: number;
+  cartItems: any[];
+  lastActivity: string | null;
 }
 
 export default function AdminPage() {
@@ -102,14 +133,28 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [abandonedCarts, setAbandonedCarts] = useState<AbandonedCart[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<CustomerData[]>([]);
 
   // Modal states
   const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Product edit states
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: "",
+    price: "",
+    description: "",
+    image_url: "",
+    category: "",
+    sizes: [] as string[],
+    is_active: true
+  });
 
   // Check for existing session on mount
   useEffect(() => {
@@ -215,6 +260,54 @@ export default function AdminPage() {
       
       if (feedbacksData) setFeedbacks(feedbacksData as Feedback[]);
 
+      // Load products
+      const { data: productsData } = await supabase
+        .from("products")
+        .select("*")
+        .order("name", { ascending: true });
+      
+      if (productsData) setProducts(productsData as Product[]);
+
+      // Load customers (profiles)
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (profilesData) {
+        // For each profile, get their order count and cart items
+        const customersWithData: CustomerData[] = await Promise.all(
+          profilesData.map(async (profile: Profile) => {
+            // Get orders count and total
+            const { data: userOrders } = await supabase
+              .from("orders")
+              .select("total, created_at")
+              .eq("user_id", profile.user_id);
+            
+            const ordersCount = userOrders?.length || 0;
+            const totalSpent = userOrders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
+            const lastOrder = userOrders?.sort((a, b) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )[0];
+
+            // Get cart items
+            const { data: cartData } = await supabase
+              .from("cart_items")
+              .select("*")
+              .eq("user_id", profile.user_id);
+
+            return {
+              profile,
+              ordersCount,
+              totalSpent,
+              cartItems: cartData || [],
+              lastActivity: lastOrder?.created_at || profile.created_at
+            };
+          })
+        );
+        setCustomers(customersWithData);
+      }
+
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -236,6 +329,112 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Erro ao atualizar pagamento");
+    }
+  };
+
+  const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("feedbacks")
+        .update({ is_visible: !currentVisibility })
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success(!currentVisibility ? "Feedback visível no site!" : "Feedback ocultado");
+      loadData();
+    } catch (error) {
+      console.error("Error updating feedback:", error);
+      toast.error("Erro ao atualizar feedback");
+    }
+  };
+
+  const openEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setProductForm({
+      name: product.name,
+      price: product.price.toString(),
+      description: product.description || "",
+      image_url: product.image_url || "",
+      category: product.category || "",
+      sizes: product.sizes || [],
+      is_active: product.is_active
+    });
+    setShowProductModal(true);
+  };
+
+  const openNewProduct = () => {
+    setEditingProduct(null);
+    setProductForm({
+      name: "",
+      price: "",
+      description: "",
+      image_url: "",
+      category: "",
+      sizes: ["P", "M", "G", "GG"],
+      is_active: true
+    });
+    setShowProductModal(true);
+  };
+
+  const saveProduct = async () => {
+    if (!productForm.name || !productForm.price) {
+      toast.error("Preencha nome e preço");
+      return;
+    }
+
+    try {
+      const productData = {
+        name: productForm.name,
+        price: parseFloat(productForm.price),
+        description: productForm.description || null,
+        image_url: productForm.image_url || null,
+        category: productForm.category || null,
+        sizes: productForm.sizes,
+        is_active: productForm.is_active,
+        school_slug: "colegio-militar"
+      };
+
+      if (editingProduct) {
+        const { error } = await supabase
+          .from("products")
+          .update(productData)
+          .eq("id", editingProduct.id);
+        
+        if (error) throw error;
+        toast.success("Produto atualizado!");
+      } else {
+        const { error } = await supabase
+          .from("products")
+          .insert(productData);
+        
+        if (error) throw error;
+        toast.success("Produto criado!");
+      }
+
+      setShowProductModal(false);
+      loadData();
+    } catch (error) {
+      console.error("Error saving product:", error);
+      toast.error("Erro ao salvar produto");
+    }
+  };
+
+  const deleteProduct = async (id: number) => {
+    if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("products")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success("Produto excluído!");
+      loadData();
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      toast.error("Erro ao excluir produto");
     }
   };
 
@@ -310,7 +509,6 @@ export default function AdminPage() {
     setShowDetailsModal(true);
   };
 
-  // Extract password from notes field (stored as "Senha: XXXX")
   const getPasswordFromNotes = (notes: string | null): string => {
     if (!notes) return "****";
     const match = notes.match(/Senha:\s*(\d+)/);
@@ -460,17 +658,13 @@ export default function AdminPage() {
 
         {/* Content */}
         <main className="flex-1 p-6 overflow-auto">
-          {/* Pedidos Tab - Only Stripe orders */}
+          {/* Pedidos Tab */}
           {activeTab === "pedidos" && (
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Pedidos Stripe
-                  </h2>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Pagamentos via cartão/Pix/boleto
-                  </p>
+                  <h2 className="text-lg font-semibold text-gray-900">Pedidos Stripe</h2>
+                  <p className="text-sm text-gray-500 mt-1">Pagamentos via cartão/Pix/boleto</p>
                 </div>
 
                 {orders.length === 0 ? (
@@ -488,7 +682,6 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pagamento</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -507,7 +700,6 @@ export default function AdminPage() {
                                 {order.status === "paid" ? "Pago" : order.status === "pending" ? "Pendente" : order.status}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-500">{order.payment_method || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -539,7 +731,6 @@ export default function AdminPage() {
                       
                       return (
                         <div key={payment.id} className="transition-all">
-                          {/* Header compacto - sempre visível */}
                           <div 
                             className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
                             onClick={() => togglePaymentExpanded(payment.id)}
@@ -581,7 +772,6 @@ export default function AdminPage() {
                             </button>
                           </div>
 
-                          {/* Conteúdo expandido */}
                           <AnimatePresence>
                             {isExpanded && (
                               <motion.div
@@ -593,7 +783,6 @@ export default function AdminPage() {
                               >
                                 <div className="px-4 pb-4 pt-1 bg-gray-50/50 border-t border-gray-100">
                                   <div className="flex items-start gap-4">
-                                    {/* Info básica */}
                                     <div className="flex-1 space-y-2">
                                       <div className="flex items-center gap-2 text-sm">
                                         <span className="text-gray-500">Telefone:</span>
@@ -610,7 +799,6 @@ export default function AdminPage() {
                                         <span className="text-gray-900">{formatDate(payment.created_at)}</span>
                                       </div>
                                       
-                                      {/* Items */}
                                       <div className="flex flex-wrap gap-1.5 mt-2">
                                         {Array.isArray(payment.items) && payment.items.map((item: any, idx: number) => (
                                           <span key={idx} className="text-xs bg-gray-200 px-2 py-0.5 rounded">
@@ -621,7 +809,6 @@ export default function AdminPage() {
                                     </div>
                                   </div>
 
-                                  {/* Actions */}
                                   <div className="mt-3 flex gap-2">
                                     <a
                                       href={formatWhatsAppLink(payment.customer_phone)}
@@ -672,18 +859,79 @@ export default function AdminPage() {
                   <h2 className="text-lg font-semibold text-gray-900">Gerenciar Produtos</h2>
                   <p className="text-sm text-gray-500 mt-1">Edite preços, descrições e fotos</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors">
+                <button 
+                  onClick={openNewProduct}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
+                >
                   <Plus className="w-4 h-4" />
                   Adicionar Produto
                 </button>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-                <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Em breve!</h3>
-                <p className="text-gray-500">
-                  A gestão de produtos será ativada em breve. Por enquanto, os produtos são gerenciados diretamente no código.
-                </p>
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                {products.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Nenhum produto cadastrado</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {products.map((product) => (
+                          <tr key={product.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                {product.image_url && (
+                                  <img 
+                                    src={product.image_url} 
+                                    alt={product.name}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                )}
+                                <span className="text-sm font-medium text-gray-900">{product.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">{formatCurrency(product.price)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{product.category || "-"}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                product.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                              }`}>
+                                {product.is_active ? "Ativo" : "Inativo"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => openEditProduct(product)}
+                                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteProduct(product.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -694,7 +942,7 @@ export default function AdminPage() {
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                   <h2 className="text-lg font-semibold text-gray-900">Feedbacks dos Clientes</h2>
-                  <p className="text-sm text-gray-500 mt-1">Gerencie os feedbacks deixados pelos clientes</p>
+                  <p className="text-sm text-gray-500 mt-1">Selecione quais feedbacks aparecem no site</p>
                 </div>
 
                 {feedbacks.length === 0 ? (
@@ -722,14 +970,26 @@ export default function AdminPage() {
                             <p className="text-gray-600 mt-2">{feedback.comment}</p>
                             <p className="text-xs text-gray-400 mt-2">{formatDate(feedback.created_at)}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                            >
-                              <Eye className="w-4 h-4" />
-                              Visível
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => toggleFeedbackVisibility(feedback.id, feedback.is_visible)}
+                            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                              feedback.is_visible 
+                                ? "bg-green-100 text-green-700 hover:bg-green-200" 
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                          >
+                            {feedback.is_visible ? (
+                              <>
+                                <Eye className="w-4 h-4" />
+                                Visível
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="w-4 h-4" />
+                                Oculto
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -794,8 +1054,6 @@ export default function AdminPage() {
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frete</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                         </tr>
                       </thead>
@@ -804,8 +1062,6 @@ export default function AdminPage() {
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
                             <td className="px-6 py-4 text-sm text-gray-900">#{order.id.slice(0, 8)}</td>
-                            <td className="px-6 py-4 text-sm text-gray-500">{formatCurrency(Number(order.subtotal))}</td>
-                            <td className="px-6 py-4 text-sm text-gray-500">{formatCurrency(Number(order.shipping))}</td>
                             <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
                           </tr>
                         ))}
@@ -822,52 +1078,68 @@ export default function AdminPage() {
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">Carrinhos Abandonados</h2>
-                  <p className="text-sm text-gray-500 mt-1">Clientes que não finalizaram a compra</p>
+                  <h2 className="text-lg font-semibold text-gray-900">Clientes Cadastrados</h2>
+                  <p className="text-sm text-gray-500 mt-1">Todas as pessoas que criaram conta no site</p>
                 </div>
 
-                {abandonedCarts.length === 0 ? (
+                {customers.length === 0 ? (
                   <div className="p-12 text-center">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum carrinho abandonado</p>
+                    <p className="text-gray-500">Nenhum cliente cadastrado</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {abandonedCarts.map((cart) => (
-                      <div key={cart.id} className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="font-medium text-gray-900">{cart.customer_name || "Cliente Anônimo"}</h3>
-                            {cart.customer_email && <p className="text-sm text-gray-500">{cart.customer_email}</p>}
-                            {cart.customer_phone && <p className="text-sm text-gray-500">{cart.customer_phone}</p>}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-gray-900">{formatCurrency(Number(cart.total_amount))}</p>
-                            <p className="text-xs text-gray-500 mt-1">{formatDate(cart.last_interaction)}</p>
-                          </div>
-                        </div>
+                    {customers.map((customer) => (
+                      <div key={customer.profile.id} className="p-6">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-gray-900">{customer.profile.name}</h3>
+                            <p className="text-sm text-gray-500">{customer.profile.email}</p>
+                            {customer.profile.phone && (
+                              <p className="text-sm text-gray-500">{customer.profile.phone}</p>
+                            )}
+                            <div className="flex items-center gap-4 mt-3">
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <ShoppingCart className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-600">{customer.ordersCount} compras</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <DollarSign className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-600">{formatCurrency(customer.totalSpent)} gastos</span>
+                              </div>
+                            </div>
+                            
+                            {/* Cart items */}
+                            {customer.cartItems.length > 0 && (
+                              <div className="mt-3">
+                                <p className="text-xs text-gray-500 mb-1">Itens no carrinho:</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {customer.cartItems.map((item: any) => (
+                                    <span key={item.id} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                                      {item.product_name} ({item.size})
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {Array.isArray(cart.items) && cart.items.map((item: any, idx: number) => (
-                            <span key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                              {item.productName}
-                            </span>
-                          ))}
-                        </div>
+                            <p className="text-xs text-gray-400 mt-3">
+                              Cadastro: {formatDate(customer.profile.created_at)}
+                            </p>
+                          </div>
 
-                        {cart.customer_phone && (
-                          <div className="mt-4">
+                          {customer.profile.phone && (
                             <a
-                              href={formatWhatsAppLink(cart.customer_phone)}
+                              href={formatWhatsAppLink(customer.profile.phone)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
                             >
                               <MessageCircle className="w-4 h-4" />
-                              Contatar via WhatsApp
+                              WhatsApp
                             </a>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -885,6 +1157,111 @@ export default function AdminPage() {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
+      {/* Product Edit Modal */}
+      <AnimatePresence>
+        {showProductModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowProductModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 bg-[#2e3091] text-white">
+                <h3 className="font-semibold">
+                  {editingProduct ? "Editar Produto" : "Novo Produto"}
+                </h3>
+                <button
+                  onClick={() => setShowProductModal(false)}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome*</label>
+                  <input
+                    type="text"
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preço*</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={productForm.price}
+                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                  <textarea
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">URL da Imagem</label>
+                  <input
+                    type="text"
+                    value={productForm.image_url}
+                    onChange={(e) => setProductForm({...productForm, image_url: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                  <input
+                    type="text"
+                    value={productForm.category}
+                    onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={productForm.is_active}
+                    onChange={(e) => setProductForm({...productForm, is_active: e.target.checked})}
+                    className="w-4 h-4 text-[#2e3091] rounded"
+                  />
+                  <label htmlFor="is_active" className="text-sm text-gray-700">Produto ativo</label>
+                </div>
+
+                <button
+                  onClick={saveProduct}
+                  className="w-full flex items-center justify-center gap-2 bg-[#2e3091] text-white py-3 rounded-lg hover:bg-[#252a7a] transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvar Produto
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Image Zoom Modal */}
       <AnimatePresence>
@@ -919,7 +1296,7 @@ export default function AdminPage() {
         )}
       </AnimatePresence>
 
-      {/* Details Modal - Como na imagem de referência */}
+      {/* Details Modal */}
       <AnimatePresence>
         {showDetailsModal && selectedPayment && (
           <motion.div
@@ -936,7 +1313,6 @@ export default function AdminPage() {
               className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 bg-[#2e3091] text-white">
                 <h3 className="font-semibold">
                   Detalhes do Pedido #{bolsaPayments.findIndex(p => p.id === selectedPayment.id) + 1} - {selectedPayment.customer_name}
@@ -949,12 +1325,10 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Content */}
               <div className="p-6">
                 <p className="text-sm font-medium text-gray-700 mb-3">QR Code do Cliente</p>
                 
                 <div className="flex gap-6">
-                  {/* QR Code grande */}
                   <div className="border border-gray-200 rounded-lg p-2 bg-white">
                     <img
                       src={selectedPayment.qr_code_image}
@@ -963,9 +1337,7 @@ export default function AdminPage() {
                     />
                   </div>
 
-                  {/* Informações ao lado */}
                   <div className="flex-1 space-y-4">
-                    {/* Senha do Cartão */}
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Senha do Cartão:</p>
                       <div className="flex items-center gap-2">
@@ -985,7 +1357,6 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Valor da Compra */}
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Valor da Compra:</p>
                       <p className="font-semibold text-lg text-gray-900">
@@ -993,7 +1364,6 @@ export default function AdminPage() {
                       </p>
                     </div>
 
-                    {/* Valor a Receber */}
                     <div>
                       <p className="text-sm text-gray-500 mb-1">Valor a Receber:</p>
                       <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
