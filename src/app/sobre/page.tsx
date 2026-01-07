@@ -1,6 +1,8 @@
 import { Award, Users, Clock, MapPin, CheckCircle, ArrowRight } from "lucide-react";
 import Footer from "@/components/sections/footer";
 import { Link } from "react-router-dom";
+import sobreHistoria from "@/assets/sobre-historia.jpeg";
+import sobreCostura from "@/assets/sobre-costura.png";
 
 export default function SobrePage() {
   const stats = [
@@ -62,7 +64,7 @@ export default function SobrePage() {
               <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-[#2e3091]/10 rounded-full blur-3xl" />
               <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                 <img
-                  src="https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?q=80&w=1600&auto=format&fit=crop"
+                  src="https://images.unsplash.com/photo-600880292089-90a7e086ee0c?q=80&w=1600&auto=format&fit=crop"
                   alt="Goiás Minas Uniformes - Equipe"
                   className="w-full h-[400px] md:h-[500px] object-cover"
                 />
@@ -102,7 +104,7 @@ export default function SobrePage() {
                 <div className="space-y-4">
                   <div className="rounded-2xl overflow-hidden h-48 md:h-56">
                     <img
-                      src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?q=80&w=800&auto=format&fit=crop"
+                      src={sobreHistoria}
                       alt="Produção de uniformes"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />
@@ -122,7 +124,7 @@ export default function SobrePage() {
                   </div>
                   <div className="rounded-2xl overflow-hidden h-48 md:h-56">
                     <img
-                      src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=800&auto=format&fit=crop"
+                      src={sobreCostura}
                       alt="Equipe Goiás Minas"
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                     />

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import camisetasPersonalizadas from '@/assets/camisetas-personalizadas.png';
+import uniformesEmpresariais from '@/assets/uniformes-empresariais.png';
 
 const CategoryShowcase = () => {
   return (
@@ -22,7 +23,7 @@ const CategoryShowcase = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                 style={{
-                  backgroundImage: 'url(https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/grupo-de-homens-confiantes-em-uniformes-azuis-posando-em-um-cenario-de-fabrica-1765251165935.jpg?width=8000&height=8000&resize=contain)'
+                  backgroundImage: `url(${uniformesEmpresariais})`
                 }}
                 aria-label="Uniforme empresarial para empresas" />
 
@@ -63,7 +64,7 @@ const CategoryShowcase = () => {
               <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
                 style={{
-                  backgroundImage: 'url(https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/medio-tiro-jovem-camisa-dobravel-1765251332163.jpg?width=8000&height=8000&resize=contain)'
+                  backgroundImage: `url(${camisetasPersonalizadas})`
                 }}
                 aria-label="Personalização de uniformes" />
 

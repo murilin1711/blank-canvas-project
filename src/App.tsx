@@ -22,6 +22,10 @@ import Produto4Page from '@/app/escolas/colegio-militar/produto4/page';
 import Produto5Page from '@/app/escolas/colegio-militar/produto5/page';
 import Produto6Page from '@/app/escolas/colegio-militar/produto6/page';
 import AdminPage from '@/app/admin/page';
+import EmpresarialPage from '@/app/empresarial/page';
+import LinhaEmpresarialPage from '@/app/empresarial/linha/page';
+import PersonalizacaoPage from '@/app/personalizacao/page';
+import LinhaPersonalizacaoPage from '@/app/personalizacao/linha/page';
 
 function App() {
   return (
@@ -55,6 +59,10 @@ function App() {
                     <Route path="/escolas/colegio-militar/produto4" element={<Produto4Page />} />
                     <Route path="/escolas/colegio-militar/produto5" element={<Produto5Page />} />
                     <Route path="/escolas/colegio-militar/produto6" element={<Produto6Page />} />
+                    <Route path="/empresarial" element={<EmpresarialPage />} />
+                    <Route path="/empresarial/:linhaId" element={<LinhaEmpresarialPage />} />
+                    <Route path="/personalizacao" element={<PersonalizacaoPage />} />
+                    <Route path="/personalizacao/:linhaId" element={<LinhaPersonalizacaoPage />} />
                   </Routes>
                 </>
               } />
