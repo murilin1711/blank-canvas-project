@@ -79,20 +79,20 @@ export default function EmpresarialPage() {
                     alt={linha.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#2e3091]/95 via-[#2e3091]/60 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                 </div>
                 
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <div className="bg-[#2e3091]/90 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                    <h3 className="text-lg font-bold text-white mb-1 drop-shadow-lg">
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <div className="bg-accent-button/95 backdrop-blur-sm rounded-lg p-4">
+                    <h3 className="text-base font-medium text-white mb-1 tracking-tight">
                       {linha.name}
                     </h3>
-                    <p className="text-white/90 text-sm mb-3 line-clamp-2 drop-shadow">
+                    <p className="text-white/80 text-body-sm mb-3 line-clamp-2">
                       {linha.description}
                     </p>
-                    <div className="flex items-center gap-2 text-white text-sm font-semibold">
+                    <div className="flex items-center gap-2 text-white text-caption font-medium">
                       <span>Ver mais</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
                 </div>
