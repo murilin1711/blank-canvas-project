@@ -1,11 +1,12 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, Clock } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
 const linhasData: Record<string, {
   name: string;
   title: string;
   description: string;
+  readingTime: string;
   longDescription: string[];
   image: string;
   features: string[];
@@ -14,114 +15,139 @@ const linhasData: Record<string, {
     name: "Linha Fire - Elétrica",
     title: "Proteção máxima para profissionais",
     description: "Uniformes especializados para profissionais que trabalham com risco elétrico e combate a incêndios",
+    readingTime: "1 min 30 seg",
     longDescription: [
-      "Nossa Linha Fire - Elétrica é desenvolvida com materiais de alta tecnologia que oferecem proteção contra arcos elétricos, chamas e altas temperaturas.",
-      "Cada peça passa por rigorosos testes de qualidade para garantir conformidade com as normas NR-10 e NR-23, assegurando a segurança dos profissionais em campo.",
-      "Combinamos proteção com conforto, utilizando tecidos respiráveis e ergonômicos que permitem mobilidade total durante as atividades laborais."
+      "Os uniformes FR (Flame Resistant) são vestimentas de proteção desenvolvidas para oferecer segurança contra agentes térmicos provenientes do fogo repentino e do arco elétrico, sendo indicados para atividades que envolvem instalações e serviços elétricos.",
+      "Esse tipo de uniforme é essencial para profissionais que trabalham diretamente com equipamentos energizados ou em áreas próximas, ajudando a reduzir riscos e possíveis lesões em situações de acidente.",
+      "As vestimentas de proteção contra arco elétrico atendem às normas nacionais e internacionais, incluindo a NR10, e atuam como uma barreira térmica, diminuindo a transferência de calor para o corpo humano.",
+      "O Uniforme Risco 2 é indicado para ambientes com média tensão, oferecendo proteção adequada por meio de tecidos especiais e retardantes de chamas, garantindo mais segurança no dia a dia operacional.",
+      "A NR10 estabelece critérios de segurança para trabalhos com eletricidade e classifica os riscos elétricos, sendo o Risco 2 fundamental para definir o nível correto de proteção em atividades de instalação, operação e manutenção.",
+      "O ATPV (Arc Thermal Performance Value) indica o nível de proteção térmica do tecido contra o arco elétrico, medido em cal/cm². Quanto maior esse índice, maior é a capacidade do uniforme de proteger o trabalhador contra a energia térmica gerada."
     ],
     image: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=1600&auto=format&fit=crop",
     features: [
-      "Tecidos antichamas certificados",
-      "Proteção contra arco elétrico",
-      "Faixas refletivas de alta visibilidade",
-      "Costuras reforçadas",
-      "Bolsos funcionais",
-      "Conformidade com NR-10 e NR-23"
+      "Proteção contra fogo repentino e arco elétrico",
+      "Indicado para trabalhos com eletricidade",
+      "Classificação Risco 2 (média tensão)",
+      "Tecidos retardantes de chamas",
+      "Atende à norma NR10",
+      "Redução da transferência de calor para o corpo",
+      "Índice ATPV que garante proteção térmica adequada",
+      "Mais segurança em ambientes de risco elétrico"
     ]
   },
   "industrial": {
     name: "Linha Industrial / Construção Civil",
     title: "Resistência para o dia a dia intenso",
     description: "Vestuário resistente e seguro para ambientes industriais e obras",
+    readingTime: "1 min",
     longDescription: [
-      "A Linha Industrial foi projetada para suportar as condições mais exigentes do ambiente de trabalho, oferecendo durabilidade excepcional.",
-      "Utilizamos tecidos resistentes a rasgos e abrasões, com tratamentos especiais que prolongam a vida útil de cada peça.",
-      "Nossos uniformes industriais combinam funcionalidade com proteção, incluindo elementos de segurança como faixas refletivas e reforços em áreas de maior desgaste."
+      "O uniforme para a construção civil é um equipamento de trabalho essencial, desenvolvido para proteger o trabalhador, aumentar a visibilidade e oferecer conforto durante longas jornadas em ambientes variados.",
+      "Um uniforme operacional deve unir praticidade, segurança e conforto, atendendo às exigências do dia a dia em obras e áreas industriais. Ele precisa permitir liberdade de movimento, facilitar o acesso a ferramentas e contribuir para a segurança do profissional, especialmente em locais com circulação de máquinas e condições climáticas diversas.",
+      "Além disso, os uniformes para esse segmento são produzidos com materiais resistentes, cores de alta visibilidade e opções que auxiliam na proteção contra intempéries, garantindo mais eficiência e bem-estar durante o trabalho."
     ],
     image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1600&auto=format&fit=crop",
     features: [
-      "Tecidos de alta resistência",
-      "Tratamento anti-manchas",
-      "Bolsos para ferramentas",
-      "Joelheiras e cotoveleiras",
-      "Faixas refletivas",
-      "Costuras triplas em pontos de estresse"
+      "Tecidos resistentes a rasgos e desgaste, como algodão e misturas com poliéster",
+      "Reforços estratégicos em áreas de maior esforço, como joelhos e cotovelos",
+      "Cores de alta visibilidade para ambientes com máquinas e tráfego intenso",
+      "Modelagem confortável que permite liberdade de movimentos",
+      "Tecidos respiráveis para maior conforto térmico",
+      "Bolsos funcionais para ferramentas e itens essenciais",
+      "Opções com proteção contra chuva e vento para uso externo",
+      "Identificação visual da empresa para organização e segurança",
+      "Compatível com o uso de acessórios de segurança, como capacete, luvas e calçados de proteção"
     ]
   },
   "social-administrativo": {
     name: "Linha Social / Administrativo",
     title: "Elegância que transmite profissionalismo",
     description: "Elegância e profissionalismo para escritórios e ambientes corporativos",
+    readingTime: "45 seg",
     longDescription: [
-      "Nossa Linha Social é pensada para profissionais que precisam transmitir credibilidade e sofisticação no ambiente corporativo.",
-      "Trabalhamos com tecidos nobres e acabamentos refinados, garantindo que cada peça mantenha sua aparência impecável mesmo após muitas lavagens.",
-      "O corte é estudado para proporcionar conforto durante longas jornadas, sem comprometer a elegância e o caimento perfeito."
+      "Os uniformes da linha social e administrativa são desenvolvidos para equilibrar elegância, conforto e funcionalidade, transmitindo uma imagem profissional e alinhada à identidade da empresa. Eles contribuem para um visual padronizado, reforçando os valores corporativos e a credibilidade no ambiente de trabalho.",
+      "Essas vestimentas são ideais para escritórios, áreas administrativas, recepção e atendimento ao público, oferecendo conforto durante toda a jornada, sem abrir mão da apresentação profissional. O uso de cores sóbrias, tecidos de qualidade e acabamentos discretos garante um visual adequado ao ambiente corporativo."
     ],
     image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1600&auto=format&fit=crop",
     features: [
-      "Tecidos nobres e confortáveis",
-      "Corte alfaiataria",
-      "Fácil manutenção",
-      "Opções de personalização",
-      "Variedade de cores",
-      "Acabamento premium"
+      "Estilo elegante e profissional",
+      "Peças como camisas sociais, polos, calças, saias ou vestidos",
+      "Cores neutras e sóbrias, como preto, cinza e azul-marinho",
+      "Tecidos confortáveis e duráveis, como algodão e poliéster",
+      "Fácil manutenção para o uso diário",
+      "Opção de bordado discreto para identificação da empresa",
+      "Uso de acessórios que complementam o visual com sobriedade",
+      "Modelos adaptáveis para diferentes estações do ano",
+      "Reforço da identidade visual e da imagem corporativa"
     ]
   },
   "militar-seguranca": {
     name: "Linha Militar / Segurança / Trânsito",
     title: "Uniformes táticos de alta performance",
     description: "Uniformes táticos e de alta visibilidade para forças de segurança",
+    readingTime: "1 min 15 seg",
     longDescription: [
-      "A Linha Militar e Segurança é desenvolvida para atender às demandas específicas de profissionais que atuam na proteção e ordem pública.",
-      "Nossos uniformes táticos oferecem funcionalidade máxima com bolsos estratégicos, reforços em áreas de impacto e tecidos que resistem ao uso intenso.",
-      "Para agentes de trânsito, oferecemos opções de alta visibilidade que garantem segurança em qualquer condição de iluminação."
+      "Os uniformes da linha militar, segurança e trânsito são parte fundamental do equipamento operacional, indo além da vestimenta e representando identidade, autoridade e preparo profissional. Eles são desenvolvidos para oferecer segurança, funcionalidade e identificação clara em diferentes situações operacionais.",
+      "Projetados para atender às exigências de cada ambiente de atuação, esses uniformes combinam resistência, conforto e mobilidade, garantindo desempenho adequado em rotinas intensas, ações táticas e atividades em ambientes urbanos ou externos, sob diferentes condições climáticas."
     ],
     image: "https://images.unsplash.com/photo-1541123603104-512919d6a96c?q=80&w=1600&auto=format&fit=crop",
     features: [
-      "Tecidos táticos resistentes",
-      "Bolsos multiuso",
-      "Alta visibilidade",
-      "Reforços balísticos opcionais",
-      "Secagem rápida",
-      "Compatível com equipamentos"
+      "Tecidos resistentes e duráveis, indicados para uso intenso",
+      "Alta resistência ao desgaste diário e às condições adversas",
+      "Cores funcionais e distintivas para fácil identificação e visibilidade",
+      "Identificação clara por meio de emblemas, faixas ou distintivos",
+      "Elementos de proteção, como reforços em joelhos e cotovelos",
+      "Possibilidade de uso com equipamentos de proteção adicionais",
+      "Modelagem que permite ampla liberdade de movimento",
+      "Bolsos e compartimentos estratégicos para equipamentos operacionais",
+      "Opções adaptadas para diferentes climas e ambientes",
+      "Conformidade com padrões e regulamentos específicos de cada função"
     ]
   },
   "hospitalar-clinica": {
     name: "Linha Hospitalar / Clínica",
     title: "Higiene e conforto para a saúde",
     description: "Vestimentas práticas e higiênicas para profissionais da saúde",
+    readingTime: "1 min 10 seg",
     longDescription: [
-      "Nossa Linha Hospitalar é desenvolvida pensando nas necessidades específicas dos profissionais de saúde, que precisam de conforto para longas jornadas.",
-      "Os tecidos utilizados permitem lavagens em altas temperaturas, garantindo a desinfecção adequada sem comprometer a durabilidade das peças.",
-      "O design funcional inclui bolsos práticos e modelagem que permite movimentos livres durante procedimentos e atendimentos."
+      "Os uniformes da linha hospitalar e para clínicas são desenvolvidos para garantir higiene, segurança e conforto, além de transmitir uma imagem profissional adequada ao ambiente da saúde. Mais do que vestimentas, eles são parte essencial da rotina de trabalho de médicos, enfermeiros e demais profissionais da área.",
+      "Projetados para uso contínuo, esses uniformes utilizam tecidos resistentes à lavagem frequente, permitem ampla mobilidade e facilitam a identificação dos profissionais, contribuindo para um ambiente organizado, seguro e funcional."
     ],
     image: "https://images.unsplash.com/photo-1551190822-a9333d879b1f?q=80&w=1600&auto=format&fit=crop",
     features: [
-      "Tecidos antimicrobianos",
-      "Fácil higienização",
-      "Confortáveis para longas jornadas",
-      "Bolsos funcionais",
-      "Variedade de cores",
-      "Resistente a fluidos"
+      "Tecidos adequados para lavagens frequentes em altas temperaturas",
+      "Opções com propriedades antimicrobianas",
+      "Conforto para longas jornadas de trabalho",
+      "Tecidos leves e respiráveis",
+      "Identificação clara do profissional e da função",
+      "Modelagem que permite liberdade total de movimentos",
+      "Cores sólidas e profissionais, como branco, azul e verde",
+      "Bolsos funcionais para pequenos instrumentos e acessórios",
+      "Design que respeita a esterilidade do ambiente",
+      "Conformidade com normas e regulamentos hospitalares"
     ]
   },
   "restaurante-hotelaria": {
     name: "Linha Restaurante / Hotelaria",
     title: "Sofisticação para encantar clientes",
     description: "Uniformes sofisticados para gastronomia e hospitalidade",
+    readingTime: "55 seg",
     longDescription: [
-      "A Linha Restaurante e Hotelaria foi criada para refletir a excelência do atendimento em estabelecimentos gastronômicos e hoteleiros.",
-      "Cada peça é desenhada para combinar elegância com praticidade, permitindo que os profissionais desempenhem suas funções com conforto e estilo.",
-      "Oferecemos uma ampla gama de opções, desde aventais e dolmãs para cozinha até ternos e vestidos para recepção e atendimento."
+      "Os uniformes da linha restaurante e hotelaria são desenvolvidos para reforçar a identidade visual do estabelecimento, ao mesmo tempo em que garantem conforto, praticidade e funcionalidade no dia a dia operacional.",
+      "Indicados para restaurantes, hotéis, bares e áreas de atendimento, esses uniformes aliam estética profissional, facilidade de manutenção e adequação às normas de higiene e segurança, contribuindo para uma experiência positiva tanto para os colaboradores quanto para os clientes."
     ],
     image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1600&auto=format&fit=crop",
     features: [
-      "Design elegante",
-      "Tecidos respiráveis",
-      "Resistente a manchas",
-      "Confortável para longas jornadas",
-      "Opções de personalização",
-      "Fácil manutenção"
+      "Estilo alinhado à identidade visual do restaurante ou hotel",
+      "Visual elegante e profissional para atendimento ao público",
+      "Conforto para uso prolongado e liberdade de movimento",
+      "Tecidos respiráveis e de fácil manutenção",
+      "Diferenciação de cargos por cores, modelos ou identificações",
+      "Alta resistência à lavagem e facilidade de limpeza",
+      "Opção de acessórios funcionais, como aventais e crachás",
+      "Modelos adaptáveis para diferentes estações do ano",
+      "Elementos de segurança para áreas operacionais, como solados antiderrapantes",
+      "Conformidade com normas de higiene e segurança alimentar"
     ]
   }
 };
@@ -175,6 +201,12 @@ export default function LinhaEmpresarialPage() {
       {/* Content */}
       <section className="py-12 md:py-20">
         <div className="max-w-6xl mx-auto px-6">
+          {/* Reading Time Badge */}
+          <div className="flex items-center gap-2 text-text-tertiary mb-8">
+            <Clock className="w-4 h-4" />
+            <span className="text-body-sm">Tempo de leitura: {linha.readingTime}</span>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Description */}
             <div>
@@ -195,8 +227,8 @@ export default function LinhaEmpresarialPage() {
               </h2>
               <ul className="space-y-4">
                 {linha.features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-[#2e3091]" />
+                  <li key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 rounded-full bg-[#2e3091] mt-2 flex-shrink-0" />
                     <span className="text-text-secondary">{feature}</span>
                   </li>
                 ))}
@@ -217,7 +249,7 @@ export default function LinhaEmpresarialPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="https://wa.me/5562991121586?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20a%20{linha.name}."
+              href={`https://wa.me/5562991121586?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20a%20${encodeURIComponent(linha.name)}.`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 bg-[#2e3091] text-white px-8 py-4 rounded-full text-btn font-medium hover:bg-[#252a7a] transition-colors"
