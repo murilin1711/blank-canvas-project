@@ -3,9 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash2, Heart, Plus, Minus, ArrowLeft, ShoppingBag, Truck } from "lucide-react";
+import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import CheckoutFooter from "@/components/sections/checkout-footer";
 
 export default function CarrinhoPage() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function CarrinhoPage() {
   } | null>(null);
   const [selectedShipping, setSelectedShipping] = useState<"economico" | "expresso" | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [showProducts, setShowProducts] = useState(true);
 
   const shipping = selectedShipping === "expresso" ? 26.90 : selectedShipping === "economico" ? 13.90 : 0;
   const total = subtotal + shipping;
@@ -40,7 +42,6 @@ export default function CarrinhoPage() {
 
     setIsCalculating(true);
     
-    // Simula cálculo de frete
     setTimeout(() => {
       const today = new Date();
       const economicoDate = new Date(today);
@@ -82,179 +83,204 @@ export default function CarrinhoPage() {
 
   if (items.length === 0) {
     return (
-      <main className="min-h-screen bg-white pt-[120px]">
-        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-          <ShoppingBag className="w-24 h-24 text-gray-200 mx-auto mb-6" />
-          <h1 className="font-suisse text-2xl font-medium text-gray-900 mb-3">
-            Sua sacola está vazia
-          </h1>
-          <p className="text-gray-500 mb-8">
-            Adicione produtos para continuar comprando
-          </p>
-          <Link 
-            to="/escolas/colegio-militar"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white font-medium rounded-full hover:bg-gray-800 transition-colors"
-          >
-            Ver produtos
-          </Link>
-        </div>
-      </main>
+      <div className="min-h-screen flex flex-col bg-background-tertiary">
+        <main className="flex-1 pt-[120px]">
+          <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+            <div className="bg-background-primary rounded-2xl p-12">
+              <ShoppingBag className="w-24 h-24 text-gray-200 mx-auto mb-6" />
+              <h1 className="font-suisse text-2xl font-medium text-text-primary mb-3">
+                Sua sacola está vazia
+              </h1>
+              <p className="text-text-muted mb-8">
+                Adicione produtos para continuar comprando
+              </p>
+              <Link 
+                to="/escolas/colegio-militar"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#2e3091] text-white font-medium rounded-full hover:bg-[#252a7a] transition-colors"
+              >
+                Ver produtos
+              </Link>
+            </div>
+          </div>
+        </main>
+        <CheckoutFooter />
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white pt-[100px]">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-8">
-          <h1 className="font-suisse text-xl md:text-2xl font-medium text-black uppercase tracking-wide">
-            MINHA SACOLA
-          </h1>
-          <span className="text-gray-500 text-lg">({itemCount} {itemCount === 1 ? "ITEM" : "ITENS"})</span>
-        </div>
+    <div className="min-h-screen flex flex-col bg-background-tertiary">
+      <main className="flex-1 pt-[100px]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+          {/* Header with collapse toggle */}
+          <div className="bg-background-primary rounded-2xl p-6 mb-6">
+            <button
+              onClick={() => setShowProducts(!showProducts)}
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <h1 className="font-suisse text-xl md:text-2xl font-medium text-text-primary uppercase tracking-wide">
+                  MINHA SACOLA
+                </h1>
+                <span className="text-text-muted text-lg">({itemCount} {itemCount === 1 ? "ITEM" : "ITENS"})</span>
+              </div>
+              {showProducts ? (
+                <ChevronUp className="w-6 h-6 text-text-muted" />
+              ) : (
+                <ChevronDown className="w-6 h-6 text-text-muted" />
+              )}
+            </button>
 
-        <div className="lg:flex lg:gap-12">
-          {/* Left Column - Cart Items */}
-          <div className="lg:flex-1">
-            <div className="space-y-0 divide-y divide-gray-100">
-              <AnimatePresence>
-                {items.map((item) => (
-                  <motion.div
-                    key={`${item.productId}-${item.size}`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -100 }}
-                    className="py-6 first:pt-0"
-                  >
-                    <div className="flex gap-4 md:gap-6">
-                      {/* Product Image */}
-                      <Link 
-                        to={`/escolas/${item.schoolSlug}/produto${item.productId}`}
-                        className="flex-shrink-0"
+            {/* Collapsible Products Section */}
+            <AnimatePresence>
+              {showProducts && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-0 divide-y divide-border-light mt-6">
+                    {items.map((item) => (
+                      <div
+                        key={`${item.productId}-${item.size}`}
+                        className="py-6 first:pt-0"
                       >
-                        <img
-                          src={item.productImage}
-                          alt={item.productName}
-                          className="w-[100px] h-[130px] md:w-[140px] md:h-[180px] object-cover bg-gray-50"
-                        />
-                      </Link>
-
-                      {/* Product Details */}
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex-1">
-                          <Link to={`/escolas/${item.schoolSlug}/produto${item.productId}`}>
-                            <h3 className="font-suisse text-sm md:text-base font-medium text-black mb-1 hover:underline">
-                              {item.productName}
-                            </h3>
+                        <div className="flex gap-4 md:gap-6">
+                          {/* Product Image */}
+                          <Link 
+                            to={`/escolas/${item.schoolSlug}/produto${item.productId}`}
+                            className="flex-shrink-0"
+                          >
+                            <img
+                              src={item.productImage}
+                              alt={item.productName}
+                              className="w-[100px] h-[130px] md:w-[140px] md:h-[180px] object-cover bg-background-secondary"
+                            />
                           </Link>
-                          <p className="font-suisse text-base md:text-lg font-semibold text-black mb-3">
-                            R$ {item.price.toFixed(2).replace(".", ",")}
-                          </p>
 
-                          {/* Size Selector */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-md text-sm">
-                              <span className="text-gray-500">Tam:</span>
-                              <span className="font-medium">{item.size}</span>
+                          {/* Product Details */}
+                          <div className="flex-1 flex flex-col">
+                            <div className="flex-1">
+                              <Link to={`/escolas/${item.schoolSlug}/produto${item.productId}`}>
+                                <h3 className="font-suisse text-sm md:text-base font-medium text-text-primary mb-1 hover:underline">
+                                  {item.productName}
+                                </h3>
+                              </Link>
+                              <p className="font-suisse text-base md:text-lg font-semibold text-text-primary mb-3">
+                                R$ {item.price.toFixed(2).replace(".", ",")}
+                              </p>
+
+                              {/* Size Selector */}
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-border-light rounded-md text-sm">
+                                  <span className="text-text-muted">Tam:</span>
+                                  <span className="font-medium">{item.size}</span>
+                                </div>
+
+                                {/* Quantity Controls */}
+                                <div className="inline-flex items-center gap-3 border border-border-light rounded-md">
+                                  <button 
+                                    onClick={() => updateQuantity(item.productId, item.size, item.quantity - 1)}
+                                    className="p-2 hover:bg-background-secondary transition-colors"
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </button>
+                                  <span className="w-6 text-center font-medium">{item.quantity}</span>
+                                  <button 
+                                    onClick={() => updateQuantity(item.productId, item.size, item.quantity + 1)}
+                                    className="p-2 hover:bg-background-secondary transition-colors"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
 
-                            {/* Quantity Controls */}
-                            <div className="inline-flex items-center gap-3 border border-gray-200 rounded-md">
+                            {/* Item Total - Desktop */}
+                            <div className="hidden md:block text-right">
+                              <span className="font-suisse text-lg font-semibold text-text-primary">
+                                R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
+                              </span>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-6 text-sm text-text-muted mt-2">
                               <button 
-                                onClick={() => updateQuantity(item.productId, item.size, item.quantity - 1)}
-                                className="p-2 hover:bg-gray-50 transition-colors"
+                                onClick={() => removeItem(item.productId, item.size)}
+                                className="flex items-center gap-1.5 hover:text-text-primary transition-colors"
                               >
-                                <Minus className="w-3 h-3" />
+                                <Trash2 className="w-4 h-4" />
+                                <span>Remover</span>
                               </button>
-                              <span className="w-6 text-center font-medium">{item.quantity}</span>
                               <button 
-                                onClick={() => updateQuantity(item.productId, item.size, item.quantity + 1)}
-                                className="p-2 hover:bg-gray-50 transition-colors"
+                                onClick={() => handleFavorite(item)}
+                                className={`flex items-center gap-1.5 transition-colors ${
+                                  isFavorite(item.productId, item.schoolSlug) 
+                                    ? "text-red-500" 
+                                    : "hover:text-text-primary"
+                                }`}
                               >
-                                <Plus className="w-3 h-3" />
+                                <Heart className={`w-4 h-4 ${isFavorite(item.productId, item.schoolSlug) ? "fill-current" : ""}`} />
+                                <span>Favoritar</span>
                               </button>
                             </div>
                           </div>
                         </div>
-
-                        {/* Item Total - Desktop */}
-                        <div className="hidden md:block text-right">
-                          <span className="font-suisse text-lg font-semibold text-black">
-                            R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
-                          </span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-6 text-sm text-gray-600 mt-2">
-                          <button 
-                            onClick={() => removeItem(item.productId, item.size)}
-                            className="flex items-center gap-1.5 hover:text-black transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            <span>Remover</span>
-                          </button>
-                          <button 
-                            onClick={() => handleFavorite(item)}
-                            className={`flex items-center gap-1.5 transition-colors ${
-                              isFavorite(item.productId, item.schoolSlug) 
-                                ? "text-red-500" 
-                                : "hover:text-black"
-                            }`}
-                          >
-                            <Heart className={`w-4 h-4 ${isFavorite(item.productId, item.schoolSlug) ? "fill-current" : ""}`} />
-                            <span>Favoritar</span>
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Right Column - Summary */}
-          <div className="lg:w-[380px] mt-8 lg:mt-0">
-            <div className="lg:sticky lg:top-[120px] space-y-6">
-              {/* Shipping Calculator */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h3 className="font-suisse text-sm font-medium text-black mb-4">Calcular frete:</h3>
+          <div className="lg:flex lg:gap-6">
+            {/* Left Column - Shipping Calculator */}
+            <div className="lg:flex-1">
+              <div className="bg-background-primary rounded-2xl p-6 mb-6">
+                <h3 className="font-suisse text-sm font-medium text-text-primary mb-4">Calcular frete:</h3>
                 
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
                     value={cep}
                     onChange={(e) => setCep(formatCEP(e.target.value))}
-                    placeholder="00000-000"
+                    placeholder="Insira seu CEP"
                     maxLength={9}
-                    className="flex-1 px-4 py-3 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-[#2e3091]"
+                    className="flex-1 px-4 py-3 border border-border-light rounded-md text-sm focus:outline-none focus:border-[#2e3091] bg-background-primary"
                   />
                   <button
                     onClick={calculateShipping}
                     disabled={isCalculating}
-                    className="px-6 py-3 bg-[#2e3091] text-white text-sm font-medium rounded-md hover:bg-[#252a7a] transition-colors disabled:opacity-50"
+                    className="px-6 py-3 bg-accent-button text-white text-sm font-medium rounded-md hover:bg-text-secondary transition-colors disabled:opacity-50"
                   >
                     {isCalculating ? "..." : "Consultar"}
                   </button>
                 </div>
 
+                <button className="text-body-sm text-text-primary underline mb-4">
+                  Não sei meu CEP
+                </button>
+
                 {/* Shipping Options */}
                 {shippingOptions && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 pt-4 border-t border-border-light">
                     <button
                       onClick={() => setSelectedShipping("economico")}
                       className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
                         selectedShipping === "economico" 
                           ? "border-[#2e3091] bg-[#2e3091]/5" 
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-border-light hover:border-text-muted"
                       }`}
                     >
-                      <Truck className="w-5 h-5 text-gray-400" />
+                      <Truck className="w-5 h-5 text-text-muted" />
                       <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-black">ECONÔMICO</p>
-                        <p className="text-xs text-gray-500">Receba até {shippingOptions.economico?.date}</p>
+                        <p className="font-medium text-sm text-text-primary">ECONÔMICO</p>
+                        <p className="text-xs text-text-muted">Receba até {shippingOptions.economico?.date}</p>
                       </div>
-                      <span className="font-semibold text-sm text-black">
+                      <span className="font-semibold text-sm text-text-primary">
                         R$ {shippingOptions.economico?.price.toFixed(2).replace(".", ",")}
                       </span>
                     </button>
@@ -264,53 +290,55 @@ export default function CarrinhoPage() {
                       className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
                         selectedShipping === "expresso" 
                           ? "border-[#2e3091] bg-[#2e3091]/5" 
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-border-light hover:border-text-muted"
                       }`}
                     >
-                      <Truck className="w-5 h-5 text-gray-400" />
+                      <Truck className="w-5 h-5 text-text-muted" />
                       <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-black">EXPRESSO</p>
-                        <p className="text-xs text-gray-500">Receba até {shippingOptions.expresso?.date}</p>
+                        <p className="font-medium text-sm text-text-primary">EXPRESSO</p>
+                        <p className="text-xs text-text-muted">Receba até {shippingOptions.expresso?.date}</p>
                       </div>
-                      <span className="font-semibold text-sm text-black">
+                      <span className="font-semibold text-sm text-text-primary">
                         R$ {shippingOptions.expresso?.price.toFixed(2).replace(".", ",")}
                       </span>
                     </button>
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Order Summary */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
+            {/* Right Column - Summary */}
+            <div className="lg:w-[380px]">
+              <div className="bg-background-primary rounded-2xl p-6 lg:sticky lg:top-[120px]">
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium text-black">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
+                    <span className="text-text-muted">Subtotal</span>
+                    <span className="font-medium text-text-primary">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
                   </div>
                   {selectedShipping && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Frete</span>
-                      <span className="font-medium text-black">R$ {shipping.toFixed(2).replace(".", ",")}</span>
+                      <span className="text-text-muted">Frete</span>
+                      <span className="font-medium text-text-primary">R$ {shipping.toFixed(2).replace(".", ",")}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t border-gray-200 mb-6">
-                  <span className="font-suisse text-lg font-semibold text-black">Total</span>
+                <div className="flex justify-between items-center pt-4 border-t border-border-light mb-6">
+                  <span className="font-suisse text-lg font-semibold text-text-primary">Total</span>
                   <div className="text-right">
-                    <span className="font-suisse text-xl font-bold text-black">
+                    <span className="font-suisse text-xl font-bold text-text-primary">
                       R$ {total.toFixed(2).replace(".", ",")}
                     </span>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-text-muted">
                       Em até 3x de R$ {(total / 3).toFixed(2).replace(".", ",")} s/ juros
                     </p>
                   </div>
                 </div>
 
-                {/* Checkout Button */}
+                {/* Checkout Button - Blue */}
                 <button
                   onClick={handleProceedToCheckout}
-                  className="w-full py-4 bg-black text-white font-medium uppercase tracking-wide rounded-full hover:bg-gray-800 transition-colors"
+                  className="w-full py-4 bg-[#2e3091] text-white font-medium uppercase tracking-wide rounded-full hover:bg-[#252a7a] transition-colors"
                 >
                   CONCLUIR COMPRA
                 </button>
@@ -318,7 +346,7 @@ export default function CarrinhoPage() {
                 {/* Continue Shopping */}
                 <Link
                   to="/escolas/colegio-militar"
-                  className="block w-full text-center py-3 text-sm font-medium text-[#2e3091] underline underline-offset-4 mt-3 hover:text-[#252a7a] transition-colors"
+                  className="block w-full text-center py-3 text-sm font-medium text-text-primary underline underline-offset-4 mt-3 hover:text-text-secondary transition-colors"
                 >
                   ADICIONAR MAIS ITENS
                 </Link>
@@ -326,7 +354,8 @@ export default function CarrinhoPage() {
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+      <CheckoutFooter />
+    </div>
   );
 }
