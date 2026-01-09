@@ -1,19 +1,63 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, Package, ArrowRight, ShoppingBag, Home } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import CheckoutFooter from "@/components/sections/checkout-footer";
+import confetti from "canvas-confetti";
 
 export default function CheckoutSucessoPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
   const sessionId = searchParams.get("session_id");
+  const confettiTriggered = useRef(false);
 
   useEffect(() => {
     // Clear cart on successful payment
     clearCart();
   }, [clearCart]);
+
+  useEffect(() => {
+    // Trigger confetti animation only once
+    if (!confettiTriggered.current) {
+      confettiTriggered.current = true;
+      
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+      const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: ['#2e3091', '#4f46e5', '#7c3aed', '#06b6d4', '#10b981'],
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: ['#2e3091', '#4f46e5', '#7c3aed', '#06b6d4', '#10b981'],
+        });
+      }, 250);
+
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const handleViewOrders = () => {
+    navigate("/meus-pedidos");
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background-tertiary">
@@ -48,7 +92,7 @@ export default function CheckoutSucessoPage() {
             {/* Action Buttons */}
             <div className="space-y-4">
               <button
-                onClick={() => navigate("/meus-pedidos")}
+                onClick={handleViewOrders}
                 className="w-full py-4 bg-[#2e3091] text-white font-medium rounded-full hover:bg-[#252a7a] transition-colors flex items-center justify-center gap-2"
               >
                 Ver Meus Pedidos
