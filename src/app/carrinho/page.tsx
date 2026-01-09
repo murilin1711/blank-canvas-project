@@ -254,7 +254,7 @@ export default function CarrinhoPage() {
                   <button
                     onClick={calculateShipping}
                     disabled={isCalculating}
-                    className="px-6 py-3 bg-accent-button text-white text-sm font-medium rounded-md hover:bg-text-secondary transition-colors disabled:opacity-50"
+                    className="px-6 py-3 bg-[#2e3091] text-white text-sm font-medium rounded-md hover:bg-[#252a7a] transition-colors disabled:opacity-50"
                   >
                     {isCalculating ? "..." : "Consultar"}
                   </button>

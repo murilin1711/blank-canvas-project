@@ -1,4 +1,12 @@
 import { Wallet } from "lucide-react";
+import visaLogo from "@/assets/payment/visa.png";
+import mastercardLogo from "@/assets/payment/mastercard.webp";
+import amexLogo from "@/assets/payment/amex.png";
+import hipercardLogo from "@/assets/payment/hipercard.png";
+import eloLogo from "@/assets/payment/elo.png";
+import applepayLogo from "@/assets/payment/applepay.png";
+import gpayLogo from "@/assets/payment/gpay.webp";
+import pixLogo from "@/assets/payment/pix.png";
 
 export default function CheckoutFooter() {
   return (
@@ -12,41 +20,31 @@ export default function CheckoutFooter() {
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
               {/* Visa */}
-              <span className="text-text-secondary font-bold text-lg tracking-wider">VISA</span>
+              <img src={visaLogo} alt="Visa" className="h-6 object-contain" />
               
               {/* Mastercard */}
-              <div className="flex">
-                <div className="w-5 h-5 rounded-full bg-red-500 -mr-2"></div>
-                <div className="w-5 h-5 rounded-full bg-yellow-500"></div>
-              </div>
+              <img src={mastercardLogo} alt="Mastercard" className="h-8 object-contain" />
               
               {/* American Express */}
-              <span className="text-[10px] font-bold text-text-secondary border border-text-secondary px-1.5 py-0.5 leading-tight">AMERICAN<br/>EXPRESS</span>
-              
-              {/* Diners */}
-              <div className="w-7 h-7 rounded-full border-2 border-text-secondary flex items-center justify-center">
-                <div className="w-2 h-4 bg-text-secondary rounded-sm"></div>
-              </div>
-              
-              {/* Elo */}
-              <span className="text-text-secondary font-bold text-lg">eLO</span>
+              <img src={amexLogo} alt="American Express" className="h-6 object-contain" />
               
               {/* Hipercard */}
-              <span className="text-text-secondary font-bold text-sm">Hipercard</span>
+              <img src={hipercardLogo} alt="Hipercard" className="h-6 object-contain" />
+              
+              {/* Elo */}
+              <img src={eloLogo} alt="Elo" className="h-6 object-contain" />
               
               {/* Pix */}
-              <div className="flex items-center gap-1">
-                <svg className="w-5 h-5 text-text-secondary" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.8 5.5L12 11.3 6.2 5.5c-.4-.4-1-.4-1.4 0s-.4 1 0 1.4l5.8 5.8-5.8 5.8c-.4.4-.4 1 0 1.4s1 .4 1.4 0l5.8-5.8 5.8 5.8c.4.4 1 .4 1.4 0s.4-1 0-1.4l-5.8-5.8 5.8-5.8c.4-.4.4-1 0-1.4s-1-.4-1.4 0z"/>
-                </svg>
+              <div className="flex items-center gap-1.5">
+                <img src={pixLogo} alt="Pix" className="h-5 object-contain" />
                 <span className="text-text-secondary font-medium text-sm">Pix</span>
               </div>
               
               {/* Google Pay */}
-              <span className="text-text-secondary font-medium text-sm">G Pay</span>
+              <img src={gpayLogo} alt="Google Pay" className="h-6 object-contain" />
               
               {/* Apple Pay */}
-              <span className="text-text-secondary font-medium text-sm"> Pay</span>
+              <img src={applepayLogo} alt="Apple Pay" className="h-6 object-contain" />
               
               {/* Bolsa Uniforme */}
               <div className="flex items-center gap-1.5 bg-[#2e3091]/10 px-3 py-1.5 rounded-full">
