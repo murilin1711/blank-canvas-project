@@ -2,42 +2,50 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
+// Import images for each line
+import socialImage from "@/assets/linhas/social.jpeg";
+import restauranteHotelImage from "@/assets/linhas/restaurante-hotel.jpeg";
+import militarImage from "@/assets/linhas/militar.jpeg";
+import hospitalarImage from "@/assets/linhas/hospitalar.jpeg";
+import fireImage from "@/assets/linhas/fire.jpeg";
+import construcaoCivilImage from "@/assets/linhas/construcao-civil.jpeg";
+
 const linhas = [
   {
     id: "fire-eletrica",
     name: "Linha Fire - Elétrica",
     description: "Uniformes especializados para profissionais que trabalham com risco elétrico e combate a incêndios",
-    image: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=800&auto=format&fit=crop",
+    image: fireImage,
   },
   {
     id: "industrial",
     name: "Linha Industrial / Construção Civil",
     description: "Vestuário resistente e seguro para ambientes industriais e obras",
-    image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop",
+    image: construcaoCivilImage,
   },
   {
     id: "social-administrativo",
     name: "Linha Social / Administrativo",
     description: "Elegância e profissionalismo para escritórios e ambientes corporativos",
-    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=800&auto=format&fit=crop",
+    image: socialImage,
   },
   {
     id: "militar-seguranca",
     name: "Linha Militar / Segurança / Trânsito",
     description: "Uniformes táticos e de alta visibilidade para forças de segurança",
-    image: "https://images.unsplash.com/photo-1541123603104-512919d6a96c?q=80&w=800&auto=format&fit=crop",
+    image: militarImage,
   },
   {
     id: "hospitalar-clinica",
     name: "Linha Hospitalar / Clínica",
     description: "Vestimentas práticas e higiênicas para profissionais da saúde",
-    image: "https://images.unsplash.com/photo-1551190822-a9333d879b1f?q=80&w=800&auto=format&fit=crop",
+    image: hospitalarImage,
   },
   {
     id: "restaurante-hotelaria",
     name: "Linha Restaurante / Hotelaria",
     description: "Uniformes sofisticados para gastronomia e hospitalidade",
-    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=800&auto=format&fit=crop",
+    image: restauranteHotelImage,
   },
 ];
 

@@ -2,6 +2,14 @@ import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Phone, MessageCircle, Clock } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
+// Import images for each line
+import socialImage from "@/assets/linhas/social.jpeg";
+import restauranteHotelImage from "@/assets/linhas/restaurante-hotel.jpeg";
+import militarImage from "@/assets/linhas/militar.jpeg";
+import hospitalarImage from "@/assets/linhas/hospitalar.jpeg";
+import fireImage from "@/assets/linhas/fire.jpeg";
+import construcaoCivilImage from "@/assets/linhas/construcao-civil.jpeg";
+
 const linhasData: Record<string, {
   name: string;
   title: string;
@@ -24,7 +32,7 @@ const linhasData: Record<string, {
       "A NR10 estabelece critérios de segurança para trabalhos com eletricidade e classifica os riscos elétricos, sendo o Risco 2 fundamental para definir o nível correto de proteção em atividades de instalação, operação e manutenção.",
       "O ATPV (Arc Thermal Performance Value) indica o nível de proteção térmica do tecido contra o arco elétrico, medido em cal/cm². Quanto maior esse índice, maior é a capacidade do uniforme de proteger o trabalhador contra a energia térmica gerada."
     ],
-    image: "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=1600&auto=format&fit=crop",
+    image: fireImage,
     features: [
       "Proteção contra fogo repentino e arco elétrico",
       "Indicado para trabalhos com eletricidade",
@@ -46,7 +54,7 @@ const linhasData: Record<string, {
       "Um uniforme operacional deve unir praticidade, segurança e conforto, atendendo às exigências do dia a dia em obras e áreas industriais. Ele precisa permitir liberdade de movimento, facilitar o acesso a ferramentas e contribuir para a segurança do profissional, especialmente em locais com circulação de máquinas e condições climáticas diversas.",
       "Além disso, os uniformes para esse segmento são produzidos com materiais resistentes, cores de alta visibilidade e opções que auxiliam na proteção contra intempéries, garantindo mais eficiência e bem-estar durante o trabalho."
     ],
-    image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=1600&auto=format&fit=crop",
+    image: construcaoCivilImage,
     features: [
       "Tecidos resistentes a rasgos e desgaste, como algodão e misturas com poliéster",
       "Reforços estratégicos em áreas de maior esforço, como joelhos e cotovelos",
@@ -68,7 +76,7 @@ const linhasData: Record<string, {
       "Os uniformes da linha social e administrativa são desenvolvidos para equilibrar elegância, conforto e funcionalidade, transmitindo uma imagem profissional e alinhada à identidade da empresa. Eles contribuem para um visual padronizado, reforçando os valores corporativos e a credibilidade no ambiente de trabalho.",
       "Essas vestimentas são ideais para escritórios, áreas administrativas, recepção e atendimento ao público, oferecendo conforto durante toda a jornada, sem abrir mão da apresentação profissional. O uso de cores sóbrias, tecidos de qualidade e acabamentos discretos garante um visual adequado ao ambiente corporativo."
     ],
-    image: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1600&auto=format&fit=crop",
+    image: socialImage,
     features: [
       "Estilo elegante e profissional",
       "Peças como camisas sociais, polos, calças, saias ou vestidos",
@@ -90,7 +98,7 @@ const linhasData: Record<string, {
       "Os uniformes da linha militar, segurança e trânsito são parte fundamental do equipamento operacional, indo além da vestimenta e representando identidade, autoridade e preparo profissional. Eles são desenvolvidos para oferecer segurança, funcionalidade e identificação clara em diferentes situações operacionais.",
       "Projetados para atender às exigências de cada ambiente de atuação, esses uniformes combinam resistência, conforto e mobilidade, garantindo desempenho adequado em rotinas intensas, ações táticas e atividades em ambientes urbanos ou externos, sob diferentes condições climáticas."
     ],
-    image: "https://images.unsplash.com/photo-1541123603104-512919d6a96c?q=80&w=1600&auto=format&fit=crop",
+    image: militarImage,
     features: [
       "Tecidos resistentes e duráveis, indicados para uso intenso",
       "Alta resistência ao desgaste diário e às condições adversas",
@@ -113,7 +121,7 @@ const linhasData: Record<string, {
       "Os uniformes da linha hospitalar e para clínicas são desenvolvidos para garantir higiene, segurança e conforto, além de transmitir uma imagem profissional adequada ao ambiente da saúde. Mais do que vestimentas, eles são parte essencial da rotina de trabalho de médicos, enfermeiros e demais profissionais da área.",
       "Projetados para uso contínuo, esses uniformes utilizam tecidos resistentes à lavagem frequente, permitem ampla mobilidade e facilitam a identificação dos profissionais, contribuindo para um ambiente organizado, seguro e funcional."
     ],
-    image: "https://images.unsplash.com/photo-1551190822-a9333d879b1f?q=80&w=1600&auto=format&fit=crop",
+    image: hospitalarImage,
     features: [
       "Tecidos adequados para lavagens frequentes em altas temperaturas",
       "Opções com propriedades antimicrobianas",
@@ -136,7 +144,7 @@ const linhasData: Record<string, {
       "Os uniformes da linha restaurante e hotelaria são desenvolvidos para reforçar a identidade visual do estabelecimento, ao mesmo tempo em que garantem conforto, praticidade e funcionalidade no dia a dia operacional.",
       "Indicados para restaurantes, hotéis, bares e áreas de atendimento, esses uniformes aliam estética profissional, facilidade de manutenção e adequação às normas de higiene e segurança, contribuindo para uma experiência positiva tanto para os colaboradores quanto para os clientes."
     ],
-    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1600&auto=format&fit=crop",
+    image: restauranteHotelImage,
     features: [
       "Estilo alinhado à identidade visual do restaurante ou hotel",
       "Visual elegante e profissional para atendimento ao público",
