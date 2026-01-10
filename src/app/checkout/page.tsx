@@ -192,6 +192,47 @@ export default function CheckoutPage() {
     return value;
   };
 
+  // Function to fetch address by CEP using ViaCEP API
+  const fetchAddressByCEP = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, "");
+    if (cleanCep.length !== 8) return;
+    
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+      
+      setAddress(prev => ({
+        ...prev,
+        street: data.logradouro || prev.street,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: data.uf || prev.state,
+      }));
+      
+      toast.success("Endereço preenchido automaticamente!");
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+      toast.error("Erro ao buscar o CEP");
+    }
+  };
+
+  // Handle CEP change with auto-fill
+  const handleCepChange = (value: string) => {
+    const formattedCep = formatCEP(value);
+    setAddress({ ...address, cep: formattedCep });
+    
+    // Auto-fetch when CEP is complete (8 digits)
+    const cleanCep = value.replace(/\D/g, "");
+    if (cleanCep.length === 8) {
+      fetchAddressByCEP(cleanCep);
+    }
+  };
+
   // Desktop Order Summary component
   const OrderSummary = () => (
     <div className="bg-background-primary rounded-2xl p-6">
@@ -416,14 +457,19 @@ export default function CheckoutPage() {
                               <InputField
                                 label="CEP"
                                 value={address.cep}
-                                onChange={(v) => setAddress({ ...address, cep: formatCEP(v) })}
+                                onChange={handleCepChange}
                                 placeholder="_____-___"
                                 required
                               />
                             </div>
-                            <button className="text-body-sm text-text-primary underline mt-6">
+                            <a 
+                              href="https://buscacepinter.correios.com.br/app/endereco/index.php" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-body-sm text-text-primary underline mt-6"
+                            >
                               Não sei meu CEP
-                            </button>
+                            </a>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

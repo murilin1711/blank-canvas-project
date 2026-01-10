@@ -13,10 +13,10 @@ export default function Home() {
       <div className="relative">
         <HeroBanner />
         <div className="mt-8 lg:mt-12">
-          <CategoryShowcase />
+          <ProductCarousel />
         </div>
         <div className="mt-8 lg:mt-12">
-          <ProductCarousel />
+          <CategoryShowcase />
         </div>
         <div className="mt-8 lg:mt-12 px-[15px] xll:px-[30px]">
           <VideoBanner />
