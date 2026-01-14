@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.admin-auth]
 verify_jwt = false
+
+[functions.create-embedded-checkout]
+verify_jwt = false
+
+[functions.create-payment-intent]
+verify_jwt = false

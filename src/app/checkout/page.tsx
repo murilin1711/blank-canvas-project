@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import CheckoutFooter from "@/components/sections/checkout-footer";
 import { Check, Home, ChevronDown, CreditCard, Wallet, X } from "lucide-react";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
-import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { StripeCustomPayment } from "@/components/StripeCustomPayment";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -794,7 +794,7 @@ export default function CheckoutPage() {
                       </button>
                     </>
                   ) : (
-                    /* Stripe Embedded Checkout */
+                    /* Stripe Custom Payment Form */
                     <div>
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="text-h3 font-medium text-text-primary">
@@ -809,11 +809,8 @@ export default function CheckoutPage() {
                         </button>
                       </div>
                       
-                      <div className="bg-background-primary rounded-2xl p-4 mb-6">
-                        <p className="text-sm text-text-secondary mb-4">
-                          Complete seu pagamento abaixo de forma segura:
-                        </p>
-                        <StripeEmbeddedCheckout
+                      <div className="bg-background-primary rounded-2xl p-6 mb-6">
+                        <StripeCustomPayment
                           items={items.map(item => ({
                             productId: item.productId,
                             productName: item.productName,
@@ -836,6 +833,7 @@ export default function CheckoutPage() {
                           }}
                           shipping={shipping}
                           userId={user?.id || ""}
+                          total={total}
                         />
                       </div>
                     </div>
