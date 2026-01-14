@@ -71,7 +71,22 @@ export default function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart();
   const { user, loading } = useAuth();
 
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>("login");
+  // Load saved data from localStorage
+  const loadSavedData = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error("Error loading saved data:", e);
+    }
+    return defaultValue;
+  };
+
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>(() => 
+    loadSavedData("checkout_current_step", "login")
+  );
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -80,36 +95,73 @@ export default function CheckoutPage() {
       navigate("/auth", { state: { from: "/checkout" } });
     }
   }, [user, loading, navigate]);
-  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
+
+  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>(() => 
+    loadSavedData("checkout_completed_steps", [])
+  );
   
-  const [personal, setPersonal] = useState<PersonalData>({
-    cpf: "",
-    phone: "",
-    birthDate: "",
-  });
+  const [personal, setPersonal] = useState<PersonalData>(() => 
+    loadSavedData("checkout_personal", {
+      cpf: "",
+      phone: "",
+      birthDate: "",
+    })
+  );
 
-  const [address, setAddress] = useState<AddressData>({
-    label: "",
-    cep: "",
-    street: "",
-    number: "",
-    complement: "",
-    neighborhood: "",
-    reference: "",
-    city: "",
-    state: "",
-    recipientName: user?.email?.split("@")[0] || "",
-    recipientPhone: "",
-    isDefault: false,
-  });
+  const [address, setAddress] = useState<AddressData>(() => 
+    loadSavedData("checkout_address", {
+      label: "",
+      cep: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      reference: "",
+      city: "",
+      state: "",
+      recipientName: user?.email?.split("@")[0] || "",
+      recipientPhone: "",
+      isDefault: false,
+    })
+  );
 
-  const [shippingMethod, setShippingMethod] = useState<"economico" | "expresso">("economico");
-  const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [shippingMethod, setShippingMethod] = useState<"economico" | "expresso">(() => 
+    loadSavedData("checkout_shipping", "economico")
+  );
+  
+  const [addressConfirmed, setAddressConfirmed] = useState(() => 
+    loadSavedData("checkout_address_confirmed", false)
+  );
   
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "bolsa-uniforme">("stripe");
   const [showBolsaUniformeModal, setShowBolsaUniformeModal] = useState(false);
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("checkout_personal", JSON.stringify(personal));
+  }, [personal]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_address", JSON.stringify(address));
+  }, [address]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_shipping", JSON.stringify(shippingMethod));
+  }, [shippingMethod]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_address_confirmed", JSON.stringify(addressConfirmed));
+  }, [addressConfirmed]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_completed_steps", JSON.stringify(completedSteps));
+  }, [completedSteps]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_current_step", JSON.stringify(currentStep));
+  }, [currentStep]);
 
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: "login", label: "Login" },
