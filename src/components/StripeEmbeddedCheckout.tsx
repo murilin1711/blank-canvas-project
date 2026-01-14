@@ -1,13 +1,14 @@
 import { useCallback } from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  EmbeddedCheckout,
-  EmbeddedCheckoutProvider
-} from "@stripe/react-stripe-js";
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51OxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSvE");
+const stripePublishableKey: string =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  (import.meta.env as any).VITE_STRIPE_PUBLIC_KEY ||
+  "";
+
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 interface CartItem {
   productId: number;
