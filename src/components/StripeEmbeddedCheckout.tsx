@@ -3,12 +3,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 
-const stripePublishableKey: string =
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-  (import.meta.env as any).VITE_STRIPE_PUBLIC_KEY ||
-  "";
-
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+const stripePromise = loadStripe("pk_test_51Sjq5zE3ZoLTmzUOL1Ls6bmKRH23iWmAtGZ8x6GHMkk90diS0GyCOv9Y9SNEvINzBGaVbqZ2eULMh1x8hK74ld3b00VR2fM3Gj");
 
 interface CartItem {
   productId: number;

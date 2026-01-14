@@ -12,12 +12,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 
-const stripePublishableKey: string =
-  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
-  (import.meta.env as any).VITE_STRIPE_PUBLIC_KEY ||
-  "";
-
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+const stripePromise = loadStripe("pk_test_51Sjq5zE3ZoLTmzUOL1Ls6bmKRH23iWmAtGZ8x6GHMkk90diS0GyCOv9Y9SNEvINzBGaVbqZ2eULMh1x8hK74ld3b00VR2fM3Gj");
 
 
 interface CartItem {
@@ -274,19 +269,6 @@ export function StripeCustomPayment({
     navigate("/checkout/sucesso");
   };
 
-  if (!stripePromise) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-        <p className="text-body-sm text-red-600 font-medium mb-2">
-          Pagamento não configurado
-        </p>
-        <p className="text-body-sm text-red-600">
-          A chave publicável do Stripe (pk_test_… / pk_live_…) não está configurada.
-          Envie aqui a sua chave publicável que eu configuro para você.
-        </p>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
