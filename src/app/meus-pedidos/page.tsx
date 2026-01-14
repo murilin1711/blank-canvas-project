@@ -31,11 +31,39 @@ export default function MeusPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
+  // Show login prompt instead of redirecting for guest users
+  if (!loading && !user) {
+    return (
+      <main className="min-h-screen bg-gray-50 pt-[120px]">
+        <div className="max-w-4xl mx-auto px-6 py-10">
+          <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">
+              Faça login para ver seus pedidos
+            </h2>
+            <p className="text-gray-500 mb-6">
+              Se você comprou como convidado, verifique seu e-mail para acompanhar o pedido.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => navigate("/auth")}
+                className="bg-[#2e3091] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
+              >
+                Fazer Login
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Voltar ao Início
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
 
   useEffect(() => {
     const fetchOrders = async () => {
