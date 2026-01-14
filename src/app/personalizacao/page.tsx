@@ -2,30 +2,36 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
+// Import images for each line
+import religiosaImage from "@/assets/linhas/religiosa.jpeg";
+import esportivaImage from "@/assets/linhas/esportiva.jpeg";
+import eventosEscolaresImage from "@/assets/linhas/eventos-escolares.jpeg";
+import eventosCorporativosImage from "@/assets/linhas/eventos-corporativos.png";
+
 const linhas = [
   {
     id: "religiosa",
     name: "Linha Religiosa",
-    description: "Camisetas personalizadas para igrejas, grupos de jovens, eventos religiosos e comunidades de fé",
-    image: "https://images.unsplash.com/photo-1507692049790-de58290a4334?q=80&w=800&auto=format&fit=crop",
+    description: "Camisetas personalizadas com temas religiosos para crisma, catequese, retiros e eventos religiosos",
+    image: religiosaImage,
   },
   {
     id: "esportiva",
     name: "Linha Esportiva",
-    description: "Uniformes para times, academias, corridas e eventos esportivos com tecidos de alta performance",
-    image: "https://images.unsplash.com/photo-1461896836934- voices?q=80&w=800&auto=format&fit=crop",
+    description: "Camisetas para equipes, times e eventos esportivos com tecidos leves e respiráveis",
+    image: esportivaImage,
   },
   {
     id: "eventos-escolares",
     name: "Linha Eventos Escolares",
-    description: "Camisetas para formaturas, excursões, gincanas e celebrações escolares memoráveis",
-    image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&auto=format&fit=crop",
+    description: "Camisetas para formaturas, datas comemorativas e eventos institucionais",
+    image: eventosEscolaresImage,
   },
   {
     id: "eventos-corporativos",
     name: "Linha Eventos Corporativos",
-    description: "Camisetas para convenções, treinamentos, feiras e eventos empresariais de impacto",
-    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=800&auto=format&fit=crop",
+    description: "Camisetas para ações promocionais, eventos internos e datas comemorativas empresariais",
+    image: eventosCorporativosImage,
   },
 ];
 

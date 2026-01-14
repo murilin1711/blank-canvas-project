@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle, Clock } from "lucide-react";
+import { ArrowLeft, MessageCircle, Clock } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
 // Import images for each line
@@ -255,24 +255,15 @@ export default function LinhaEmpresarialPage() {
           <p className="text-text-tertiary text-body-lg mb-8">
             Entre em contato para solicitar um orçamento personalizado
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href={`https://wa.me/5562991121586?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20a%20${encodeURIComponent(linha.name)}.`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 bg-[#2e3091] text-white px-8 py-4 rounded-full text-btn font-medium hover:bg-[#252a7a] transition-colors"
-            >
-              <MessageCircle className="w-5 h-5" />
-              Falar pelo WhatsApp
-            </a>
-            <a
-              href="tel:+5562991121586"
-              className="inline-flex items-center justify-center gap-2 border-2 border-[#2e3091] text-[#2e3091] px-8 py-4 rounded-full text-btn font-medium hover:bg-[#2e3091] hover:text-white transition-colors"
-            >
-              <Phone className="w-5 h-5" />
-              Ligar agora
-            </a>
-          </div>
+          <a
+            href={`https://wa.me/5562991121586?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20a%20${encodeURIComponent(linha.name)}.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 bg-[#2e3091] text-white px-8 py-4 rounded-full text-btn font-medium hover:bg-[#252a7a] transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+            Falar pelo WhatsApp
+          </a>
         </div>
       </section>
 
