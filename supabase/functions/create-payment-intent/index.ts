@@ -82,12 +82,14 @@ serve(async (req) => {
       }
     }
 
-    // Create payment intent
+    // Create payment intent - using automatic_payment_methods for flexibility
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalAmount,
       currency: "brl",
       customer: customerId,
-      payment_method_types: ["card", "boleto", "pix"],
+      automatic_payment_methods: {
+        enabled: true,
+      },
       metadata: {
         userId,
         customerEmail,
