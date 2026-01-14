@@ -12,7 +12,13 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "pk_test_51OxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxSvE");
+const stripePublishableKey: string =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  (import.meta.env as any).VITE_STRIPE_PUBLIC_KEY ||
+  "";
+
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
+
 
 interface CartItem {
   productId: number;
@@ -231,16 +237,19 @@ export function StripeCustomPayment({
         setIsLoading(true);
         setError(null);
 
-        const { data, error: fnError } = await supabase.functions.invoke("create-payment-intent", {
-          body: {
-            items,
-            customerEmail,
-            customerName,
-            shippingAddress,
-            shipping,
-            userId,
-          },
-        });
+        const { data, error: fnError } = await supabase.functions.invoke(
+          "create-payment-intent",
+          {
+            body: {
+              items,
+              customerEmail,
+              customerName,
+              shippingAddress,
+              shipping,
+              userId,
+            },
+          }
+        );
 
         if (fnError || !data?.clientSecret) {
           console.error("Error creating payment intent:", fnError);
@@ -264,6 +273,20 @@ export function StripeCustomPayment({
     clearCart();
     navigate("/checkout/sucesso");
   };
+
+  if (!stripePromise) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+        <p className="text-body-sm text-red-600 font-medium mb-2">
+          Pagamento não configurado
+        </p>
+        <p className="text-body-sm text-red-600">
+          A chave publicável do Stripe (pk_test_… / pk_live_…) não está configurada.
+          Envie aqui a sua chave publicável que eu configuro para você.
+        </p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
