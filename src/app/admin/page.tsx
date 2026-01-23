@@ -272,100 +272,47 @@ export default function AdminPage() {
     setPassword("");
   };
 
+  const getAdminToken = () => {
+    return sessionStorage.getItem('admin_token');
+  };
+
   const loadData = async () => {
     setIsLoading(true);
     try {
-      // Load bolsa uniforme payments
-      const { data: payments } = await supabase
-        .from("bolsa_uniforme_payments")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const token = getAdminToken();
       
-      if (payments) setBolsaPayments(payments as unknown as BolsaUniformePayment[]);
-
-      // Load orders
-      const { data: ordersData } = await supabase
-        .from("orders")
-        .select(`
-          *,
-          order_items (*)
-        `)
-        .order("created_at", { ascending: false });
-      
-      if (ordersData) setOrders(ordersData as Order[]);
-
-      // Load abandoned carts
-      const { data: carts } = await supabase
-        .from("abandoned_carts")
-        .select("*")
-        .order("last_interaction", { ascending: false });
-      
-      if (carts) setAbandonedCarts(carts as unknown as AbandonedCart[]);
-
-      // Load feedbacks
-      const { data: feedbacksData } = await supabase
-        .from("feedbacks")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
-      if (feedbacksData) setFeedbacks(feedbacksData as Feedback[]);
-
-      // Load products
-      const { data: productsData } = await supabase
-        .from("products")
-        .select("*")
-        .order("name", { ascending: true });
-      
-      if (productsData) setProducts(productsData as Product[]);
-
-      // Load customers (profiles) with their activities
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (profilesData) {
-        // For each profile, get their order count, cart items, and recent activities
-        const customersWithData: CustomerData[] = await Promise.all(
-          profilesData.map(async (profile: Profile) => {
-            // Get orders count and total
-            const { data: userOrders } = await supabase
-              .from("orders")
-              .select("total, created_at")
-              .eq("user_id", profile.user_id);
-            
-            const ordersCount = userOrders?.length || 0;
-            const totalSpent = userOrders?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
-            const lastOrder = userOrders?.sort((a, b) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )[0];
-
-            // Get cart items
-            const { data: cartData } = await supabase
-              .from("cart_items")
-              .select("*")
-              .eq("user_id", profile.user_id);
-
-            // Get recent activities
-            const { data: activitiesData } = await supabase
-              .from("user_activities")
-              .select("*")
-              .eq("user_id", profile.user_id)
-              .order("created_at", { ascending: false })
-              .limit(5);
-
-            return {
-              profile,
-              ordersCount,
-              totalSpent,
-              cartItems: cartData || [],
-              lastActivity: lastOrder?.created_at || profile.created_at,
-              recentActivities: (activitiesData || []) as UserActivity[]
-            };
-          })
-        );
-        setCustomers(customersWithData);
+      if (!token) {
+        toast.error("Token de admin não encontrado");
+        handleLogout();
+        return;
       }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'get_all_data',
+          token 
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      
+      if (data.error) {
+        if (data.error.includes('Token')) {
+          handleLogout();
+        }
+        throw new Error(data.error);
+      }
+
+      setBolsaPayments(data.bolsaPayments || []);
+      setOrders(data.orders || []);
+      setAbandonedCarts(data.abandonedCarts || []);
+      setFeedbacks(data.feedbacks || []);
+      setProducts(data.products || []);
+      setCustomers(data.customers || []);
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -377,12 +324,23 @@ export default function AdminPage() {
 
   const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
     try {
-      const { error } = await supabase
-        .from("bolsa_uniforme_payments")
-        .update({ status, processed_at: new Date().toISOString() })
-        .eq("id", id);
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
 
-      if (error) throw error;
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'update_payment_status',
+          token,
+          data: { id, status }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
       
       toast.success(status === "approved" ? "Pagamento aprovado!" : "Pagamento rejeitado");
       loadData();
@@ -394,12 +352,23 @@ export default function AdminPage() {
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
     try {
-      const { error } = await supabase
-        .from("feedbacks")
-        .update({ is_visible: !currentVisibility })
-        .eq("id", id);
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
 
-      if (error) throw error;
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'toggle_feedback_visibility',
+          token,
+          data: { id, is_visible: !currentVisibility }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
       
       toast.success(!currentVisibility ? "Feedback visível no site!" : "Feedback ocultado");
       loadData();
@@ -446,6 +415,12 @@ export default function AdminPage() {
     }
 
     try {
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
       const productData = {
         name: productForm.name,
         price: parseFloat(productForm.price),
@@ -457,23 +432,22 @@ export default function AdminPage() {
         school_slug: productForm.school_slug
       };
 
-      if (editingProduct) {
-        const { error } = await supabase
-          .from("products")
-          .update(productData)
-          .eq("id", editingProduct.id);
-        
-        if (error) throw error;
-        toast.success("Produto atualizado!");
-      } else {
-        const { error } = await supabase
-          .from("products")
-          .insert(productData);
-        
-        if (error) throw error;
-        toast.success("Produto criado!");
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'save_product',
+          token,
+          data: { 
+            product: editingProduct ? { id: editingProduct.id, ...productData } : productData,
+            isNew: !editingProduct
+          }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
       }
 
+      toast.success(editingProduct ? "Produto atualizado!" : "Produto criado!");
       setShowProductModal(false);
       loadData();
     } catch (error) {
@@ -486,12 +460,24 @@ export default function AdminPage() {
     if (!confirm("Tem certeza que deseja excluir este produto?")) return;
 
     try {
-      const { error } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", id);
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
 
-      if (error) throw error;
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'delete_product',
+          token,
+          data: { id }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+
       toast.success("Produto excluído!");
       loadData();
     } catch (error) {
