@@ -9,6 +9,7 @@ import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
 import { StripeCustomPayment } from "@/components/StripeCustomPayment";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Input field component - MUST be outside main component to prevent focus loss
 const InputField = ({ 
@@ -84,6 +85,14 @@ export default function CheckoutPage() {
     return defaultValue;
   };
 
+  // States for saving preferences
+  const [savePersonalData, setSavePersonalData] = useState(() => 
+    loadSavedData("checkout_save_personal", true)
+  );
+  const [saveAddressData, setSaveAddressData] = useState(() => 
+    loadSavedData("checkout_save_address", true)
+  );
+
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(() => 
     loadSavedData("checkout_current_step", "login")
   );
@@ -95,6 +104,30 @@ export default function CheckoutPage() {
       navigate("/auth", { state: { from: "/checkout" } });
     }
   }, [user, loading, navigate]);
+
+  // Track user activity when they start checkout
+  useEffect(() => {
+    if (user && items.length > 0) {
+      trackActivity("checkout_started", `Iniciou checkout com ${items.length} itens`, {
+        items: items.map(i => ({ name: i.productName, size: i.size, price: i.price })),
+        subtotal
+      });
+    }
+  }, [user]);
+
+  const trackActivity = async (type: string, description: string, metadata?: any) => {
+    if (!user) return;
+    try {
+      await supabase.from("user_activities").insert({
+        user_id: user.id,
+        activity_type: type,
+        description,
+        metadata
+      });
+    } catch (error) {
+      console.error("Error tracking activity:", error);
+    }
+  };
 
   const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>(() => 
     loadSavedData("checkout_completed_steps", [])
@@ -138,14 +171,18 @@ export default function CheckoutPage() {
   const [showBolsaUniformeModal, setShowBolsaUniformeModal] = useState(false);
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
 
-  // Save data to localStorage whenever it changes
+  // Save data to localStorage whenever it changes (respecting save preferences)
   useEffect(() => {
-    localStorage.setItem("checkout_personal", JSON.stringify(personal));
-  }, [personal]);
+    if (savePersonalData) {
+      localStorage.setItem("checkout_personal", JSON.stringify(personal));
+    }
+  }, [personal, savePersonalData]);
 
   useEffect(() => {
-    localStorage.setItem("checkout_address", JSON.stringify(address));
-  }, [address]);
+    if (saveAddressData) {
+      localStorage.setItem("checkout_address", JSON.stringify(address));
+    }
+  }, [address, saveAddressData]);
 
   useEffect(() => {
     localStorage.setItem("checkout_shipping", JSON.stringify(shippingMethod));
@@ -162,6 +199,14 @@ export default function CheckoutPage() {
   useEffect(() => {
     localStorage.setItem("checkout_current_step", JSON.stringify(currentStep));
   }, [currentStep]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_save_personal", JSON.stringify(savePersonalData));
+  }, [savePersonalData]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_save_address", JSON.stringify(saveAddressData));
+  }, [saveAddressData]);
 
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: "login", label: "Login" },
@@ -190,6 +235,12 @@ export default function CheckoutPage() {
         toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
         return;
       }
+      
+      // Clear saved data if user unchecked save option
+      if (!savePersonalData) {
+        localStorage.removeItem("checkout_personal");
+      }
+      
       setCompletedSteps([...completedSteps, "login"]);
       setCurrentStep("entrega");
       scrollToStepContent();
@@ -198,6 +249,12 @@ export default function CheckoutPage() {
         toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
         return;
       }
+      
+      // Clear saved data if user unchecked save option
+      if (!saveAddressData) {
+        localStorage.removeItem("checkout_address");
+      }
+      
       setCompletedSteps([...completedSteps, "entrega"]);
       setCurrentStep("pagamento");
       scrollToStepContent();
@@ -472,6 +529,17 @@ export default function CheckoutPage() {
                         placeholder="__/__/____"
                         required
                       />
+
+                      {/* Save for future purchases checkbox */}
+                      <label className="flex items-center gap-3 cursor-pointer mt-4 pt-4 border-t border-border-light">
+                        <Checkbox
+                          checked={savePersonalData}
+                          onCheckedChange={(checked) => setSavePersonalData(checked === true)}
+                        />
+                        <span className="text-body-sm text-text-secondary">
+                          Salvar dados pessoais para futuras compras
+                        </span>
+                      </label>
                     </div>
 
                     <button
@@ -603,6 +671,17 @@ export default function CheckoutPage() {
                               className="w-5 h-5 accent-[#2e3091]"
                             />
                             <span className="text-body-sm text-text-secondary">Definir como endereço padrão</span>
+                          </label>
+
+                          {/* Save for future purchases checkbox */}
+                          <label className="flex items-center gap-3 cursor-pointer mt-4 pt-4 border-t border-border-light">
+                            <Checkbox
+                              checked={saveAddressData}
+                              onCheckedChange={(checked) => setSaveAddressData(checked === true)}
+                            />
+                            <span className="text-body-sm text-text-secondary">
+                              Salvar endereço para futuras compras
+                            </span>
                           </label>
                         </div>
 
@@ -930,6 +1009,12 @@ export default function CheckoutPage() {
                       if (error) {
                         console.error("Error saving bolsa uniforme payment:", error);
                       } else {
+                        // Track activity
+                        await trackActivity("checkout_completed", `Finalizou compra via Bolsa Uniforme - ${formatCurrency(total)}`, {
+                          paymentMethod: "bolsa_uniforme",
+                          total,
+                          items: items.length
+                        });
                         clearCart();
                       }
                     } catch (err) {
@@ -954,4 +1039,11 @@ export default function CheckoutPage() {
       <CheckoutFooter />
     </div>
   );
+
+  function formatCurrency(value: number) {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
+  }
 }

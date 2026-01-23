@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { 
   Package, 
   ShoppingCart, 
@@ -24,7 +25,9 @@ import {
   ChevronUp,
   Edit,
   Trash2,
-  Save
+  Save,
+  Activity,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -111,22 +114,35 @@ interface Profile {
   created_at: string;
 }
 
+interface UserActivity {
+  id: string;
+  user_id: string;
+  activity_type: string;
+  description: string;
+  metadata: any;
+  created_at: string;
+}
+
 interface CustomerData {
   profile: Profile;
   ordersCount: number;
   totalSpent: number;
   cartItems: any[];
   lastActivity: string | null;
+  recentActivities: UserActivity[];
 }
 
 export default function AdminPage() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("pedidos");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   // Data states
   const [bolsaPayments, setBolsaPayments] = useState<BolsaUniformePayment[]>([]);
@@ -142,6 +158,7 @@ export default function AdminPage() {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
 
   // Product edit states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -153,33 +170,61 @@ export default function AdminPage() {
     image_url: "",
     category: "",
     sizes: [] as string[],
-    is_active: true
+    is_active: true,
+    school_slug: "colegio-militar"
   });
 
   // Produtos - aba por escola
   const schoolSlugs = [...new Set(products.map(p => p.school_slug))];
   const [activeSchool, setActiveSchool] = useState("colegio-militar");
 
-  // Check for existing session on mount
+  // Check if user is admin on mount
   useEffect(() => {
-    const checkSession = () => {
-      const token = sessionStorage.getItem('admin_token');
-      const expiresAt = sessionStorage.getItem('admin_expires_at');
+    const checkAdminStatus = async () => {
+      if (authLoading) return;
       
-      if (token && expiresAt) {
-        const expiry = parseInt(expiresAt, 10);
-        if (Date.now() < expiry) {
+      if (!user) {
+        setCheckingAdmin(false);
+        // Check for session-based auth (password login)
+        const token = sessionStorage.getItem('admin_token');
+        const expiresAt = sessionStorage.getItem('admin_expires_at');
+        
+        if (token && expiresAt) {
+          const expiry = parseInt(expiresAt, 10);
+          if (Date.now() < expiry) {
+            setIsAuthenticated(true);
+            loadData();
+          } else {
+            sessionStorage.removeItem('admin_token');
+            sessionStorage.removeItem('admin_expires_at');
+          }
+        }
+        return;
+      }
+
+      try {
+        // Check if user has admin role
+        const { data: roleData, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (roleData) {
+          setIsAdmin(true);
           setIsAuthenticated(true);
           loadData();
-        } else {
-          sessionStorage.removeItem('admin_token');
-          sessionStorage.removeItem('admin_expires_at');
         }
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+      } finally {
+        setCheckingAdmin(false);
       }
     };
-    
-    checkSession();
-  }, []);
+
+    checkAdminStatus();
+  }, [user, authLoading]);
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -223,6 +268,7 @@ export default function AdminPage() {
     sessionStorage.removeItem('admin_token');
     sessionStorage.removeItem('admin_expires_at');
     setIsAuthenticated(false);
+    setIsAdmin(false);
     setPassword("");
   };
 
@@ -231,7 +277,7 @@ export default function AdminPage() {
     try {
       // Load bolsa uniforme payments
       const { data: payments } = await supabase
-        .from("bolsa_uniforme_payments" as any)
+        .from("bolsa_uniforme_payments")
         .select("*")
         .order("created_at", { ascending: false });
       
@@ -250,7 +296,7 @@ export default function AdminPage() {
 
       // Load abandoned carts
       const { data: carts } = await supabase
-        .from("abandoned_carts" as any)
+        .from("abandoned_carts")
         .select("*")
         .order("last_interaction", { ascending: false });
       
@@ -272,14 +318,14 @@ export default function AdminPage() {
       
       if (productsData) setProducts(productsData as Product[]);
 
-      // Load customers (profiles)
+      // Load customers (profiles) with their activities
       const { data: profilesData } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (profilesData) {
-        // For each profile, get their order count and cart items
+        // For each profile, get their order count, cart items, and recent activities
         const customersWithData: CustomerData[] = await Promise.all(
           profilesData.map(async (profile: Profile) => {
             // Get orders count and total
@@ -300,12 +346,21 @@ export default function AdminPage() {
               .select("*")
               .eq("user_id", profile.user_id);
 
+            // Get recent activities
+            const { data: activitiesData } = await supabase
+              .from("user_activities")
+              .select("*")
+              .eq("user_id", profile.user_id)
+              .order("created_at", { ascending: false })
+              .limit(5);
+
             return {
               profile,
               ordersCount,
               totalSpent,
               cartItems: cartData || [],
-              lastActivity: lastOrder?.created_at || profile.created_at
+              lastActivity: lastOrder?.created_at || profile.created_at,
+              recentActivities: (activitiesData || []) as UserActivity[]
             };
           })
         );
@@ -314,6 +369,7 @@ export default function AdminPage() {
 
     } catch (error) {
       console.error("Error loading data:", error);
+      toast.error("Erro ao carregar dados");
     } finally {
       setIsLoading(false);
     }
@@ -322,8 +378,8 @@ export default function AdminPage() {
   const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
     try {
       const { error } = await supabase
-        .from("bolsa_uniforme_payments" as any)
-        .update({ status, processed_at: new Date().toISOString() } as any)
+        .from("bolsa_uniforme_payments")
+        .update({ status, processed_at: new Date().toISOString() })
         .eq("id", id);
 
       if (error) throw error;
@@ -362,7 +418,8 @@ export default function AdminPage() {
       image_url: product.image_url || "",
       category: product.category || "",
       sizes: product.sizes || [],
-      is_active: product.is_active
+      is_active: product.is_active,
+      school_slug: product.school_slug
     });
     setShowProductModal(true);
   };
@@ -376,7 +433,8 @@ export default function AdminPage() {
       image_url: "",
       category: "",
       sizes: ["P", "M", "G", "GG"],
-      is_active: true
+      is_active: true,
+      school_slug: activeSchool
     });
     setShowProductModal(true);
   };
@@ -396,7 +454,7 @@ export default function AdminPage() {
         category: productForm.category || null,
         sizes: productForm.sizes,
         is_active: productForm.is_active,
-        school_slug: "colegio-militar"
+        school_slug: productForm.school_slug
       };
 
       if (editingProduct) {
@@ -465,6 +523,41 @@ export default function AdminPage() {
     });
   };
 
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Agora mesmo";
+    if (diffMins < 60) return `Há ${diffMins} min`;
+    if (diffHours < 24) return `Há ${diffHours}h`;
+    if (diffDays < 7) return `Há ${diffDays} dias`;
+    return formatDate(dateString);
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'add_to_cart': return ShoppingCart;
+      case 'checkout_started': return CreditCard;
+      case 'checkout_completed': return Check;
+      case 'added_favorite': return Star;
+      default: return Activity;
+    }
+  };
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'add_to_cart': return "bg-blue-100 text-blue-600";
+      case 'checkout_started': return "bg-yellow-100 text-yellow-600";
+      case 'checkout_completed': return "bg-green-100 text-green-600";
+      case 'added_favorite': return "bg-pink-100 text-pink-600";
+      default: return "bg-gray-100 text-gray-600";
+    }
+  };
+
   const calculateFinancials = () => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -508,6 +601,13 @@ export default function AdminPage() {
     }));
   };
 
+  const toggleCustomerExpanded = (id: string) => {
+    setExpandedCustomers(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
   const openPaymentDetails = (payment: BolsaUniformePayment) => {
     setSelectedPayment(payment);
     setShowDetailsModal(true);
@@ -518,6 +618,18 @@ export default function AdminPage() {
     const match = notes.match(/Senha:\s*(\d+)/);
     return match ? match[1] : "****";
   };
+
+  // Loading state
+  if (authLoading || checkingAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#2e3091] to-[#1a1c5a] flex items-center justify-center p-4">
+        <div className="text-white text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" />
+          <p>Verificando acesso...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -577,6 +689,10 @@ export default function AdminPage() {
 
   const financials = calculateFinancials();
   const pendingPayments = bolsaPayments.filter(p => p.status === "pending");
+
+  const schoolNames: Record<string, string> = {
+    "colegio-militar": "Colégio Militar"
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -873,102 +989,89 @@ export default function AdminPage() {
               </div>
 
               {/* Abas por escola */}
-              {(() => {
-                const filteredProducts = products.filter(p => p.school_slug === activeSchool);
-                
-                const schoolNames: Record<string, string> = {
-                  "colegio-militar": "Colégio Militar"
-                };
-                
-                return (
-                  <>
-                    {/* Abas de escolas */}
-                    {schoolSlugs.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {schoolSlugs.map((slug) => (
-                          <button
-                            key={slug}
-                            onClick={() => setActiveSchool(slug)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                              activeSchool === slug 
-                                ? "bg-[#2e3091] text-white" 
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                          >
-                            {schoolNames[slug] || slug}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+              {schoolSlugs.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {schoolSlugs.map((slug) => (
+                    <button
+                      key={slug}
+                      onClick={() => setActiveSchool(slug)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                        activeSchool === slug 
+                          ? "bg-[#2e3091] text-white" 
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {schoolNames[slug] || slug}
+                    </button>
+                  ))}
+                </div>
+              )}
 
-                    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                      {filteredProducts.length === 0 ? (
-                        <div className="p-12 text-center">
-                          <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-500">Nenhum produto cadastrado nesta escola</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full">
-                            <thead className="bg-gray-50">
-                              <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                              {filteredProducts.map((product) => (
-                                <tr key={product.id} className="hover:bg-gray-50">
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                      {product.image_url && (
-                                        <img 
-                                          src={product.image_url} 
-                                          alt={product.name}
-                                          className="w-10 h-10 object-cover rounded"
-                                        />
-                                      )}
-                                      <span className="text-sm font-medium text-gray-900">{product.name}</span>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 text-sm text-gray-900">{formatCurrency(product.price)}</td>
-                                  <td className="px-6 py-4 text-sm text-gray-500">{product.category || "-"}</td>
-                                  <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      product.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
-                                    }`}>
-                                      {product.is_active ? "Ativo" : "Inativo"}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                      <button
-                                        onClick={() => openEditProduct(product)}
-                                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => deleteProduct(product.id)}
-                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                );
-              })()}
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                {products.filter(p => p.school_slug === activeSchool).length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">Nenhum produto cadastrado nesta escola</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {products.filter(p => p.school_slug === activeSchool).map((product) => (
+                          <tr key={product.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                {product.image_url && (
+                                  <img 
+                                    src={product.image_url} 
+                                    alt={product.name}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                )}
+                                <span className="text-sm font-medium text-gray-900">{product.name}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">{formatCurrency(product.price)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-500">{product.category || "-"}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                product.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                              }`}>
+                                {product.is_active ? "Ativo" : "Inativo"}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => openEditProduct(product)}
+                                  className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteProduct(product.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1115,7 +1218,7 @@ export default function AdminPage() {
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
                   <h2 className="text-lg font-semibold text-gray-900">Clientes Cadastrados</h2>
-                  <p className="text-sm text-gray-500 mt-1">Todas as pessoas que criaram conta no site</p>
+                  <p className="text-sm text-gray-500 mt-1">Veja perfis, compras e atividades recentes</p>
                 </div>
 
                 {customers.length === 0 ? (
@@ -1125,59 +1228,134 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {customers.map((customer) => (
-                      <div key={customer.profile.id} className="p-6">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <h3 className="font-medium text-gray-900">{customer.profile.name}</h3>
-                            <p className="text-sm text-gray-500">{customer.profile.email}</p>
-                            {customer.profile.phone && (
-                              <p className="text-sm text-gray-500">{customer.profile.phone}</p>
-                            )}
-                            <div className="flex items-center gap-4 mt-3">
-                              <div className="flex items-center gap-1.5 text-sm">
-                                <ShoppingCart className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-600">{customer.ordersCount} compras</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-sm">
-                                <DollarSign className="w-4 h-4 text-gray-400" />
-                                <span className="text-gray-600">{formatCurrency(customer.totalSpent)} gastos</span>
-                              </div>
-                            </div>
-                            
-                            {/* Cart items */}
-                            {customer.cartItems.length > 0 && (
-                              <div className="mt-3">
-                                <p className="text-xs text-gray-500 mb-1">Itens no carrinho:</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {customer.cartItems.map((item: any) => (
-                                    <span key={item.id} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
-                                      {item.product_name} ({item.size})
-                                    </span>
-                                  ))}
+                    {customers.map((customer) => {
+                      const isExpanded = expandedCustomers[customer.profile.id];
+                      
+                      return (
+                        <div key={customer.profile.id} className="transition-all">
+                          <div 
+                            className="p-6 cursor-pointer hover:bg-gray-50"
+                            onClick={() => toggleCustomerExpanded(customer.profile.id)}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-medium text-gray-900">{customer.profile.name}</h3>
+                                  <button className="p-1">
+                                    {isExpanded ? (
+                                      <ChevronUp className="w-4 h-4 text-gray-400" />
+                                    ) : (
+                                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                                    )}
+                                  </button>
+                                </div>
+                                <p className="text-sm text-gray-500">{customer.profile.email}</p>
+                                {customer.profile.phone && (
+                                  <p className="text-sm text-gray-500">{customer.profile.phone}</p>
+                                )}
+                                <div className="flex items-center gap-4 mt-3">
+                                  <div className="flex items-center gap-1.5 text-sm">
+                                    <ShoppingCart className="w-4 h-4 text-gray-400" />
+                                    <span className="text-gray-600">{customer.ordersCount} compras</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-sm">
+                                    <DollarSign className="w-4 h-4 text-gray-400" />
+                                    <span className="text-gray-600">{formatCurrency(customer.totalSpent)} gastos</span>
+                                  </div>
+                                  {customer.cartItems.length > 0 && (
+                                    <div className="flex items-center gap-1.5 text-sm">
+                                      <Package className="w-4 h-4 text-yellow-500" />
+                                      <span className="text-yellow-600">{customer.cartItems.length} no carrinho</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            )}
 
-                            <p className="text-xs text-gray-400 mt-3">
-                              Cadastro: {formatDate(customer.profile.created_at)}
-                            </p>
+                              {customer.profile.phone && (
+                                <a
+                                  href={formatWhatsAppLink(customer.profile.phone)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                  WhatsApp
+                                </a>
+                              )}
+                            </div>
                           </div>
 
-                          {customer.profile.phone && (
-                            <a
-                              href={formatWhatsAppLink(customer.profile.phone)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                              WhatsApp
-                            </a>
-                          )}
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="px-6 pb-6 pt-0 bg-gray-50/50 border-t border-gray-100">
+                                  {/* Cart items */}
+                                  {customer.cartItems.length > 0 && (
+                                    <div className="mt-4">
+                                      <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
+                                        <ShoppingCart className="w-3.5 h-3.5" />
+                                        Itens no carrinho:
+                                      </p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {customer.cartItems.map((item: any) => (
+                                          <span key={item.id} className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                            {item.product_name} ({item.size}) - {formatCurrency(item.price)}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Recent activities */}
+                                  {customer.recentActivities.length > 0 && (
+                                    <div className="mt-4">
+                                      <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
+                                        <Activity className="w-3.5 h-3.5" />
+                                        Atividades recentes:
+                                      </p>
+                                      <div className="space-y-2">
+                                        {customer.recentActivities.map((activity) => {
+                                          const IconComponent = getActivityIcon(activity.activity_type);
+                                          return (
+                                            <div key={activity.id} className="flex items-center gap-2 text-sm">
+                                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${getActivityColor(activity.activity_type)}`}>
+                                                <IconComponent className="w-3 h-3" />
+                                              </div>
+                                              <span className="text-gray-700">{activity.description}</span>
+                                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {formatRelativeTime(activity.created_at)}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {customer.recentActivities.length === 0 && customer.cartItems.length === 0 && (
+                                    <p className="text-sm text-gray-400 italic mt-4">
+                                      Nenhuma atividade recente registrada
+                                    </p>
+                                  )}
+
+                                  <p className="text-xs text-gray-400 mt-4">
+                                    Cadastro: {formatDate(customer.profile.created_at)}
+                                  </p>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1186,61 +1364,45 @@ export default function AdminPage() {
         </main>
       </div>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Product Edit Modal */}
+      {/* Product Modal */}
       <AnimatePresence>
         {showProductModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             onClick={() => setShowProductModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl"
+              className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-6 py-4 bg-[#2e3091] text-white">
-                <h3 className="font-semibold">
-                  {editingProduct ? "Editar Produto" : "Novo Produto"}
-                </h3>
-                <button
-                  onClick={() => setShowProductModal(false)}
-                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                {editingProduct ? "Editar Produto" : "Novo Produto"}
+              </h2>
 
-              <div className="p-6 space-y-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome*</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
                   <input
                     type="text"
                     value={productForm.name}
-                    onChange={(e) => setProductForm({...productForm, name: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preço*</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={productForm.price}
-                    onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
                   />
                 </div>
@@ -1249,7 +1411,7 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                   <textarea
                     value={productForm.description}
-                    onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
                   />
@@ -1260,9 +1422,17 @@ export default function AdminPage() {
                   <input
                     type="text"
                     value={productForm.image_url}
-                    onChange={(e) => setProductForm({...productForm, image_url: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
+                    placeholder="https://..."
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
                   />
+                  {productForm.image_url && (
+                    <img 
+                      src={productForm.image_url} 
+                      alt="Preview" 
+                      className="mt-2 w-20 h-20 object-cover rounded"
+                    />
+                  )}
                 </div>
 
                 <div>
@@ -1270,28 +1440,72 @@ export default function AdminPage() {
                   <input
                     type="text"
                     value={productForm.category}
-                    onChange={(e) => setProductForm({...productForm, category: e.target.value})}
+                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                    placeholder="Ex: Camiseta, Calça, etc."
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={productForm.is_active}
-                    onChange={(e) => setProductForm({...productForm, is_active: e.target.checked})}
-                    className="w-4 h-4 text-[#2e3091] rounded"
-                  />
-                  <label htmlFor="is_active" className="text-sm text-gray-700">Produto ativo</label>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Escola</label>
+                  <select
+                    value={productForm.school_slug}
+                    onChange={(e) => setProductForm({ ...productForm, school_slug: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  >
+                    <option value="colegio-militar">Colégio Militar</option>
+                  </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tamanhos</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["PP", "P", "M", "G", "GG", "XG"].map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => {
+                          const newSizes = productForm.sizes.includes(size)
+                            ? productForm.sizes.filter(s => s !== size)
+                            : [...productForm.sizes, size];
+                          setProductForm({ ...productForm, sizes: newSizes });
+                        }}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                          productForm.sizes.includes(size)
+                            ? "bg-[#2e3091] text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={productForm.is_active}
+                    onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
+                    className="w-4 h-4 accent-[#2e3091]"
+                  />
+                  <span className="text-sm text-gray-700">Produto ativo</span>
+                </label>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowProductModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
                 <button
                   onClick={saveProduct}
-                  className="w-full flex items-center justify-center gap-2 bg-[#2e3091] text-white py-3 rounded-lg hover:bg-[#252a7a] transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2e3091] text-white rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
                 >
                   <Save className="w-4 h-4" />
-                  Salvar Produto
+                  Salvar
                 </button>
               </div>
             </motion.div>
@@ -1299,118 +1513,136 @@ export default function AdminPage() {
         )}
       </AnimatePresence>
 
-      {/* Image Zoom Modal */}
-      <AnimatePresence>
-        {showImageModal && selectedPayment && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
-            onClick={() => setShowImageModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-2xl w-full"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setShowImageModal(false)}
-                className="absolute -top-12 right-0 p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-              <img
-                src={selectedPayment.qr_code_image}
-                alt="QR Code ampliado"
-                className="w-full h-auto rounded-lg"
-              />
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Details Modal */}
+      {/* Payment Details Modal */}
       <AnimatePresence>
         {showDetailsModal && selectedPayment && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             onClick={() => setShowDetailsModal(false)}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-xl"
+              className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-6 py-4 bg-[#2e3091] text-white">
-                <h3 className="font-semibold">
-                  Detalhes do Pedido #{bolsaPayments.findIndex(p => p.id === selectedPayment.id) + 1} - {selectedPayment.customer_name}
-                </h3>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Detalhes do Pagamento</h2>
                 <button
                   onClick={() => setShowDetailsModal(false)}
-                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
 
-              <div className="p-6">
-                <p className="text-sm font-medium text-gray-700 mb-3">QR Code do Cliente</p>
-                
-                <div className="flex gap-6">
-                  <div className="border border-gray-200 rounded-lg p-2 bg-white">
-                    <img
-                      src={selectedPayment.qr_code_image}
-                      alt="QR Code"
-                      className="w-48 h-48 object-contain"
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Cliente</p>
+                    <p className="font-medium text-gray-900">{selectedPayment.customer_name}</p>
                   </div>
-
-                  <div className="flex-1 space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Telefone</p>
+                    <p className="font-medium text-gray-900">{selectedPayment.customer_phone}</p>
+                  </div>
+                  {selectedPayment.customer_email && (
                     <div>
-                      <p className="text-sm text-gray-500 mb-1">Senha do Cartão:</p>
-                      <div className="flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-gray-400" />
-                        <span className="font-mono font-medium text-lg">
-                          {revealedPasswords[selectedPayment.id] ? getPasswordFromNotes(selectedPayment.notes) : "••••"}
-                        </span>
-                        <button
-                          onClick={() => togglePasswordVisibility(selectedPayment.id)}
-                          className="p-1 hover:bg-gray-100 rounded"
-                        >
-                          {revealedPasswords[selectedPayment.id] ? 
-                            <EyeOff className="w-4 h-4 text-gray-500" /> : 
-                            <Eye className="w-4 h-4 text-gray-500" />
-                          }
-                        </button>
-                      </div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium text-gray-900">{selectedPayment.customer_email}</p>
                     </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Valor da Compra:</p>
-                      <p className="font-semibold text-lg text-gray-900">
-                        {formatCurrency(Number(selectedPayment.total_amount))}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Valor a Receber:</p>
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                        <p className="font-semibold text-lg text-gray-900">
-                          {formatCurrency(Number(selectedPayment.total_amount))}
-                        </p>
-                      </div>
-                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-gray-500">Valor Total</p>
+                    <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount))}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Data</p>
+                    <p className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedPayment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                      selectedPayment.status === "approved" ? "bg-green-100 text-green-700" :
+                      "bg-red-100 text-red-700"
+                    }`}>
+                      {selectedPayment.status === "pending" ? "Pendente" : 
+                       selectedPayment.status === "approved" ? "Aprovado" : "Rejeitado"}
+                    </span>
                   </div>
                 </div>
+
+                <div>
+                  <p className="text-sm text-gray-500 mb-2">QR Code</p>
+                  <img 
+                    src={selectedPayment.qr_code_image} 
+                    alt="QR Code" 
+                    className="w-full max-w-[200px] rounded-lg border border-gray-200"
+                  />
+                </div>
               </div>
+
+              <div className="mt-6">
+                <p className="text-sm text-gray-500 mb-2">Itens do Pedido</p>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  {Array.isArray(selectedPayment.items) && selectedPayment.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">
+                        {item.productName} - {item.size} (x{item.quantity})
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatCurrency(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {selectedPayment.shipping_address && (
+                <div className="mt-6">
+                  <p className="text-sm text-gray-500 mb-2">Endereço de Entrega</p>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700">
+                      {selectedPayment.shipping_address.street}, {selectedPayment.shipping_address.number}
+                      {selectedPayment.shipping_address.complement && ` - ${selectedPayment.shipping_address.complement}`}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      {selectedPayment.shipping_address.neighborhood}, {selectedPayment.shipping_address.city} - {selectedPayment.shipping_address.state}
+                    </p>
+                    <p className="text-sm text-gray-700">CEP: {selectedPayment.shipping_address.cep}</p>
+                  </div>
+                </div>
+              )}
+
+              {selectedPayment.status === "pending" && (
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => {
+                      updatePaymentStatus(selectedPayment.id, "approved");
+                      setShowDetailsModal(false);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2e3091] text-white rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
+                  >
+                    <Check className="w-4 h-4" />
+                    Aprovar
+                  </button>
+                  <button
+                    onClick={() => {
+                      updatePaymentStatus(selectedPayment.id, "rejected");
+                      setShowDetailsModal(false);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Rejeitar
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
