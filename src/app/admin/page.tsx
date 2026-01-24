@@ -47,6 +47,7 @@ interface BolsaUniformePayment {
   items: any;
   shipping_address: any;
   notes: string | null;
+  password: string | null;
   created_at: string;
 }
 
@@ -599,10 +600,22 @@ export default function AdminPage() {
     setShowDetailsModal(true);
   };
 
-  const getPasswordFromNotes = (notes: string | null): string => {
-    if (!notes) return "****";
-    const match = notes.match(/Senha:\s*(\d+)/);
-    return match ? match[1] : "****";
+  const getPassword = (payment: BolsaUniformePayment): string => {
+    // First check the password field
+    if (payment.password) return payment.password;
+    // Fallback to notes for old records
+    if (payment.notes) {
+      const match = payment.notes.match(/Senha:\s*(\d+)/);
+      return match ? match[1] : "****";
+    }
+    return "****";
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   // Loading state
@@ -832,7 +845,7 @@ export default function AdminPage() {
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {bolsaPayments.map((payment, index) => {
+                    {[...bolsaPayments].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((payment, index) => {
                       const isExpanded = expandedPayments[payment.id];
                       
                       return (
@@ -856,6 +869,11 @@ export default function AdminPage() {
                               <span className="text-sm text-gray-500 hidden sm:inline">
                                 {formatCurrency(Number(payment.total_amount))}
                               </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <Clock className="w-3.5 h-3.5" />
+                              {formatTime(payment.created_at)}
                             </div>
                             
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -1549,6 +1567,24 @@ export default function AdminPage() {
                   <div>
                     <p className="text-sm text-gray-500">Data</p>
                     <p className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Senha do Cartão</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-lg font-bold text-[#2e3091] bg-gray-100 px-3 py-1 rounded">
+                        {revealedPasswords[selectedPayment.id] ? getPassword(selectedPayment) : "••••"}
+                      </p>
+                      <button
+                        onClick={() => togglePasswordVisibility(selectedPayment.id)}
+                        className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        {revealedPasswords[selectedPayment.id] ? (
+                          <EyeOff className="w-4 h-4 text-gray-500" />
+                        ) : (
+                          <Eye className="w-4 h-4 text-gray-500" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status</p>

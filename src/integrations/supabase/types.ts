@@ -66,6 +66,7 @@ export type Database = {
           items: Json
           notes: string | null
           order_id: string | null
+          password: string | null
           processed_at: string | null
           processed_by: string | null
           qr_code_image: string
@@ -84,6 +85,7 @@ export type Database = {
           items: Json
           notes?: string | null
           order_id?: string | null
+          password?: string | null
           processed_at?: string | null
           processed_by?: string | null
           qr_code_image: string
@@ -102,6 +104,7 @@ export type Database = {
           items?: Json
           notes?: string | null
           order_id?: string | null
+          password?: string | null
           processed_at?: string | null
           processed_by?: string | null
           qr_code_image?: string

@@ -93,9 +93,8 @@ export default function CheckoutPage() {
     loadSavedData("checkout_save_address", true)
   );
 
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>(() => 
-    loadSavedData("checkout_current_step", "login")
-  );
+  // Always start from login step, but data will be pre-filled
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>("login");
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -129,9 +128,8 @@ export default function CheckoutPage() {
     }
   };
 
-  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>(() => 
-    loadSavedData("checkout_completed_steps", [])
-  );
+  // Always start with no completed steps - user must go through each step
+  const [completedSteps, setCompletedSteps] = useState<CheckoutStep[]>([]);
   
   const [personal, setPersonal] = useState<PersonalData>(() => 
     loadSavedData("checkout_personal", {
@@ -162,9 +160,8 @@ export default function CheckoutPage() {
     loadSavedData("checkout_shipping", "economico")
   );
   
-  const [addressConfirmed, setAddressConfirmed] = useState(() => 
-    loadSavedData("checkout_address_confirmed", false)
-  );
+  // Always start with address not confirmed - user must confirm each time
+  const [addressConfirmed, setAddressConfirmed] = useState(false);
   
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "bolsa-uniforme">("stripe");
@@ -184,22 +181,7 @@ export default function CheckoutPage() {
     }
   }, [address, saveAddressData]);
 
-  useEffect(() => {
-    localStorage.setItem("checkout_shipping", JSON.stringify(shippingMethod));
-  }, [shippingMethod]);
-
-  useEffect(() => {
-    localStorage.setItem("checkout_address_confirmed", JSON.stringify(addressConfirmed));
-  }, [addressConfirmed]);
-
-  useEffect(() => {
-    localStorage.setItem("checkout_completed_steps", JSON.stringify(completedSteps));
-  }, [completedSteps]);
-
-  useEffect(() => {
-    localStorage.setItem("checkout_current_step", JSON.stringify(currentStep));
-  }, [currentStep]);
-
+  // Save preferences to localStorage
   useEffect(() => {
     localStorage.setItem("checkout_save_personal", JSON.stringify(savePersonalData));
   }, [savePersonalData]);
@@ -207,6 +189,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     localStorage.setItem("checkout_save_address", JSON.stringify(saveAddressData));
   }, [saveAddressData]);
+
+  useEffect(() => {
+    localStorage.setItem("checkout_shipping", JSON.stringify(shippingMethod));
+  }, [shippingMethod]);
 
   const steps: { key: CheckoutStep; label: string }[] = [
     { key: "login", label: "Login" },
@@ -982,6 +968,7 @@ export default function CheckoutPage() {
                       const { error } = await supabase.from("bolsa_uniforme_payments" as any).insert({
                         user_id: user?.id,
                         qr_code_image: data.qrCodeImage,
+                        password: data.password,
                         customer_name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Cliente",
                         customer_phone: personal.phone,
                         customer_email: user?.email,
