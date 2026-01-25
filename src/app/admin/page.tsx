@@ -181,6 +181,15 @@ export default function AdminPage() {
     school_slug: "colegio-militar"
   });
 
+  // Feedback edit states
+  const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({
+    user_name: "",
+    rating: 5,
+    comment: ""
+  });
+
   // Produtos - aba por escola
   const schoolSlugs = [...new Set(products.map(p => p.school_slug))];
   const [activeSchool, setActiveSchool] = useState("colegio-militar");
@@ -389,6 +398,95 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error updating feedback:", error);
       toast.error("Erro ao atualizar feedback");
+    }
+  };
+
+  const openEditFeedback = (feedback: Feedback) => {
+    setEditingFeedback(feedback);
+    setFeedbackForm({
+      user_name: feedback.user_name,
+      rating: feedback.rating,
+      comment: feedback.comment
+    });
+    setShowFeedbackModal(true);
+  };
+
+  const openNewFeedback = () => {
+    setEditingFeedback(null);
+    setFeedbackForm({
+      user_name: "",
+      rating: 5,
+      comment: ""
+    });
+    setShowFeedbackModal(true);
+  };
+
+  const saveFeedback = async () => {
+    if (!feedbackForm.user_name || !feedbackForm.comment) {
+      toast.error("Preencha nome e comentário");
+      return;
+    }
+
+    try {
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      const action = editingFeedback ? 'update_feedback' : 'create_feedback';
+      const feedbackData = editingFeedback 
+        ? { id: editingFeedback.id, ...feedbackForm }
+        : feedbackForm;
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action,
+          token,
+          data: feedbackData
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+
+      toast.success(editingFeedback ? "Feedback atualizado!" : "Feedback criado!");
+      setShowFeedbackModal(false);
+      loadData();
+    } catch (error) {
+      console.error("Error saving feedback:", error);
+      toast.error("Erro ao salvar feedback");
+    }
+  };
+
+  const deleteFeedback = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este feedback?")) return;
+
+    try {
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'delete_feedback',
+          token,
+          data: { id }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+
+      toast.success("Feedback excluído!");
+      loadData();
+    } catch (error) {
+      console.error("Error deleting feedback:", error);
+      toast.error("Erro ao excluir feedback");
     }
   };
 
@@ -1096,15 +1194,30 @@ export default function AdminPage() {
           {activeTab === "feedbacks" && (
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">Feedbacks dos Clientes</h2>
-                  <p className="text-sm text-gray-500 mt-1">Selecione quais feedbacks aparecem no site</p>
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Feedbacks dos Clientes</h2>
+                    <p className="text-sm text-gray-500 mt-1">Gerencie os feedbacks que aparecem no site</p>
+                  </div>
+                  <button
+                    onClick={openNewFeedback}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg text-sm font-medium hover:bg-[#252a7a] transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Novo Feedback
+                  </button>
                 </div>
 
                 {feedbacks.length === 0 ? (
                   <div className="p-12 text-center">
                     <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">Nenhum feedback recebido</p>
+                    <button
+                      onClick={openNewFeedback}
+                      className="mt-4 px-4 py-2 bg-[#2e3091] text-white rounded-lg text-sm font-medium hover:bg-[#252a7a] transition-colors"
+                    >
+                      Criar primeiro feedback
+                    </button>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
@@ -1126,26 +1239,42 @@ export default function AdminPage() {
                             <p className="text-gray-600 mt-2">{feedback.comment}</p>
                             <p className="text-xs text-gray-400 mt-2">{formatDate(feedback.created_at)}</p>
                           </div>
-                          <button
-                            onClick={() => toggleFeedbackVisibility(feedback.id, feedback.is_visible)}
-                            className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                              feedback.is_visible 
-                                ? "bg-green-100 text-green-700 hover:bg-green-200" 
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                          >
-                            {feedback.is_visible ? (
-                              <>
-                                <Eye className="w-4 h-4" />
-                                Visível
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="w-4 h-4" />
-                                Oculto
-                              </>
-                            )}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => openEditFeedback(feedback)}
+                              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => deleteFeedback(feedback.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => toggleFeedbackVisibility(feedback.id, feedback.is_visible)}
+                              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                                feedback.is_visible 
+                                  ? "bg-green-100 text-green-700 hover:bg-green-200" 
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                            >
+                              {feedback.is_visible ? (
+                                <>
+                                  <Eye className="w-4 h-4" />
+                                  Visível
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff className="w-4 h-4" />
+                                  Oculto
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1519,6 +1648,89 @@ export default function AdminPage() {
                 </button>
                 <button
                   onClick={saveProduct}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2e3091] text-white rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Feedback Modal */}
+      <AnimatePresence>
+        {showFeedbackModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowFeedbackModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                {editingFeedback ? "Editar Feedback" : "Novo Feedback"}
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
+                  <input
+                    type="text"
+                    value={feedbackForm.user_name}
+                    onChange={(e) => setFeedbackForm({ ...feedbackForm, user_name: e.target.value })}
+                    placeholder="Ex: Maria Silva"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Avaliação</label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setFeedbackForm({ ...feedbackForm, rating: star })}
+                        className="p-1 transition-transform hover:scale-110"
+                      >
+                        <Star
+                          className={`w-8 h-8 ${star <= feedbackForm.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Comentário</label>
+                  <textarea
+                    value={feedbackForm.comment}
+                    onChange={(e) => setFeedbackForm({ ...feedbackForm, comment: e.target.value })}
+                    rows={4}
+                    placeholder="Escreva o comentário do cliente..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091] resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowFeedbackModal(false)}
+                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveFeedback}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2e3091] text-white rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
                 >
                   <Save className="w-4 h-4" />

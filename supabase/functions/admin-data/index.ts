@@ -208,6 +208,47 @@ serve(async (req: Request) => {
         break;
       }
 
+      case 'update_feedback': {
+        const { id, user_name, rating, comment } = data;
+        const { error } = await supabase
+          .from("feedbacks")
+          .update({ user_name, rating, comment, updated_at: new Date().toISOString() })
+          .eq("id", id);
+        
+        if (error) throw error;
+        result = { success: true };
+        break;
+      }
+
+      case 'delete_feedback': {
+        const { id } = data;
+        const { error } = await supabase
+          .from("feedbacks")
+          .delete()
+          .eq("id", id);
+        
+        if (error) throw error;
+        result = { success: true };
+        break;
+      }
+
+      case 'create_feedback': {
+        const { user_name, rating, comment } = data;
+        const { error } = await supabase
+          .from("feedbacks")
+          .insert({
+            user_id: '00000000-0000-0000-0000-000000000000', // Admin-created feedback
+            user_name,
+            rating,
+            comment,
+            is_visible: true
+          });
+        
+        if (error) throw error;
+        result = { success: true };
+        break;
+      }
+
       case 'save_product': {
         const { product, isNew } = data;
         if (isNew) {

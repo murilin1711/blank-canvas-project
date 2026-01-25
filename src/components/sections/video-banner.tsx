@@ -3,56 +3,114 @@
 import { useState, useEffect, useRef, TouchEvent } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
+import { supabase } from '@/integrations/supabase/client';
 
-const testimonials = [
+interface Feedback {
+  id: string;
+  user_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
+// Fallback testimonials for when no database feedbacks are visible
+const fallbackTestimonials = [
   {
-    id: 1,
-    name: "Gabryella Telles",
+    id: "fallback-1",
+    user_name: "Gabryella Telles",
     rating: 5,
-    date: "um ano atrás",
-    review: "Ótimo atendimento! Os preços super acessíveis!! Já fui em várias lojas de uniforme e nunca fui tão bem atendida quanto fui nessa loja! peguei fila mas super valeu a pena! as vendedoras são super atenciosas! e mesmo não tendo algumas peças disponíveis foi a única loja que teve como fazer encomenda porque as outras se não tem a peça não tem nem outra alternativa! gastei meu cartão bolsa uniforme e estou super satisfeita!! super indico!",
-    avatarColor: "bg-blue-500"
+    comment: "Ótimo atendimento! Os preços super acessíveis!! Já fui em várias lojas de uniforme e nunca fui tão bem atendida quanto fui nessa loja! peguei fila mas super valeu a pena! as vendedoras são super atenciosas! e mesmo não tendo algumas peças disponíveis foi a única loja que teve como fazer encomenda porque as outras se não tem a peça não tem nem outra alternativa! gastei meu cartão bolsa uniforme e estou super satisfeita!! super indico!",
+    created_at: new Date().toISOString()
   },
   {
-    id: 2,
-    name: "Simone Fernandes",
+    id: "fallback-2",
+    user_name: "Simone Fernandes",
     rating: 5,
-    date: "um ano atrás",
-    review: "Uniforme de alta qualidade e padrão adequado, por isso a loja está sempre cheia, espero quanto tempo for preciso pra ser atendida!!! Eu recomendo!",
-    avatarColor: "bg-purple-500"
+    comment: "Uniforme de alta qualidade e padrão adequado, por isso a loja está sempre cheia, espero quanto tempo for preciso pra ser atendida!!! Eu recomendo!",
+    created_at: new Date().toISOString()
   },
   {
-    id: 3,
-    name: "Marta Amaral",
+    id: "fallback-3",
+    user_name: "Marta Amaral",
     rating: 5,
-    date: "8 meses atrás",
-    review: "Atendimento de excelência, meninas super atenciosas, atendente Lorranny, gente super indico maravilhosa, uniformes de qualidade nota mil 😊 😊 😊 😊",
-    avatarColor: "bg-pink-500"
+    comment: "Atendimento de excelência, meninas super atenciosas, atendente Lorranny, gente super indico maravilhosa, uniformes de qualidade nota mil 😊 😊 😊 😊",
+    created_at: new Date().toISOString()
   },
   {
-    id: 4,
-    name: "Andréi",
+    id: "fallback-4",
+    user_name: "Andréi",
     rating: 5,
-    date: "uma semana atrás",
-    review: "Atendimento excelente, Produtos de qualidade excelente e serviço perfeito",
-    avatarColor: "bg-green-500"
+    comment: "Atendimento excelente, Produtos de qualidade excelente e serviço perfeito",
+    created_at: new Date().toISOString()
   },
   {
-    id: 5,
-    name: "Guilherme Nolasco",
+    id: "fallback-5",
+    user_name: "Guilherme Nolasco",
     rating: 5,
-    date: "3 meses atrás",
-    review: "Excelente experiência de compra. A loja é organizada, os produtos têm ótima qualidade e o atendimento foi cordial e eficiente. Recomendo a todos que buscam confiança e bom serviço.",
-    avatarColor: "bg-indigo-500"
+    comment: "Excelente experiência de compra. A loja é organizada, os produtos têm ótima qualidade e o atendimento foi cordial e eficiente. Recomendo a todos que buscam confiança e bom serviço.",
+    created_at: new Date().toISOString()
   }
 ];
 
+const avatarColors = [
+  "bg-blue-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-green-500",
+  "bg-indigo-500",
+  "bg-red-500",
+  "bg-teal-500",
+  "bg-orange-500"
+];
+
+const getAvatarColor = (index: number) => avatarColors[index % avatarColors.length];
+
+const formatRelativeDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  
+  if (diffDays === 0) return "hoje";
+  if (diffDays === 1) return "ontem";
+  if (diffDays < 7) return `${diffDays} dias atrás`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} semana${Math.floor(diffDays / 7) > 1 ? 's' : ''} atrás`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} ${Math.floor(diffDays / 30) > 1 ? 'meses' : 'mês'} atrás`;
+  return `${Math.floor(diffDays / 365)} ano${Math.floor(diffDays / 365) > 1 ? 's' : ''} atrás`;
+};
+
 const TestimonialsSection = () => {
+  const [testimonials, setTestimonials] = useState<Feedback[]>(fallbackTestimonials);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+
+  // Fetch visible feedbacks from database
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('feedbacks')
+          .select('id, user_name, rating, comment, created_at')
+          .eq('is_visible', true)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          setTestimonials(data);
+        }
+        // If no visible feedbacks, keep using fallback testimonials
+      } catch (error) {
+        console.error('Error fetching feedbacks:', error);
+        // Keep using fallback testimonials on error
+      }
+    };
+
+    fetchFeedbacks();
+  }, []);
 
   const nextTestimonial = () => {
     setCurrentIndex((prevIndex) => 
@@ -96,16 +154,25 @@ const TestimonialsSection = () => {
 
   // Auto-play functionality
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    if (!isAutoPlaying || testimonials.length === 0) return;
 
     const interval = setInterval(() => {
       nextTestimonial();
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [currentIndex, isAutoPlaying]);
+  }, [currentIndex, isAutoPlaying, testimonials.length]);
+
+  // Reset index if testimonials change and index is out of bounds
+  useEffect(() => {
+    if (currentIndex >= testimonials.length) {
+      setCurrentIndex(0);
+    }
+  }, [testimonials.length, currentIndex]);
 
   const currentTestimonial = testimonials[currentIndex];
+
+  if (!currentTestimonial) return null;
 
   return (
     <section className="relative w-full py-12 lg:py-16 bg-gradient-to-b from-gray-50 to-white">
@@ -143,7 +210,7 @@ const TestimonialsSection = () => {
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                    className={`w-4 h-4 ${i < currentTestimonial.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                   />
                 ))}
                 <span className="ml-2 text-xs text-gray-500">{currentTestimonial.rating}.0</span>
@@ -152,18 +219,18 @@ const TestimonialsSection = () => {
               {/* Review Text */}
               <div className="mb-6">
                 <p className="text-sm md:text-base text-gray-700 leading-relaxed italic line-clamp-6">
-                  "{currentTestimonial.review}"
+                  "{currentTestimonial.comment}"
                 </p>
               </div>
 
               {/* Client Info */}
               <div className="flex items-center gap-3">
-                <div className={`${currentTestimonial.avatarColor} w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-base`}>
-                  {currentTestimonial.name.charAt(0)}
+                <div className={`${getAvatarColor(currentIndex)} w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-base`}>
+                  {currentTestimonial.user_name.charAt(0)}
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">{currentTestimonial.name}</h4>
-                  <p className="text-gray-500 text-xs">{currentTestimonial.date}</p>
+                  <h4 className="text-sm font-semibold text-gray-900">{currentTestimonial.user_name}</h4>
+                  <p className="text-gray-500 text-xs">{formatRelativeDate(currentTestimonial.created_at)}</p>
                 </div>
               </div>
             </div>
@@ -197,7 +264,7 @@ const TestimonialsSection = () => {
                   ? 'bg-[#2e3091] w-6' 
                   : 'bg-gray-300 hover:bg-gray-400'
               }`}
-              aria-label={`Ir para depoimento de ${testimonial.name}`}
+              aria-label={`Ir para depoimento de ${testimonial.user_name}`}
             />
           ))}
         </div>
