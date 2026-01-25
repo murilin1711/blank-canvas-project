@@ -141,9 +141,15 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("pedidos");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+
+  // Section loading states
+  const [loadingBolsa, setLoadingBolsa] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
 
   // Data states
   const [bolsaPayments, setBolsaPayments] = useState<BolsaUniformePayment[]>([]);
@@ -277,51 +283,58 @@ export default function AdminPage() {
     return sessionStorage.getItem('admin_token');
   };
 
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      const token = getAdminToken();
-      
-      if (!token) {
-        toast.error("Token de admin não encontrado");
-        handleLogout();
-        return;
-      }
+  // Load section data separately
+  const loadSection = async (section: string) => {
+    const token = getAdminToken();
+    if (!token) {
+      handleLogout();
+      return;
+    }
 
+    try {
       const response = await supabase.functions.invoke('admin-data', {
-        body: { 
-          action: 'get_all_data',
-          token 
-        }
+        body: { action: section, token }
       });
 
-      if (response.error) {
-        throw new Error(response.error.message);
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) {
+        if (response.data.error.includes('Token')) handleLogout();
+        throw new Error(response.data.error);
       }
 
-      const data = response.data;
-      
-      if (data.error) {
-        if (data.error.includes('Token')) {
-          handleLogout();
-        }
-        throw new Error(data.error);
-      }
-
-      setBolsaPayments(data.bolsaPayments || []);
-      setOrders(data.orders || []);
-      setAbandonedCarts(data.abandonedCarts || []);
-      setFeedbacks(data.feedbacks || []);
-      setProducts(data.products || []);
-      setCustomers(data.customers || []);
-
+      return response.data;
     } catch (error) {
-      console.error("Error loading data:", error);
-      toast.error("Erro ao carregar dados");
-    } finally {
-      setIsLoading(false);
+      console.error(`Error loading ${section}:`, error);
+      toast.error(`Erro ao carregar ${section}`);
+      return null;
     }
   };
+
+  const loadData = async () => {
+    // Load all sections in parallel with individual loaders
+    setLoadingBolsa(true);
+    setLoadingOrders(true);
+    setLoadingProducts(true);
+    setLoadingFeedbacks(true);
+    setLoadingCustomers(true);
+
+    // Start all fetches in parallel
+    const [bolsaData, ordersData, productsData, feedbacksData, customersData] = await Promise.all([
+      loadSection('get_bolsa_payments').finally(() => setLoadingBolsa(false)),
+      loadSection('get_orders').finally(() => setLoadingOrders(false)),
+      loadSection('get_products').finally(() => setLoadingProducts(false)),
+      loadSection('get_feedbacks').finally(() => setLoadingFeedbacks(false)),
+      loadSection('get_customers').finally(() => setLoadingCustomers(false)),
+    ]);
+
+    if (bolsaData) setBolsaPayments(bolsaData.bolsaPayments || []);
+    if (ordersData) setOrders(ordersData.orders || []);
+    if (productsData) setProducts(productsData.products || []);
+    if (feedbacksData) setFeedbacks(feedbacksData.feedbacks || []);
+    if (customersData) setCustomers(customersData.customers || []);
+  };
+
+  const isLoading = loadingBolsa || loadingOrders || loadingProducts || loadingFeedbacks || loadingCustomers;
 
   const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
     try {
