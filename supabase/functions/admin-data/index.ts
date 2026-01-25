@@ -48,59 +48,139 @@ serve(async (req: Request) => {
     let result;
 
     switch (action) {
-      case 'get_all_data': {
-        // Load all admin data
-        const [
-          bolsaPaymentsRes,
-          ordersRes,
-          abandonedCartsRes,
-          feedbacksRes,
-          productsRes,
-          profilesRes
-        ] = await Promise.all([
-          supabase.from("bolsa_uniforme_payments").select("*").order("created_at", { ascending: false }),
-          supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false }),
-          supabase.from("abandoned_carts").select("*").order("last_interaction", { ascending: false }),
-          supabase.from("feedbacks").select("*").order("created_at", { ascending: false }),
-          supabase.from("products").select("*").order("name", { ascending: true }),
-          supabase.from("profiles").select("*").order("created_at", { ascending: false })
-        ]);
+      // Section-based loading for better performance
+      case 'get_bolsa_payments': {
+        const { data: bolsaPayments, error } = await supabase
+          .from("bolsa_uniforme_payments")
+          .select("*")
+          .order("created_at", { ascending: true }); // Oldest first
+        
+        if (error) throw error;
+        result = { bolsaPayments: bolsaPayments || [] };
+        break;
+      }
 
-        // Get customer data for each profile
-        const customers = [];
-        if (profilesRes.data) {
-          for (const profile of profilesRes.data) {
-            const [userOrders, cartData, activitiesData] = await Promise.all([
-              supabase.from("orders").select("total, created_at").eq("user_id", profile.user_id),
-              supabase.from("cart_items").select("*").eq("user_id", profile.user_id),
-              supabase.from("user_activities").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }).limit(5)
-            ]);
+      case 'get_orders': {
+        const { data: orders, error } = await supabase
+          .from("orders")
+          .select("*, order_items(*)")
+          .order("created_at", { ascending: false });
+        
+        if (error) throw error;
+        result = { orders: orders || [] };
+        break;
+      }
 
-            const ordersCount = userOrders.data?.length || 0;
-            const totalSpent = userOrders.data?.reduce((sum, o) => sum + Number(o.total), 0) || 0;
-            const lastOrder = userOrders.data?.sort((a, b) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            )[0];
+      case 'get_products': {
+        const { data: products, error } = await supabase
+          .from("products")
+          .select("*")
+          .order("school_slug", { ascending: true })
+          .order("name", { ascending: true });
+        
+        if (error) throw error;
+        result = { products: products || [] };
+        break;
+      }
 
-            customers.push({
-              profile,
-              ordersCount,
-              totalSpent,
-              cartItems: cartData.data || [],
-              lastActivity: lastOrder?.created_at || profile.created_at,
-              recentActivities: activitiesData.data || []
-            });
-          }
+      case 'get_feedbacks': {
+        const { data: feedbacks, error } = await supabase
+          .from("feedbacks")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (error) throw error;
+        result = { feedbacks: feedbacks || [] };
+        break;
+      }
+
+      case 'get_customers': {
+        // Optimized: single query for profiles, then batch queries for related data
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (profilesError) throw profilesError;
+        
+        if (!profiles || profiles.length === 0) {
+          result = { customers: [] };
+          break;
         }
 
-        result = {
-          bolsaPayments: bolsaPaymentsRes.data || [],
-          orders: ordersRes.data || [],
-          abandonedCarts: abandonedCartsRes.data || [],
-          feedbacks: feedbacksRes.data || [],
-          products: productsRes.data || [],
-          customers
-        };
+        const userIds = profiles.map(p => p.user_id);
+        
+        // Batch queries in parallel
+        const [ordersRes, cartsRes, activitiesRes] = await Promise.all([
+          supabase.from("orders").select("user_id, total, created_at").in("user_id", userIds),
+          supabase.from("cart_items").select("user_id, id").in("user_id", userIds),
+          supabase.from("user_activities").select("user_id, activity_type, description, created_at, metadata").in("user_id", userIds).order("created_at", { ascending: false })
+        ]);
+
+        // Group data by user_id for O(1) lookup
+        const ordersByUser: Record<string, any[]> = {};
+        const cartsByUser: Record<string, any[]> = {};
+        const activitiesByUser: Record<string, any[]> = {};
+
+        (ordersRes.data || []).forEach(o => {
+          if (!ordersByUser[o.user_id]) ordersByUser[o.user_id] = [];
+          ordersByUser[o.user_id].push(o);
+        });
+
+        (cartsRes.data || []).forEach(c => {
+          if (!cartsByUser[c.user_id]) cartsByUser[c.user_id] = [];
+          cartsByUser[c.user_id].push(c);
+        });
+
+        (activitiesRes.data || []).forEach(a => {
+          if (!activitiesByUser[a.user_id]) activitiesByUser[a.user_id] = [];
+          activitiesByUser[a.user_id].push(a);
+        });
+
+        // Map profiles with aggregated data
+        const customers = profiles.map(profile => {
+          const userOrders = ordersByUser[profile.user_id] || [];
+          const ordersCount = userOrders.length;
+          const totalSpent = userOrders.reduce((sum, o) => sum + Number(o.total), 0);
+          const lastOrder = userOrders.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )[0];
+          const recentActivities = (activitiesByUser[profile.user_id] || []).slice(0, 5);
+
+          return {
+            profile,
+            ordersCount,
+            totalSpent,
+            cartItems: cartsByUser[profile.user_id] || [],
+            lastActivity: lastOrder?.created_at || profile.created_at,
+            recentActivities
+          };
+        });
+
+        result = { customers };
+        break;
+      }
+
+      case 'get_abandoned_carts': {
+        const { data: abandonedCarts, error } = await supabase
+          .from("abandoned_carts")
+          .select("*")
+          .order("last_interaction", { ascending: false });
+        
+        if (error) throw error;
+        result = { abandonedCarts: abandonedCarts || [] };
+        break;
+      }
+
+      case 'get_financials': {
+        // Get orders for financial calculations
+        const { data: orders, error } = await supabase
+          .from("orders")
+          .select("total, created_at, status")
+          .order("created_at", { ascending: false });
+        
+        if (error) throw error;
+        result = { orders: orders || [] };
         break;
       }
 

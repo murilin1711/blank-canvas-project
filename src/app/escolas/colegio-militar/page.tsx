@@ -12,12 +12,13 @@ import type {
 import { useNavigate } from "react-router-dom";
 import {
   ChevronDown,
-  Plus,
   X,
   ChevronLeft,
   ChevronRight,
   Heart,
   ShoppingCart,
+  Loader2,
+  Plus,
 } from "lucide-react";
 import Footer from "@/components/sections/footer";
 import BolsaUniformeBanner from "@/components/sections/bolsa-uniforme-banner";
@@ -25,6 +26,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 /* -------------------- Tipos -------------------- */
 type Product = {
@@ -33,55 +35,8 @@ type Product = {
   price: number;
   images: string[];
   category: string;
+  sizes: string[];
 };
-
-/* -------------------- Dados (exemplo) -------------------- */
-const uniformeImage = "https://www.iovinouniformes.com.br/image/cache/catalog/produtos-unisex/camiseta-cpmg-550x691.jpg";
-
-const initialProducts: Product[] = [
-  {
-    id: 1,
-    name: "Camisa Polo Masculina",
-    price: 89.90,
-    images: [uniformeImage, uniformeImage, uniformeImage],
-    category: "Camisas",
-  },
-  {
-    id: 2,
-    name: "Camiseta Básica Manga Curta",
-    price: 59.90,
-    images: [uniformeImage, uniformeImage, uniformeImage],
-    category: "Camisetas",
-  },
-  {
-    id: 3,
-    name: "Calça Social Masculina",
-    price: 129.90,
-    images: [uniformeImage, uniformeImage, uniformeImage],
-    category: "Calças",
-  },
-  {
-    id: 4,
-    name: "Bermuda Escolar",
-    price: 79.90,
-    images: [uniformeImage, uniformeImage, uniformeImage],
-    category: "Bermudas",
-  },
-  {
-    id: 5,
-    name: "Jaqueta Escolar",
-    price: 159.90,
-    images: [uniformeImage, uniformeImage, uniformeImage],
-    category: "Acessórios",
-  },
-  {
-    id: 6,
-    name: "Kit Completo",
-    price: 349.90,
-    images: [uniformeImage, uniformeImage, uniformeImage],
-    category: "Kits",
-  },
-];
 
 /* -------------------- Componente -------------------- */
 export default function LojaEstiloOsklen() {
@@ -89,8 +44,39 @@ export default function LojaEstiloOsklen() {
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [products] = useState<Product[]>(initialProducts);
-  const [queryProducts, setQueryProducts] = useState<Product[]>(products);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [queryProducts, setQueryProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch products from database
+  useEffect(() => {
+    async function fetchProducts() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("school_slug", "colegio-militar")
+        .eq("is_active", true);
+      
+      if (error) {
+        console.error("Error fetching products:", error);
+        toast.error("Erro ao carregar produtos");
+      } else if (data) {
+        const mapped = data.map((p) => ({
+          id: p.id,
+          name: p.name,
+          price: Number(p.price),
+          images: p.image_url ? [p.image_url, p.image_url, p.image_url] : [],
+          category: p.category || "Outros",
+          sizes: p.sizes || ["P", "M", "G", "GG"],
+        }));
+        setProducts(mapped);
+        setQueryProducts(mapped);
+      }
+      setLoading(false);
+    }
+    fetchProducts();
+  }, []);
 
   const categories = [
     "Todos",
