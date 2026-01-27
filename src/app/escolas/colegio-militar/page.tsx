@@ -465,7 +465,7 @@ export default function LojaEstiloOsklen() {
                         src={src}
                         alt={`${p.name} - ${i + 1}`}
                         onClick={(e) => handleImageClick(e, p)}
-                        className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${
+                        className={`w-full h-full object-contain absolute inset-0 transition-all duration-300 ${
                           i === idx
                             ? "translate-x-0 z-10 opacity-100"
                             : i < idx

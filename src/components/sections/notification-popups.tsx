@@ -14,7 +14,6 @@ interface Notification {
 // Initial data for notifications
 const notificationsData: Notification[] = [
   { id: 1, title: "Shop Online", message: "+5% off no pagamento via PIX", dotColor: "bg-[#222222]" },
-  { id: 2, title: "Frete Grátis", message: "Em compras acima de R$1000", dotColor: "bg-[#222222]" },
 ];
 
 // Single Notification Card Component
