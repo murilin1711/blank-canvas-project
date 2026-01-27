@@ -286,7 +286,7 @@ export default function ProductPage({
 
             <div className="mt-6 text-sm text-gray-500 flex items-center gap-2">
               <Check className="w-4 h-4 text-green-600" />
-              Frete grátis a partir de R$ 200 · Troca ou devolução grátis
+              Troca ou devolução grátis
             </div>
           </div>
         </div>
