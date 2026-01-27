@@ -15,6 +15,7 @@ import CheckoutCanceladoPage from '@/app/checkout/cancelado/page';
 import FavoritosPage from '@/app/favoritos/page';
 import MeusPedidosPage from '@/app/meus-pedidos/page';
 import ColegioMilitarPage from '@/app/escolas/colegio-militar/page';
+import DynamicProductPage from '@/app/escolas/colegio-militar/produto/[id]/page';
 import Produto1Page from '@/app/escolas/colegio-militar/produto1/page';
 import Produto2Page from '@/app/escolas/colegio-militar/produto2/page';
 import Produto3Page from '@/app/escolas/colegio-militar/produto3/page';
@@ -53,6 +54,7 @@ function App() {
                     <Route path="/favoritos" element={<FavoritosPage />} />
                     <Route path="/meus-pedidos" element={<MeusPedidosPage />} />
                     <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
+                    <Route path="/escolas/colegio-militar/produto/:id" element={<DynamicProductPage />} />
                     <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
                     <Route path="/escolas/colegio-militar/produto2" element={<Produto2Page />} />
                     <Route path="/escolas/colegio-militar/produto3" element={<Produto3Page />} />

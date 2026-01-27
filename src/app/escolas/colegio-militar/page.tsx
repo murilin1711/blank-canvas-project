@@ -324,7 +324,7 @@ export default function LojaEstiloOsklen() {
       return; // ignore click because user just dragged/swiped
     }
     // navigate to product page (use id-based path)
-    navigate(`/escolas/colegio-militar/produto${p.id}`);
+    navigate(`/escolas/colegio-militar/produto/${p.id}`);
   }
 
   const columns = isSmallScreen ? columnsMobile : columnsDesktop;
