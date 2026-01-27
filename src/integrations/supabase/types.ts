@@ -316,12 +316,14 @@ export type Database = {
           description: string | null
           id: number
           image_url: string | null
+          images: string[] | null
           is_active: boolean | null
           name: string
           price: number
           school_slug: string
           sizes: string[] | null
           updated_at: string
+          variations: Json | null
         }
         Insert: {
           category?: string | null
@@ -329,12 +331,14 @@ export type Database = {
           description?: string | null
           id?: number
           image_url?: string | null
+          images?: string[] | null
           is_active?: boolean | null
           name: string
           price: number
           school_slug: string
           sizes?: string[] | null
           updated_at?: string
+          variations?: Json | null
         }
         Update: {
           category?: string | null
@@ -342,12 +346,14 @@ export type Database = {
           description?: string | null
           id?: number
           image_url?: string | null
+          images?: string[] | null
           is_active?: boolean | null
           name?: string
           price?: number
           school_slug?: string
           sizes?: string[] | null
           updated_at?: string
+          variations?: Json | null
         }
         Relationships: []
       }

@@ -27,11 +27,13 @@ import {
   Trash2,
   Save,
   Activity,
-  Clock
+  Clock,
+  Image
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import goiasMinasLogo from "@/assets/goias-minas-logo.png";
+import ProductFormModal from "@/components/admin/ProductFormModal";
 
 type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes";
 
@@ -99,9 +101,11 @@ interface Product {
   price: number;
   description: string | null;
   image_url: string | null;
+  images: string[] | null;
   school_slug: string;
   category: string | null;
   sizes: string[] | null;
+  variations: any[] | null;
   is_active: boolean;
 }
 
@@ -170,16 +174,6 @@ export default function AdminPage() {
   // Product edit states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
-  const [productForm, setProductForm] = useState({
-    name: "",
-    price: "",
-    description: "",
-    image_url: "",
-    category: "",
-    sizes: [] as string[],
-    is_active: true,
-    school_slug: "colegio-militar"
-  });
 
   // Feedback edit states
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -492,40 +486,15 @@ export default function AdminPage() {
 
   const openEditProduct = (product: Product) => {
     setEditingProduct(product);
-    setProductForm({
-      name: product.name,
-      price: product.price.toString(),
-      description: product.description || "",
-      image_url: product.image_url || "",
-      category: product.category || "",
-      sizes: product.sizes || [],
-      is_active: product.is_active,
-      school_slug: product.school_slug
-    });
     setShowProductModal(true);
   };
 
   const openNewProduct = () => {
     setEditingProduct(null);
-    setProductForm({
-      name: "",
-      price: "",
-      description: "",
-      image_url: "",
-      category: "",
-      sizes: ["P", "M", "G", "GG"],
-      is_active: true,
-      school_slug: activeSchool
-    });
     setShowProductModal(true);
   };
 
-  const saveProduct = async () => {
-    if (!productForm.name || !productForm.price) {
-      toast.error("Preencha nome e preço");
-      return;
-    }
-
+  const handleSaveProduct = async (productData: any, isNew: boolean) => {
     try {
       const token = getAdminToken();
       if (!token) {
@@ -533,24 +502,13 @@ export default function AdminPage() {
         return;
       }
 
-      const productData = {
-        name: productForm.name,
-        price: parseFloat(productForm.price),
-        description: productForm.description || null,
-        image_url: productForm.image_url || null,
-        category: productForm.category || null,
-        sizes: productForm.sizes,
-        is_active: productForm.is_active,
-        school_slug: productForm.school_slug
-      };
-
       const response = await supabase.functions.invoke('admin-data', {
         body: { 
           action: 'save_product',
           token,
           data: { 
-            product: editingProduct ? { id: editingProduct.id, ...productData } : productData,
-            isNew: !editingProduct
+            product: productData,
+            isNew
           }
         }
       });
@@ -559,7 +517,7 @@ export default function AdminPage() {
         throw new Error(response.error?.message || response.data?.error);
       }
 
-      toast.success(editingProduct ? "Produto atualizado!" : "Produto criado!");
+      toast.success(isNew ? "Produto criado!" : "Produto atualizado!");
       setShowProductModal(false);
       loadData();
     } catch (error) {
@@ -1145,12 +1103,29 @@ export default function AdminPage() {
                           <tr key={product.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
-                                {product.image_url && (
+                                {(product.images && product.images.length > 0) ? (
+                                  <div className="relative">
+                                    <img 
+                                      src={product.images[0]} 
+                                      alt={product.name}
+                                      className="w-10 h-10 object-cover rounded"
+                                    />
+                                    {product.images.length > 1 && (
+                                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#2e3091] text-white text-[10px] rounded-full flex items-center justify-center">
+                                        {product.images.length}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : product.image_url ? (
                                   <img 
                                     src={product.image_url} 
                                     alt={product.name}
                                     className="w-10 h-10 object-cover rounded"
                                   />
+                                ) : (
+                                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
+                                    <Image className="w-5 h-5 text-gray-400" />
+                                  </div>
                                 )}
                                 <span className="text-sm font-medium text-gray-900">{product.name}</span>
                               </div>
@@ -1511,153 +1486,12 @@ export default function AdminPage() {
       </div>
 
       {/* Product Modal */}
-      <AnimatePresence>
-        {showProductModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowProductModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                {editingProduct ? "Editar Produto" : "Novo Produto"}
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                  <input
-                    type="text"
-                    value={productForm.name}
-                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={productForm.price}
-                    onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                  <textarea
-                    value={productForm.description}
-                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">URL da Imagem</label>
-                  <input
-                    type="text"
-                    value={productForm.image_url}
-                    onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-                  />
-                  {productForm.image_url && (
-                    <img 
-                      src={productForm.image_url} 
-                      alt="Preview" 
-                      className="mt-2 w-20 h-20 object-cover rounded"
-                    />
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                  <input
-                    type="text"
-                    value={productForm.category}
-                    onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                    placeholder="Ex: Camiseta, Calça, etc."
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Escola</label>
-                  <select
-                    value={productForm.school_slug}
-                    onChange={(e) => setProductForm({ ...productForm, school_slug: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-                  >
-                    <option value="colegio-militar">Colégio Militar</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tamanhos</label>
-                  <div className="flex flex-wrap gap-2">
-                    {["PP", "P", "M", "G", "GG", "XG"].map((size) => (
-                      <button
-                        key={size}
-                        type="button"
-                        onClick={() => {
-                          const newSizes = productForm.sizes.includes(size)
-                            ? productForm.sizes.filter(s => s !== size)
-                            : [...productForm.sizes, size];
-                          setProductForm({ ...productForm, sizes: newSizes });
-                        }}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                          productForm.sizes.includes(size)
-                            ? "bg-[#2e3091] text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={productForm.is_active}
-                    onChange={(e) => setProductForm({ ...productForm, is_active: e.target.checked })}
-                    className="w-4 h-4 accent-[#2e3091]"
-                  />
-                  <span className="text-sm text-gray-700">Produto ativo</span>
-                </label>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowProductModal(false)}
-                  className="flex-1 px-4 py-3 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={saveProduct}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2e3091] text-white rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  Salvar
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ProductFormModal
+        isOpen={showProductModal}
+        onClose={() => setShowProductModal(false)}
+        onSave={handleSaveProduct}
+        editingProduct={editingProduct}
+      />
 
       {/* Feedback Modal */}
       <AnimatePresence>
