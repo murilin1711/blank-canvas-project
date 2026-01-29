@@ -7,9 +7,11 @@ import CheckoutFooter from "@/components/sections/checkout-footer";
 import { Check, Home, ChevronDown, CreditCard, Wallet, X } from "lucide-react";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
 import { StripeCustomPayment } from "@/components/StripeCustomPayment";
+import { MercadoPagoPixPayment } from "@/components/MercadoPagoPixPayment";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import pixLogo from "@/assets/payment/pix.png";
 
 // Input field component - MUST be outside main component to prevent focus loss
 const InputField = ({ 
@@ -164,9 +166,10 @@ export default function CheckoutPage() {
   const [addressConfirmed, setAddressConfirmed] = useState(false);
   
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "bolsa-uniforme">("stripe");
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "pix" | "bolsa-uniforme">("stripe");
   const [showBolsaUniformeModal, setShowBolsaUniformeModal] = useState(false);
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
+  const [showPixPayment, setShowPixPayment] = useState(false);
 
   // Save data to localStorage whenever it changes (respecting save preferences)
   useEffect(() => {
@@ -783,7 +786,7 @@ export default function CheckoutPage() {
               {/* Pagamento Step */}
               {currentStep === "pagamento" && (
                 <div>
-                  {!showStripeCheckout ? (
+                  {!showStripeCheckout && !showPixPayment ? (
                     <>
                       <h2 className="text-h3 font-medium text-text-primary mb-6">
                         Selecionar forma de pagamento
@@ -791,7 +794,7 @@ export default function CheckoutPage() {
 
                       {/* Payment Method Selection */}
                       <div className="space-y-4 mb-6">
-                        {/* Stripe Option */}
+                        {/* Stripe Option - Card/Boleto */}
                         <label 
                           className={`block cursor-pointer rounded-2xl border-2 transition-all ${
                             paymentMethod === "stripe" 
@@ -810,7 +813,7 @@ export default function CheckoutPage() {
                               <div className="flex items-center gap-2">
                                 <CreditCard className="w-5 h-5 text-[#2e3091]" />
                                 <span className="text-body-regular font-medium text-text-primary">
-                                  Cartão / Pix / Boleto
+                                  Cartão de Crédito / Boleto
                                 </span>
                               </div>
                             </div>
@@ -818,14 +821,11 @@ export default function CheckoutPage() {
                             {paymentMethod === "stripe" && (
                               <div className="ml-8 space-y-2">
                                 <p className="text-body-sm text-text-secondary">
-                                  Escolha sua forma de pagamento preferida:
+                                  Pague com cartão de crédito, débito ou boleto bancário.
                                 </p>
                                 <div className="flex flex-wrap gap-2 mt-2">
                                   <span className="text-xs bg-background-secondary px-3 py-1.5 rounded-full border border-border-light">
                                     💳 Cartão de Crédito/Débito
-                                  </span>
-                                  <span className="text-xs bg-background-secondary px-3 py-1.5 rounded-full border border-border-light">
-                                    📱 Pix
                                   </span>
                                   <span className="text-xs bg-background-secondary px-3 py-1.5 rounded-full border border-border-light">
                                     📄 Boleto Bancário
@@ -838,6 +838,53 @@ export default function CheckoutPage() {
                                   </svg>
                                   <span className="text-caption text-text-muted">Pagamento 100% seguro via Stripe</span>
                                 </div>
+                              </div>
+                            )}
+                          </div>
+                        </label>
+
+                        {/* Pix Option */}
+                        <label 
+                          className={`block cursor-pointer rounded-2xl border-2 transition-all ${
+                            paymentMethod === "pix" 
+                              ? "border-[#2e3091] bg-[#2e3091]/5" 
+                              : "border-border-light bg-background-primary hover:border-text-muted"
+                          }`}
+                        >
+                          <div className="p-5">
+                            <div className="flex items-center gap-3 mb-2">
+                              <input
+                                type="radio"
+                                checked={paymentMethod === "pix"}
+                                onChange={() => setPaymentMethod("pix")}
+                                className="w-5 h-5 accent-[#2e3091]"
+                              />
+                              <div className="flex items-center gap-2">
+                                <img src={pixLogo} alt="Pix" className="h-5" />
+                                <span className="text-body-regular font-medium text-text-primary">
+                                  Pix
+                                </span>
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                  Aprovação imediata
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {paymentMethod === "pix" && (
+                              <div className="ml-8 mt-3">
+                                <p className="text-body-sm text-text-secondary">
+                                  Pague instantaneamente usando o QR Code ou código copia e cola.
+                                </p>
+                                <ul className="text-body-sm text-text-secondary mt-2 space-y-1">
+                                  <li className="flex items-center gap-2">
+                                    <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">✓</span>
+                                    Confirmação instantânea
+                                  </li>
+                                  <li className="flex items-center gap-2">
+                                    <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">✓</span>
+                                    Sem taxas adicionais
+                                  </li>
+                                </ul>
                               </div>
                             )}
                           </div>
@@ -896,6 +943,8 @@ export default function CheckoutPage() {
                         onClick={() => {
                           if (paymentMethod === "stripe") {
                             setShowStripeCheckout(true);
+                          } else if (paymentMethod === "pix") {
+                            setShowPixPayment(true);
                           } else {
                             setShowBolsaUniformeModal(true);
                           }
@@ -905,11 +954,42 @@ export default function CheckoutPage() {
                       >
                         {paymentMethod === "stripe" ? (
                           "Ir para pagamento"
+                        ) : paymentMethod === "pix" ? (
+                          "Pagar com Pix"
                         ) : (
                           "Pagar com Bolsa Uniforme"
                         )}
                       </button>
                     </>
+                  ) : showPixPayment ? (
+                    /* Mercado Pago Pix Payment */
+                    <MercadoPagoPixPayment
+                      items={items.map(item => ({
+                        productId: item.productId,
+                        productName: item.productName,
+                        productImage: item.productImage,
+                        price: item.price,
+                        size: item.size,
+                        quantity: item.quantity,
+                        schoolSlug: item.schoolSlug,
+                      }))}
+                      customerEmail={user?.email || ""}
+                      customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+                      cpf={personal.cpf}
+                      total={total}
+                      userId={user?.id || ""}
+                      shippingAddress={{
+                        cep: address.cep,
+                        street: address.street,
+                        number: address.number,
+                        complement: address.complement,
+                        neighborhood: address.neighborhood,
+                        city: address.city,
+                        state: address.state,
+                      }}
+                      shipping={shipping}
+                      onBack={() => setShowPixPayment(false)}
+                    />
                   ) : (
                     /* Stripe Custom Payment Form */
                     <div>
