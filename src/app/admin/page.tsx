@@ -699,6 +699,56 @@ export default function AdminPage() {
     saveToDatabase();
   };
 
+  // Handle order change via number input
+  const handleOrderChange = (productId: number, newPosition: number) => {
+    const schoolProducts = products.filter(p => p.school_slug === activeSchool);
+    const maxPosition = schoolProducts.length;
+    
+    // Validate position
+    if (isNaN(newPosition) || newPosition < 1 || newPosition > maxPosition) return;
+    
+    const currentOrder = schoolProducts.map(p => p.id);
+    const currentIndex = currentOrder.indexOf(productId);
+    const targetIndex = newPosition - 1;
+    
+    if (currentIndex === -1 || currentIndex === targetIndex) return;
+
+    // Reorder
+    const newOrder = [...currentOrder];
+    newOrder.splice(currentIndex, 1);
+    newOrder.splice(targetIndex, 0, productId);
+
+    // Update local state IMMEDIATELY
+    const reorderedProducts = products.map(p => {
+      if (p.school_slug !== activeSchool) return p;
+      const newIdx = newOrder.indexOf(p.id);
+      return { ...p, display_order: newIdx + 1 };
+    });
+    setProducts(reorderedProducts);
+
+    // Save in background
+    const saveToDatabase = async () => {
+      try {
+        const token = getAdminToken();
+        if (!token) return;
+
+        await supabase.functions.invoke('admin-data', {
+          body: { 
+            action: 'reorder_products',
+            token,
+            data: { productIds: newOrder, schoolSlug: activeSchool }
+          }
+        });
+      } catch (error) {
+        console.error("Error reordering products:", error);
+        toast.error("Erro ao salvar ordem");
+        reloadSection('products');
+      }
+    };
+    
+    saveToDatabase();
+  };
+
   const formatWhatsAppLink = (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
     const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
@@ -1224,17 +1274,11 @@ export default function AdminPage() {
               )}
 
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
                   <p className="text-xs text-gray-500">
                     <GripVertical className="w-3 h-3 inline mr-1" />
-                    Arraste os produtos para reordenar a exibição na loja
+                    Arraste ou digite o número para reordenar • Salva automaticamente
                   </p>
-                  {isReordering && (
-                    <span className="text-xs text-[#2e3091] flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 animate-spin" />
-                      Salvando...
-                    </span>
-                  )}
                 </div>
                 {products.filter(p => p.school_slug === activeSchool).length === 0 ? (
                   <div className="p-12 text-center">
@@ -1267,13 +1311,23 @@ export default function AdminPage() {
                             onDragEnd={handleDragEnd}
                             onDrop={(e) => handleDrop(e, product.id)}
                           >
-                            <td className="w-16 px-2 py-4">
+                            <td className="w-20 px-2 py-4">
                               <div 
-                                className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 transition-colors"
+                                className="flex items-center gap-1 cursor-grab active:cursor-grabbing"
                                 title="Arraste para reordenar"
                               >
-                                <GripVertical className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-bold text-[#2e3091] min-w-[20px] text-center">{index + 1}</span>
+                                <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max={products.filter(p => p.school_slug === activeSchool).length}
+                                  value={index + 1}
+                                  onChange={(e) => handleOrderChange(product.id, parseInt(e.target.value, 10))}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  draggable={false}
+                                  className="w-10 text-center text-sm font-bold text-[#2e3091] border border-gray-200 rounded px-1 py-0.5 focus:outline-none focus:border-[#2e3091] focus:ring-1 focus:ring-[#2e3091]/20"
+                                />
                               </div>
                             </td>
                             <td className="px-6 py-4">
