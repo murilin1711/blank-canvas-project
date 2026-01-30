@@ -26,6 +26,7 @@ interface ProductFormModalProps {
   onClose: () => void;
   onSave: (data: any, isNew: boolean) => void;
   editingProduct: any | null;
+  availableCategories?: string[];
 }
 
 export default function ProductFormModal({
@@ -33,6 +34,7 @@ export default function ProductFormModal({
   onClose,
   onSave,
   editingProduct,
+  availableCategories = [],
 }: ProductFormModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -361,13 +363,26 @@ export default function ProductFormModal({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Categoria
               </label>
-              <input
-                type="text"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                placeholder="Ex: Camiseta, Calça, Tênis"
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
-              />
+              <div className="relative">
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091] bg-white appearance-none"
+                >
+                  <option value="">Selecione uma categoria</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Gerencie categorias no menu acima
+              </p>
             </div>
 
             <div>

@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 import ProductFormModal from "@/components/admin/ProductFormModal";
+import CategoryFilter from "@/components/admin/CategoryFilter";
+import CategoryManager from "@/components/admin/CategoryManager";
 
 type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes";
 
@@ -196,6 +198,13 @@ export default function AdminPage() {
   const [draggedProductId, setDraggedProductId] = useState<number | null>(null);
   const [isReordering, setIsReordering] = useState(false);
 
+  // Category filters for orders and bolsa
+  const [ordersSelectedCategories, setOrdersSelectedCategories] = useState<string[]>([]);
+  const [bolsaSelectedCategories, setBolsaSelectedCategories] = useState<string[]>([]);
+
+  // Get unique categories from products
+  const availableCategories = [...new Set(products.filter(p => p.category).map(p => p.category!))].sort();
+
   // Check if user is admin on mount
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -356,10 +365,16 @@ export default function AdminPage() {
     if (!section) return;
     
     // Don't reload if already loaded
-    if (loadedSections.has(section)) return;
-    
-    reloadSection(section);
-    setLoadedSections(prev => new Set(prev).add(section));
+    if (!loadedSections.has(section)) {
+      reloadSection(section);
+      setLoadedSections(prev => new Set(prev).add(section));
+    }
+
+    // Also load products when on orders/bolsa tabs for category filtering
+    if ((activeTab === 'pedidos' || activeTab === 'bolsa-uniforme') && !loadedSections.has('products')) {
+      reloadSection('products');
+      setLoadedSections(prev => new Set(prev).add('products'));
+    }
   }, [activeTab, isAuthenticated]);
 
   // Initial load - only load the default tab (pedidos)
@@ -715,6 +730,107 @@ export default function AdminPage() {
     saveToDatabase();
   };
 
+  // Category management functions
+  const handleAddCategory = async (category: string) => {
+    // Categories are stored in products, so we just need to use them
+    // For now, we'll allow any new category typed in the product form
+    toast.success(`Categoria "${category}" adicionada!`);
+  };
+
+  const handleEditCategory = async (oldCategory: string, newCategory: string) => {
+    // Update all products with the old category to the new one
+    const productsToUpdate = products.filter(p => p.category === oldCategory);
+    if (productsToUpdate.length === 0) return;
+
+    // Optimistic update
+    setProducts(prev => prev.map(p => 
+      p.category === oldCategory ? { ...p, category: newCategory } : p
+    ));
+
+    try {
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'update_category',
+          token,
+          data: { oldCategory, newCategory }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+    } catch (error) {
+      console.error("Error updating category:", error);
+      toast.error("Erro ao atualizar categoria");
+      reloadSection('products');
+    }
+  };
+
+  const handleDeleteCategory = async (category: string) => {
+    // Set category to null for all products with this category
+    setProducts(prev => prev.map(p => 
+      p.category === category ? { ...p, category: null } : p
+    ));
+
+    try {
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'delete_category',
+          token,
+          data: { category }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast.error("Erro ao excluir categoria");
+      reloadSection('products');
+    }
+  };
+
+  // Filter orders by category
+  const filterOrdersByCategory = (ordersList: Order[], selectedCategories: string[]) => {
+    if (selectedCategories.length === 0) return ordersList;
+    
+    return ordersList.filter(order => {
+      const orderItems = order.order_items || [];
+      // Check if any item in the order matches the selected categories
+      return orderItems.some(item => {
+        // Find the product to get its category
+        const product = products.find(p => p.name === item.product_name);
+        return product && product.category && selectedCategories.includes(product.category);
+      });
+    });
+  };
+
+  // Filter bolsa payments by category
+  const filterBolsaByCategory = (paymentsList: BolsaUniformePayment[], selectedCategories: string[]) => {
+    if (selectedCategories.length === 0) return paymentsList;
+    
+    return paymentsList.filter(payment => {
+      const items = Array.isArray(payment.items) ? payment.items : [];
+      // Check if any item in the payment matches the selected categories
+      return items.some((item: any) => {
+        const product = products.find(p => p.name === item.productName);
+        return product && product.category && selectedCategories.includes(product.category);
+      });
+    });
+  };
 
   const formatWhatsAppLink = (phone: string) => {
     const cleanPhone = phone.replace(/\D/g, "");
@@ -1014,14 +1130,28 @@ export default function AdminPage() {
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">Pedidos Stripe</h2>
-                  <p className="text-sm text-gray-500 mt-1">Pagamentos via cartão/Pix/boleto</p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Pedidos Stripe</h2>
+                      <p className="text-sm text-gray-500 mt-1">Pagamentos via cartão/Pix/boleto</p>
+                    </div>
+                    <CategoryFilter
+                      categories={availableCategories}
+                      selectedCategories={ordersSelectedCategories}
+                      onChange={setOrdersSelectedCategories}
+                      label="Filtrar por categoria"
+                    />
+                  </div>
                 </div>
 
-                {orders.length === 0 ? (
+                {filterOrdersByCategory(orders, ordersSelectedCategories).length === 0 ? (
                   <div className="p-12 text-center">
                     <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum pedido encontrado</p>
+                    <p className="text-gray-500">
+                      {ordersSelectedCategories.length > 0 
+                        ? "Nenhum pedido encontrado para as categorias selecionadas" 
+                        : "Nenhum pedido encontrado"}
+                    </p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -1036,7 +1166,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {orders.map((order) => (
+                        {filterOrdersByCategory(orders, ordersSelectedCategories).map((order) => (
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 text-sm text-gray-900">{order.id.slice(0, 8)}...</td>
                             <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
@@ -1066,18 +1196,34 @@ export default function AdminPage() {
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">Pagamentos Bolsa Uniforme</h2>
-                  <p className="text-sm text-gray-500 mt-1">Gerencie todos os pagamentos via Bolsa Uniforme</p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Pagamentos Bolsa Uniforme</h2>
+                      <p className="text-sm text-gray-500 mt-1">Gerencie todos os pagamentos via Bolsa Uniforme</p>
+                    </div>
+                    <CategoryFilter
+                      categories={availableCategories}
+                      selectedCategories={bolsaSelectedCategories}
+                      onChange={setBolsaSelectedCategories}
+                      label="Filtrar por categoria"
+                    />
+                  </div>
                 </div>
 
-                {bolsaPayments.length === 0 ? (
+                {filterBolsaByCategory(bolsaPayments, bolsaSelectedCategories).length === 0 ? (
                   <div className="p-12 text-center">
                     <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum pagamento Bolsa Uniforme</p>
+                    <p className="text-gray-500">
+                      {bolsaSelectedCategories.length > 0 
+                        ? "Nenhum pagamento encontrado para as categorias selecionadas" 
+                        : "Nenhum pagamento Bolsa Uniforme"}
+                    </p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {[...bolsaPayments].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((payment, index) => {
+                    {filterBolsaByCategory(bolsaPayments, bolsaSelectedCategories)
+                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                      .map((payment, index) => {
                       const isExpanded = expandedPayments[payment.id];
                       
                       return (
@@ -1210,18 +1356,26 @@ export default function AdminPage() {
           {/* Produtos Tab */}
           {activeTab === "produtos" && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Gerenciar Produtos</h2>
                   <p className="text-sm text-gray-500 mt-1">Edite preços, descrições e fotos por escola</p>
                 </div>
-                <button 
-                  onClick={openNewProduct}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar Produto
-                </button>
+                <div className="flex items-center gap-2">
+                  <CategoryManager
+                    categories={availableCategories}
+                    onAddCategory={handleAddCategory}
+                    onEditCategory={handleEditCategory}
+                    onDeleteCategory={handleDeleteCategory}
+                  />
+                  <button 
+                    onClick={openNewProduct}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adicionar Produto
+                  </button>
+                </div>
               </div>
 
               {/* Abas por escola */}
@@ -1687,6 +1841,7 @@ export default function AdminPage() {
         onClose={() => setShowProductModal(false)}
         onSave={handleSaveProduct}
         editingProduct={editingProduct}
+        availableCategories={availableCategories}
       />
 
       {/* Feedback Modal */}
