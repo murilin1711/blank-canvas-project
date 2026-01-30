@@ -285,6 +285,30 @@ serve(async (req: Request) => {
         break;
       }
 
+      case 'update_category': {
+        const { oldCategory, newCategory } = data;
+        const { error } = await supabase
+          .from("products")
+          .update({ category: newCategory })
+          .eq("category", oldCategory);
+        
+        if (error) throw error;
+        result = { success: true };
+        break;
+      }
+
+      case 'delete_category': {
+        const { category } = data;
+        const { error } = await supabase
+          .from("products")
+          .update({ category: null })
+          .eq("category", category);
+        
+        if (error) throw error;
+        result = { success: true };
+        break;
+      }
+
       default:
         return new Response(
           JSON.stringify({ error: 'Ação desconhecida' }),
