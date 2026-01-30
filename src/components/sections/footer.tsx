@@ -54,51 +54,112 @@ const Footer = () => {
     },
   ];
 
+  const linkClassName = "inline-block text-foreground text-sm bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-shadow";
+
   return (
-    <footer className="bg-secondary font-suisse">
-      <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
-        {/* Logo */}
-        <div className="mb-10">
-          <img src={goiasMinasLogo} alt="Goiás Minas Uniformes" className="h-24 md:h-28 w-auto" />
+    <footer className="bg-[#e8e8e8] font-suisse">
+      <div className="max-w-7xl mx-auto px-6 lg:px-10 py-14 lg:py-20">
+        {/* Logo - aumentada */}
+        <div className="mb-14">
+          <img src={goiasMinasLogo} alt="Goiás Minas Uniformes" className="h-32 md:h-40 lg:h-44 w-auto" />
         </div>
 
-        {/* Grid de seções */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-12">
-          {footerSections.map((section) => (
-            <div key={section.title}>
-              <h3 className="text-foreground font-medium text-sm mb-4">
-                {section.title}
+        {/* Grid de seções - 2 colunas no topo, 2 embaixo como na referência */}
+        <div className="space-y-12">
+          {/* Primeira linha: Políticas e Redes sociais (substituindo Osklen) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {/* Políticas */}
+            <div>
+              <h3 className="text-foreground font-semibold text-base mb-4">
+                Políticas
               </h3>
-              <ul className="space-y-2">
-                {section.links.map((link) => (
-                  <li key={link.label}>
-                    {link.isInternal ? (
-                      <Link
-                        to={link.href}
-                        className="inline-block text-muted-foreground text-sm bg-background/60 px-3 py-1.5 rounded-full hover:bg-background hover:text-foreground transition-colors"
-                      >
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <a
-                        href={link.href}
-                        target={link.isExternal ? "_blank" : undefined}
-                        rel={link.isExternal ? "noopener noreferrer" : undefined}
-                        className="inline-block text-muted-foreground text-sm bg-background/60 px-3 py-1.5 rounded-full hover:bg-background hover:text-foreground transition-colors"
-                      >
-                        {link.label}
-                      </a>
-                    )}
-                  </li>
+              <div className="flex flex-wrap gap-2">
+                {footerSections[0].links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className={linkClassName}
+                  >
+                    {link.label}
+                  </a>
                 ))}
-              </ul>
+              </div>
             </div>
-          ))}
+
+            {/* Redes sociais */}
+            <div>
+              <h3 className="text-foreground font-semibold text-base mb-4">
+                Redes sociais
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {footerSections[3].links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    className={linkClassName}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Segunda linha: Minha conta e Fale conosco */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            {/* Minha conta */}
+            <div>
+              <h3 className="text-foreground font-semibold text-base mb-4">
+                Minha conta
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {footerSections[1].links.map((link) => (
+                  link.isInternal ? (
+                    <Link
+                      key={link.label}
+                      to={link.href}
+                      className={linkClassName}
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className={linkClassName}
+                    >
+                      {link.label}
+                    </a>
+                  )
+                ))}
+              </div>
+            </div>
+
+            {/* Fale conosco */}
+            <div>
+              <h3 className="text-foreground font-semibold text-base mb-4">
+                Fale conosco
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {footerSections[2].links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className={linkClassName}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Barra inferior com informações da empresa */}
-      <div className="bg-muted border-t border-border">
+      <div className="bg-[#d4d4d4] rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-6">
           <p className="text-muted-foreground text-xs md:text-sm text-center leading-relaxed">
             Goiás Minas Uniformes Ind. e Com.de Unif. Esc. e Emp. S/A CNPJ 01.184.449/0001-10 Rua Guimarães Natal, 50. Setor Central. GO Brasil. CEP 75040030.
