@@ -273,15 +273,14 @@ serve(async (req: Request) => {
 
       case 'reorder_products': {
         const { productIds, schoolSlug } = data;
-        // Update display_order for each product based on new order
-        for (let i = 0; i < productIds.length; i++) {
-          const { error } = await supabase
+        // Update display_order in parallel for better performance
+        await Promise.all(productIds.map((id: number, index: number) => 
+          supabase
             .from("products")
-            .update({ display_order: i + 1 })
-            .eq("id", productIds[i])
-            .eq("school_slug", schoolSlug);
-          if (error) throw error;
-        }
+            .update({ display_order: index + 1 })
+            .eq("id", id)
+            .eq("school_slug", schoolSlug)
+        ));
         result = { success: true };
         break;
       }
