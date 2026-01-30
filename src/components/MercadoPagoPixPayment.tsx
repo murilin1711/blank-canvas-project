@@ -93,11 +93,13 @@ export function MercadoPagoPixPayment({
       setPaymentData(data);
       
       // Calculate time remaining based on expiration date
+      // Mercado Pago returns 24h expiration, but we cap at 30min for better UX
       if (data.expirationDate) {
         const expirationTime = new Date(data.expirationDate).getTime();
         const now = Date.now();
         const remaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
-        setTimeRemaining(remaining);
+        // Cap at 30 minutes (1800 seconds) for display purposes
+        setTimeRemaining(Math.min(remaining, 30 * 60));
       }
     } catch (err) {
       console.error("Error creating Pix payment:", err);
