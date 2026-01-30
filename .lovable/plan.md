@@ -1,93 +1,118 @@
 
-# Plano: Correções e Melhorias
+# Plano: Otimização de Performance do Admin
 
-Este plano corrige três áreas do sistema: pagamento Pix, galeria de imagens na vitrine, e reordenação de produtos no admin.
+## Problemas Identificados
+
+### 1. Recarregamento Completo Após Cada Ação
+Atualmente, após qualquer ação (salvar produto, reordenar, atualizar feedback), o código chama `loadData()` que recarrega **TODAS** as seções:
+- Bolsa Uniforme
+- Pedidos  
+- Produtos
+- Feedbacks
+- Clientes
+
+Isso causa delays desnecessários porque busca dados que não mudaram.
+
+### 2. Reordenação Sequencial no Backend
+O `reorder_products` faz UPDATE um por um em loop:
+```text
+for (let i = 0; i < productIds.length; i++) {
+  await supabase.update({ display_order: i + 1 }).eq("id", productIds[i])
+}
+```
+Com 10 produtos, são 10 queries sequenciais ao banco.
+
+### 3. Falta de Atualização Local Otimista
+Apesar de ter código de atualização local (linhas 598-603), outras ações não usam isso.
 
 ---
 
-## 1. Pix via Mercado Pago - Correção do Erro 403
+## Solução Proposta
 
-**Problema identificado nos logs:**
-O erro `PA_UNAUTHORIZED_RESULT_FROM_POLICIES` (status 403) indica que o Access Token de produção não tem autorização para criar pagamentos Pix.
+### Parte 1: Carregar Seções Sob Demanda
 
-**Possíveis causas:**
-- A conta Mercado Pago não completou a habilitação para Pix em produção
-- O token não tem o escopo necessário (`payments:write`)
-- Verificação de identidade pendente na conta
+Ao invés de carregar tudo no login, carregar apenas a seção ativa:
+- Quando muda de aba, carrega os dados daquela aba (se ainda não carregados)
+- Ações de update usam atualização local otimista + reload apenas da seção afetada
 
-**Solução:**
-1. Orientar o usuário a verificar no painel do Mercado Pago:
-   - Acessar Configurações > Credenciais
-   - Verificar se Pix está habilitado para produção
-   - Gerar um novo Access Token com permissões de pagamento
+### Parte 2: Atualização Local Otimista
 
-2. Melhorar o tratamento de erro no código para mostrar mensagens mais claras
+Após cada ação bem-sucedida:
+- Atualizar o estado local imediatamente
+- Não chamar `loadData()` completo
+- Se necessário recarregar, só recarrega a seção específica
 
-**Ação recomendada:** Antes de fazer alterações técnicas, é necessário verificar as configurações da conta no Mercado Pago. Se o problema for de habilitação, nenhuma mudança de código resolverá.
+### Parte 3: Batch Update no Backend
+
+Trocar o loop sequencial por uma única query com CASE/WHEN:
+```text
+UPDATE products SET display_order = CASE
+  WHEN id = 1 THEN 1
+  WHEN id = 2 THEN 2
+  ...
+END WHERE id IN (1, 2, ...);
+```
 
 ---
 
-## 2. Galeria de Imagens na Vitrine (Grid)
+## Mudanças no Código
 
-**Problema:** Na página `/escolas/colegio-militar`, o código busca produtos do banco mas usa apenas `image_url` repetida 3 vezes, ignorando o array `images` que contém múltiplas fotos.
+### Arquivo: `src/app/admin/page.tsx`
 
-**Causa no código (linha ~65-72):**
+**1. Adicionar funções de reload por seção:**
 ```text
-images: p.image_url ? [p.image_url, p.image_url, p.image_url] : []
+const reloadSection = async (section: 'products' | 'feedbacks' | 'orders' | 'bolsa' | 'customers') => {
+  // Carrega apenas a seção específica
+}
 ```
 
-**Solução:**
-Modificar a função `fetchProducts` para usar o array `images` do banco quando disponível:
+**2. Modificar handlers para usar atualização otimista:**
 
 ```text
-images: (p.images && p.images.length > 0) 
-  ? p.images 
-  : (p.image_url ? [p.image_url] : [])
+// Exemplo para salvar produto
+const handleSaveProduct = async (productData, isNew) => {
+  // ... salvar no backend ...
+  
+  // Atualização otimista local
+  if (isNew) {
+    setProducts(prev => [...prev, { ...productData, id: Date.now() }]);
+  } else {
+    setProducts(prev => prev.map(p => p.id === productData.id ? productData : p));
+  }
+  
+  // Recarrega só produtos (não tudo)
+  reloadSection('products');
+}
 ```
 
-Isso permitirá que as setinhas e o swipe funcionem corretamente navegando entre imagens diferentes.
+**3. Remover chamadas desnecessárias de `loadData()`:**
+- `updatePaymentStatus` -> reload só bolsa
+- `toggleFeedbackVisibility` -> atualização local + reload só feedbacks
+- `saveFeedback` -> atualização local
+- `deleteProduct` -> atualização local
+- `handleDrop` (reordenar) -> já faz local, remover reload
 
-**Arquivo afetado:**
-- `src/app/escolas/colegio-militar/page.tsx`
+### Arquivo: `supabase/functions/admin-data/index.ts`
 
----
+**1. Otimizar `reorder_products` com batch update:**
 
-## 3. Reordenação de Produtos por Arrastar e Soltar (Admin)
-
-**Objetivo:** Permitir que o administrador defina a ordem de exibição dos produtos por escola usando drag-and-drop.
-
-### Etapa 1: Adicionar coluna `display_order` na tabela `products`
-
-**Migração SQL:**
+Usar `Promise.all` para fazer todas as atualizações em paralelo ao invés de sequencial:
 ```text
-ALTER TABLE products
-ADD COLUMN display_order INTEGER DEFAULT 0;
-
--- Inicializar com ordem baseada no ID
-UPDATE products SET display_order = id WHERE display_order = 0;
+case 'reorder_products': {
+  const { productIds, schoolSlug } = data;
+  
+  // Atualização em paralelo
+  await Promise.all(productIds.map((id, index) => 
+    supabase.from("products")
+      .update({ display_order: index + 1 })
+      .eq("id", id)
+      .eq("school_slug", schoolSlug)
+  ));
+  
+  result = { success: true };
+  break;
+}
 ```
-
-### Etapa 2: Atualizar a busca de produtos para usar ordem
-
-**Arquivos afetados:**
-- `supabase/functions/admin-data/index.ts` - ordenar por `display_order`
-- `src/app/escolas/colegio-militar/page.tsx` - ordenar por `display_order`
-
-### Etapa 3: Implementar drag-and-drop no admin
-
-**Biblioteca:** Usar HTML5 Drag and Drop nativo (sem dependências extras)
-
-**Mudanças no admin:**
-- Adicionar ícone de "arrastar" (grip) ao lado de cada produto
-- Implementar handlers `onDragStart`, `onDragOver`, `onDrop`
-- Ao soltar, calcular nova ordem e salvar no banco
-
-**Nova ação na Edge Function `admin-data`:**
-- `reorder_products`: recebe array de IDs na nova ordem e atualiza `display_order`
-
-**Arquivos afetados:**
-- `src/app/admin/page.tsx` - UI de drag-and-drop
-- `supabase/functions/admin-data/index.ts` - nova ação de reordenação
 
 ---
 
@@ -95,20 +120,14 @@ UPDATE products SET display_order = id WHERE display_order = 0;
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `supabase/migrations/*.sql` | Adicionar coluna `display_order` |
-| `src/app/escolas/colegio-militar/page.tsx` | Corrigir mapeamento de imagens + ordenar por `display_order` |
-| `src/app/admin/page.tsx` | Adicionar drag-and-drop na tabela de produtos |
-| `supabase/functions/admin-data/index.ts` | Adicionar ação `reorder_products` + ordenar por `display_order` |
+| `src/app/admin/page.tsx` | Atualização otimista + reload por seção |
+| `supabase/functions/admin-data/index.ts` | Batch update paralelo para reordenação |
 
 ---
 
-## Sobre o Pix
+## Resultados Esperados
 
-Para o Pix funcionar, é necessário que você verifique no seu painel do Mercado Pago:
-
-1. Acesse: https://www.mercadopago.com.br/settings/account/credentials
-2. Verifique se a opção "Pix" está habilitada para produção
-3. Se necessário, complete a verificação de identidade da conta
-4. Gere um novo Access Token de produção
-
-Se após essas verificações o erro persistir, pode ser necessário atualizar o token no sistema.
+- **Carregamento inicial:** Mais rápido (só carrega aba ativa)
+- **Ações de update:** Feedback visual imediato
+- **Reordenação:** De 10 queries sequenciais para 10 paralelas (até 5x mais rápido)
+- **Experiência do usuário:** Sem "travamentos" visuais ao interagir
