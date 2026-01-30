@@ -22,6 +22,7 @@ import {
   EyeOff,
   Lock,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
   Edit,
   Trash2,
@@ -1050,12 +1051,22 @@ export default function AdminPage() {
             className="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col"
           >
             <div className="p-6 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <img src={goiasMinasLogo} alt="Goiás Minas" className="h-10 w-auto" />
-                <div>
-                  <h2 className="font-semibold text-gray-900">Admin</h2>
-                  <p className="text-xs text-gray-500">Goiás Minas</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img src={goiasMinasLogo} alt="Goiás Minas" className="h-10 w-auto" />
+                  <div>
+                    <h2 className="font-semibold text-gray-900">Admin</h2>
+                    <p className="text-xs text-gray-500">Goiás Minas</p>
+                  </div>
                 </div>
+                {/* Close button for mobile */}
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Fechar menu"
+                >
+                  <ChevronLeft className="w-5 h-5 text-gray-500" />
+                </button>
               </div>
             </div>
 
