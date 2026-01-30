@@ -640,9 +640,12 @@ export default function AdminPage() {
     setDraggedProductId(null);
   };
 
-  const handleDrop = async (e: React.DragEvent<HTMLTableRowElement>, targetProductId: number) => {
+  const handleDrop = (e: React.DragEvent<HTMLTableRowElement>, targetProductId: number) => {
     e.preventDefault();
-    if (draggedProductId === null || draggedProductId === targetProductId) return;
+    if (draggedProductId === null || draggedProductId === targetProductId) {
+      setDraggedProductId(null);
+      return;
+    }
 
     const schoolProducts = products.filter(p => p.school_slug === activeSchool);
     const currentOrder = schoolProducts.map(p => p.id);
@@ -650,51 +653,50 @@ export default function AdminPage() {
     const draggedIndex = currentOrder.indexOf(draggedProductId);
     const targetIndex = currentOrder.indexOf(targetProductId);
     
-    if (draggedIndex === -1 || targetIndex === -1) return;
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedProductId(null);
+      return;
+    }
 
-    // Reorder locally first for immediate UI feedback
+    // Reorder locally for INSTANT UI feedback
     const newOrder = [...currentOrder];
     newOrder.splice(draggedIndex, 1);
     newOrder.splice(targetIndex, 0, draggedProductId);
 
-    // Update local products state
+    // Update local products state IMMEDIATELY (no waiting)
     const reorderedProducts = products.map(p => {
       if (p.school_slug !== activeSchool) return p;
       const newIndex = newOrder.indexOf(p.id);
       return { ...p, display_order: newIndex + 1 };
     });
     setProducts(reorderedProducts);
+    setDraggedProductId(null);
 
-    // Save to database
-    setIsReordering(true);
-    try {
-      const token = getAdminToken();
-      if (!token) {
-        handleLogout();
-        return;
-      }
+    // Save to database in background (fire-and-forget with error handling)
+    const saveToDatabase = async () => {
+      try {
+        const token = getAdminToken();
+        if (!token) return;
 
-      const response = await supabase.functions.invoke('admin-data', {
-        body: { 
-          action: 'reorder_products',
-          token,
-          data: { productIds: newOrder, schoolSlug: activeSchool }
+        const response = await supabase.functions.invoke('admin-data', {
+          body: { 
+            action: 'reorder_products',
+            token,
+            data: { productIds: newOrder, schoolSlug: activeSchool }
+          }
+        });
+
+        if (response.error || response.data?.error) {
+          throw new Error(response.error?.message || response.data?.error);
         }
-      });
-
-      if (response.error || response.data?.error) {
-        throw new Error(response.error?.message || response.data?.error);
+      } catch (error) {
+        console.error("Error reordering products:", error);
+        toast.error("Erro ao salvar ordem. Recarregando...");
+        reloadSection('products');
       }
-
-      toast.success("Ordem dos produtos atualizada!");
-    } catch (error) {
-      console.error("Error reordering products:", error);
-      toast.error("Erro ao reordenar produtos");
-      reloadSection('products'); // Reload to restore original order
-    } finally {
-      setIsReordering(false);
-      setDraggedProductId(null);
-    }
+    };
+    
+    saveToDatabase();
   };
 
   const formatWhatsAppLink = (phone: string) => {
@@ -1244,7 +1246,7 @@ export default function AdminPage() {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="w-10 px-2 py-3"></th>
+                          <th className="w-16 px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">#</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
@@ -1253,11 +1255,11 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {products.filter(p => p.school_slug === activeSchool).map((product) => (
+                        {products.filter(p => p.school_slug === activeSchool).map((product, index) => (
                           <tr 
                             key={product.id} 
-                            className={`hover:bg-gray-50 transition-colors ${
-                              draggedProductId === product.id ? 'opacity-50 bg-blue-50' : ''
+                            className={`hover:bg-gray-50 transition-all duration-150 ${
+                              draggedProductId === product.id ? 'opacity-50 bg-blue-50 scale-[0.98]' : ''
                             }`}
                             draggable
                             onDragStart={(e) => handleDragStart(e, product.id)}
@@ -1265,12 +1267,13 @@ export default function AdminPage() {
                             onDragEnd={handleDragEnd}
                             onDrop={(e) => handleDrop(e, product.id)}
                           >
-                            <td className="w-10 px-2 py-4">
+                            <td className="w-16 px-2 py-4">
                               <div 
-                                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 transition-colors"
+                                className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 transition-colors"
                                 title="Arraste para reordenar"
                               >
                                 <GripVertical className="w-4 h-4 text-gray-400" />
+                                <span className="text-sm font-bold text-[#2e3091] min-w-[20px] text-center">{index + 1}</span>
                               </div>
                             </td>
                             <td className="px-6 py-4">
