@@ -47,6 +47,7 @@ export default function LojaEstiloOsklen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [queryProducts, setQueryProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(["Todos"]);
 
   // Fetch products from database
   useEffect(() => {
@@ -76,21 +77,15 @@ export default function LojaEstiloOsklen() {
         }));
         setProducts(mapped);
         setQueryProducts(mapped);
+        
+        // Extract unique categories from products
+        const uniqueCategories = [...new Set(data.map(p => p.category).filter(Boolean))] as string[];
+        setCategories(["Todos", ...uniqueCategories]);
       }
       setLoading(false);
     }
     fetchProducts();
   }, []);
-
-  const categories = [
-    "Todos",
-    "Camisas",
-    "Bermudas",
-    "Camisetas",
-    "Calças",
-    "Acessórios",
-    "Kits",
-  ];
 
   type SortOption = "default" | "price-low" | "price-high";
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
