@@ -1,159 +1,114 @@
 
-# Plano: Integração de Pix via Mercado Pago
+# Plano: Correções e Melhorias
 
-## Resumo
-
-Vamos adicionar o Pix como forma de pagamento no checkout, usando a API do Mercado Pago. O usuário verá o QR Code e o código "copia e cola" para pagar, junto com as opções existentes (Cartão/Boleto/Bolsa Uniforme).
-
-## O que o usuário vai ver
-
-1. **Na tela de pagamento**: Nova opção "Pix" com ícone verde do Pix
-2. **Ao selecionar Pix**: Botão "Pagar com Pix"
-3. **Tela de pagamento Pix**:
-   - QR Code grande e claro para escanear
-   - Código "copia e cola" com botão para copiar
-   - Valor e tempo de expiração
-   - Instruções simples de como pagar
-
-## Estrutura das Mudanças
-
-```text
-┌─────────────────────────────────────────────────┐
-│ Checkout - Formas de Pagamento                  │
-├─────────────────────────────────────────────────┤
-│ ○ Cartão de Crédito / Boleto  (Stripe)          │
-│ ○ Pix                         (Mercado Pago)    │
-│ ○ Bolsa Uniforme              (Manual)          │
-└─────────────────────────────────────────────────┘
-           │
-           ▼ (Se Pix selecionado)
-┌─────────────────────────────────────────────────┐
-│        Pague com Pix                            │
-│                                                 │
-│    ┌─────────────────────┐                      │
-│    │    [QR CODE]        │                      │
-│    │                     │                      │
-│    └─────────────────────┘                      │
-│                                                 │
-│    Código Pix (copia e cola):                   │
-│    ┌────────────────────────┬───────┐           │
-│    │ 00020126580014br.gov...│ Copiar│           │
-│    └────────────────────────┴───────┘           │
-│                                                 │
-│    Total: R$ 156,80                             │
-│    Expira em: 30 minutos                        │
-│                                                 │
-│    [ Já fiz o pagamento ]                       │
-└─────────────────────────────────────────────────┘
-```
-
-## Etapas de Implementação
-
-### 1. Configurar Secret do Mercado Pago
-- Adicionar `MERCADO_PAGO_ACCESS_TOKEN` nos secrets do projeto
-
-### 2. Criar Edge Function para Mercado Pago
-**Novo arquivo:** `supabase/functions/create-mercadopago-pix/index.ts`
-- Recebe dados do pedido (valor, email, itens)
-- Chama API do Mercado Pago POST `/v1/payments`
-- Retorna QR Code (imagem base64) e código "copia e cola"
-
-### 3. Criar Componente de Pagamento Pix
-**Novo arquivo:** `src/components/MercadoPagoPixPayment.tsx`
-- Modal/tela com QR Code e código copia e cola
-- Botão para copiar código
-- Timer de expiração
-- Polling para verificar se pagamento foi confirmado
-
-### 4. Atualizar Checkout
-**Arquivo:** `src/app/checkout/page.tsx`
-- Adicionar opção "Pix" na lista de pagamentos
-- Lógica para abrir componente de Pix quando selecionado
-
-### 5. Criar Webhook para confirmação
-**Novo arquivo:** `supabase/functions/mercadopago-webhook/index.ts`
-- Recebe notificação quando Pix é pago
-- Atualiza status do pedido no banco
-
-### 6. Atualizar Footer do Checkout
-**Arquivo:** `src/components/sections/checkout-footer.tsx`
-- Garantir que ícone Pix está visível
+Este plano corrige três áreas do sistema: pagamento Pix, galeria de imagens na vitrine, e reordenação de produtos no admin.
 
 ---
 
-## Detalhes Técnicos
+## 1. Pix via Mercado Pago - Correção do Erro 403
 
-### Edge Function: create-mercadopago-pix
+**Problema identificado nos logs:**
+O erro `PA_UNAUTHORIZED_RESULT_FROM_POLICIES` (status 403) indica que o Access Token de produção não tem autorização para criar pagamentos Pix.
 
-```text
-POST /create-mercadopago-pix
-Body: {
-  items: CartItem[],
-  customerEmail: string,
-  customerName: string,
-  cpf: string,
-  total: number,
-  userId: string
-}
+**Possíveis causas:**
+- A conta Mercado Pago não completou a habilitação para Pix em produção
+- O token não tem o escopo necessário (`payments:write`)
+- Verificação de identidade pendente na conta
 
-Response: {
-  paymentId: string,
-  qrCodeBase64: string,  // Imagem do QR Code
-  qrCode: string,        // Código copia e cola
-  expirationDate: string
-}
-```
+**Solução:**
+1. Orientar o usuário a verificar no painel do Mercado Pago:
+   - Acessar Configurações > Credenciais
+   - Verificar se Pix está habilitado para produção
+   - Gerar um novo Access Token com permissões de pagamento
 
-### API Mercado Pago para Pix
+2. Melhorar o tratamento de erro no código para mostrar mensagens mais claras
 
-```json
-POST https://api.mercadopago.com/v1/payments
-{
-  "transaction_amount": 100.00,
-  "payment_method_id": "pix",
-  "payer": {
-    "email": "cliente@email.com",
-    "identification": {
-      "type": "CPF",
-      "number": "12345678909"
-    }
-  }
-}
-```
-
-Resposta inclui:
-- `point_of_interaction.transaction_data.qr_code_base64` - imagem
-- `point_of_interaction.transaction_data.qr_code` - código texto
-
-### Componente MercadoPagoPixPayment
-
-Funcionalidades:
-- Exibe QR Code em tamanho grande
-- Botão "Copiar código Pix" que copia para área de transferência
-- Mostra tempo restante para pagar (30 min padrão)
-- Polling a cada 5 segundos para verificar se pagou
-- Ao confirmar pagamento: limpa carrinho e vai para página de sucesso
-
-### Webhook de confirmação
-
-- Mercado Pago envia notificação para `/mercadopago-webhook`
-- Verificamos assinatura de segurança
-- Atualizamos pedido para "paid" quando `status === "approved"`
+**Ação recomendada:** Antes de fazer alterações técnicas, é necessário verificar as configurações da conta no Mercado Pago. Se o problema for de habilitação, nenhuma mudança de código resolverá.
 
 ---
 
-## Arquivos a Criar/Modificar
+## 2. Galeria de Imagens na Vitrine (Grid)
 
-| Arquivo | Ação |
-|---------|------|
-| `supabase/functions/create-mercadopago-pix/index.ts` | Criar |
-| `supabase/functions/mercadopago-webhook/index.ts` | Criar |
-| `src/components/MercadoPagoPixPayment.tsx` | Criar |
-| `src/app/checkout/page.tsx` | Modificar |
-| `src/components/sections/checkout-footer.tsx` | Verificar |
-| `supabase/config.toml` | Modificar (adicionar functions) |
+**Problema:** Na página `/escolas/colegio-militar`, o código busca produtos do banco mas usa apenas `image_url` repetida 3 vezes, ignorando o array `images` que contém múltiplas fotos.
 
-## Dependências
+**Causa no código (linha ~65-72):**
+```text
+images: p.image_url ? [p.image_url, p.image_url, p.image_url] : []
+```
 
-- **Secret necessário:** `MERCADO_PAGO_ACCESS_TOKEN`
-- **Banco de dados:** Usaremos tabela `orders` existente com campo `payment_method: "pix"`
+**Solução:**
+Modificar a função `fetchProducts` para usar o array `images` do banco quando disponível:
+
+```text
+images: (p.images && p.images.length > 0) 
+  ? p.images 
+  : (p.image_url ? [p.image_url] : [])
+```
+
+Isso permitirá que as setinhas e o swipe funcionem corretamente navegando entre imagens diferentes.
+
+**Arquivo afetado:**
+- `src/app/escolas/colegio-militar/page.tsx`
+
+---
+
+## 3. Reordenação de Produtos por Arrastar e Soltar (Admin)
+
+**Objetivo:** Permitir que o administrador defina a ordem de exibição dos produtos por escola usando drag-and-drop.
+
+### Etapa 1: Adicionar coluna `display_order` na tabela `products`
+
+**Migração SQL:**
+```text
+ALTER TABLE products
+ADD COLUMN display_order INTEGER DEFAULT 0;
+
+-- Inicializar com ordem baseada no ID
+UPDATE products SET display_order = id WHERE display_order = 0;
+```
+
+### Etapa 2: Atualizar a busca de produtos para usar ordem
+
+**Arquivos afetados:**
+- `supabase/functions/admin-data/index.ts` - ordenar por `display_order`
+- `src/app/escolas/colegio-militar/page.tsx` - ordenar por `display_order`
+
+### Etapa 3: Implementar drag-and-drop no admin
+
+**Biblioteca:** Usar HTML5 Drag and Drop nativo (sem dependências extras)
+
+**Mudanças no admin:**
+- Adicionar ícone de "arrastar" (grip) ao lado de cada produto
+- Implementar handlers `onDragStart`, `onDragOver`, `onDrop`
+- Ao soltar, calcular nova ordem e salvar no banco
+
+**Nova ação na Edge Function `admin-data`:**
+- `reorder_products`: recebe array de IDs na nova ordem e atualiza `display_order`
+
+**Arquivos afetados:**
+- `src/app/admin/page.tsx` - UI de drag-and-drop
+- `supabase/functions/admin-data/index.ts` - nova ação de reordenação
+
+---
+
+## Resumo de Arquivos
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/migrations/*.sql` | Adicionar coluna `display_order` |
+| `src/app/escolas/colegio-militar/page.tsx` | Corrigir mapeamento de imagens + ordenar por `display_order` |
+| `src/app/admin/page.tsx` | Adicionar drag-and-drop na tabela de produtos |
+| `supabase/functions/admin-data/index.ts` | Adicionar ação `reorder_products` + ordenar por `display_order` |
+
+---
+
+## Sobre o Pix
+
+Para o Pix funcionar, é necessário que você verifique no seu painel do Mercado Pago:
+
+1. Acesse: https://www.mercadopago.com.br/settings/account/credentials
+2. Verifique se a opção "Pix" está habilitada para produção
+3. Se necessário, complete a verificação de identidade da conta
+4. Gere um novo Access Token de produção
+
+Se após essas verificações o erro persistir, pode ser necessário atualizar o token no sistema.
