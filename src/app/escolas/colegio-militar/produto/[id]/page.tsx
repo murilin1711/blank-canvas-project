@@ -86,6 +86,9 @@ export default function DynamicProductPage() {
     }
   }
 
+  // Get similar products from the product data
+  const similarProductIds = product.similar_products || [];
+
   return (
     <ProductPage
       schoolName="Colégio Militar"
@@ -95,6 +98,7 @@ export default function DynamicProductPage() {
       images={productImages.length > 0 ? productImages : ["https://via.placeholder.com/400"]}
       sizes={productSizes}
       productId={product.id}
+      similarProductIds={similarProductIds}
     />
   );
 }

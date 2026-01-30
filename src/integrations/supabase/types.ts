@@ -322,6 +322,7 @@ export type Database = {
           name: string
           price: number
           school_slug: string
+          similar_products: number[] | null
           sizes: string[] | null
           updated_at: string
           variations: Json | null
@@ -338,6 +339,7 @@ export type Database = {
           name: string
           price: number
           school_slug: string
+          similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
           variations?: Json | null
@@ -354,6 +356,7 @@ export type Database = {
           name?: string
           price?: number
           school_slug?: string
+          similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
           variations?: Json | null

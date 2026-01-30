@@ -1842,6 +1842,7 @@ export default function AdminPage() {
         onSave={handleSaveProduct}
         editingProduct={editingProduct}
         availableCategories={availableCategories}
+        allProducts={products}
       />
 
       {/* Feedback Modal */}

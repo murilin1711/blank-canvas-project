@@ -7,9 +7,11 @@ import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
+import SimilarProducts from "@/components/sections/SimilarProducts";
 import ectomorphImg from "@/assets/body-types/ectomorph.png";
 import mesomorphImg from "@/assets/body-types/mesomorph.png";
 import endomorphImg from "@/assets/body-types/endomorph.png";
+
 interface ProductPageProps {
   schoolName: string;
   productName: string;
@@ -18,6 +20,7 @@ interface ProductPageProps {
   images: string[];
   sizes?: string[];
   productId?: number;
+  similarProductIds?: number[];
 }
 
 export default function ProductPage({
@@ -28,6 +31,7 @@ export default function ProductPage({
   images,
   sizes = ["PP", "P", "M", "G", "GG"],
   productId = 1,
+  similarProductIds = [],
 }: ProductPageProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
@@ -564,6 +568,15 @@ export default function ProductPage({
       </AnimatePresence>
 
       <LoginRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+      {/* Similar Products Section */}
+      {similarProductIds.length > 0 && (
+        <SimilarProducts
+          productIds={similarProductIds}
+          schoolSlug={schoolSlug}
+          currentProductId={productId}
+        />
+      )}
 
       <Footer />
     </main>

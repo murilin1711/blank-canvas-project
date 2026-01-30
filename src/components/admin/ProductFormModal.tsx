@@ -19,6 +19,7 @@ interface ProductFormData {
   variations: Variation[];
   is_active: boolean;
   school_slug: string;
+  similar_products: number[];
 }
 
 interface ProductFormModalProps {
@@ -27,6 +28,7 @@ interface ProductFormModalProps {
   onSave: (data: any, isNew: boolean) => void;
   editingProduct: any | null;
   availableCategories?: string[];
+  allProducts?: { id: number; name: string; image_url?: string | null; images?: string[] | null }[];
 }
 
 export default function ProductFormModal({
@@ -35,6 +37,7 @@ export default function ProductFormModal({
   onSave,
   editingProduct,
   availableCategories = [],
+  allProducts = [],
 }: ProductFormModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,6 +54,7 @@ export default function ProductFormModal({
         variations: editingProduct.variations || [],
         is_active: editingProduct.is_active !== false,
         school_slug: editingProduct.school_slug || "colegio-militar",
+        similar_products: editingProduct.similar_products || [],
       };
     }
     return {
@@ -62,6 +66,7 @@ export default function ProductFormModal({
       variations: [],
       is_active: true,
       school_slug: "colegio-militar",
+      similar_products: [],
     };
   };
 
@@ -208,6 +213,7 @@ export default function ProductFormModal({
         )?.options || ["P", "M", "G", "GG"],
         is_active: form.is_active,
         school_slug: form.school_slug,
+        similar_products: form.similar_products,
       };
 
       if (editingProduct) {
@@ -498,6 +504,79 @@ export default function ProductFormModal({
                 Adicione variações como "Tamanho" com opções PP, P, M, G, GG ou "Número" com 36, 37, 38, etc.
               </p>
             )}
+          </div>
+
+          {/* Similar Products */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Produtos Similares
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Selecione os produtos que aparecerão na seção "Similares" desta página de produto.
+            </p>
+            
+            {/* Selected similar products */}
+            {form.similar_products.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {form.similar_products.map((productId) => {
+                  const product = allProducts.find(p => p.id === productId);
+                  if (!product) return null;
+                  const productImage = product.images?.[0] || product.image_url;
+                  return (
+                    <div
+                      key={productId}
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg"
+                    >
+                      {productImage && (
+                        <img
+                          src={productImage}
+                          alt={product.name}
+                          className="w-8 h-8 object-cover rounded"
+                        />
+                      )}
+                      <span className="text-sm text-gray-700 max-w-[150px] truncate">
+                        {product.name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({
+                          ...prev,
+                          similar_products: prev.similar_products.filter(id => id !== productId)
+                        }))}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Dropdown to add similar products */}
+            <select
+              value=""
+              onChange={(e) => {
+                const productId = parseInt(e.target.value);
+                if (productId && !form.similar_products.includes(productId)) {
+                  setForm(prev => ({
+                    ...prev,
+                    similar_products: [...prev.similar_products, productId]
+                  }));
+                }
+              }}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091] bg-white"
+            >
+              <option value="">Adicionar produto similar...</option>
+              {allProducts
+                .filter(p => p.id !== editingProduct?.id && !form.similar_products.includes(p.id))
+                .map(product => (
+                  <option key={product.id} value={product.id}>
+                    {product.name}
+                  </option>
+                ))
+              }
+            </select>
           </div>
 
           {/* Active toggle */}
