@@ -1,57 +1,49 @@
 
-# Plano: Otimização de Performance do Admin
+
+# Plano: Correções na Interface de Reordenação e Performance
 
 ## Problemas Identificados
 
-### 1. Recarregamento Completo Após Cada Ação
-Atualmente, após qualquer ação (salvar produto, reordenar, atualizar feedback), o código chama `loadData()` que recarrega **TODAS** as seções:
-- Bolsa Uniforme
-- Pedidos  
-- Produtos
-- Feedbacks
-- Clientes
+### 1. Texto Incorreto
+A mensagem ainda diz "Arraste ou **digite o número** para reordenar" mas a funcionalidade de digitar foi removida.
 
-Isso causa delays desnecessários porque busca dados que não mudaram.
+### 2. Botão "Atualizar" Desnecessário  
+Após arrastar e soltar, aparece a mensagem de sucesso mas o usuário precisa clicar em "Atualizar" para ver a nova ordem. Isso não deveria acontecer - a atualização já está sendo feita localmente de forma otimista.
 
-### 2. Reordenação Sequencial no Backend
-O `reorder_products` faz UPDATE um por um em loop:
-```text
-for (let i = 0; i < productIds.length; i++) {
-  await supabase.update({ display_order: i + 1 }).eq("id", productIds[i])
-}
-```
-Com 10 produtos, são 10 queries sequenciais ao banco.
-
-### 3. Falta de Atualização Local Otimista
-Apesar de ter código de atualização local (linhas 598-603), outras ações não usam isso.
+### 3. Demora no Carregamento Inicial
+Quando entra no admin, carrega TODAS as seções (bolsa, pedidos, produtos, feedbacks, clientes) ao mesmo tempo, mesmo que o usuário só vá ver uma aba.
 
 ---
 
 ## Solução Proposta
 
-### Parte 1: Carregar Seções Sob Demanda
+### Parte 1: Corrigir Texto da Instrução
 
-Ao invés de carregar tudo no login, carregar apenas a seção ativa:
-- Quando muda de aba, carrega os dados daquela aba (se ainda não carregados)
-- Ações de update usam atualização local otimista + reload apenas da seção afetada
-
-### Parte 2: Atualização Local Otimista
-
-Após cada ação bem-sucedida:
-- Atualizar o estado local imediatamente
-- Não chamar `loadData()` completo
-- Se necessário recarregar, só recarrega a seção específica
-
-### Parte 3: Batch Update no Backend
-
-Trocar o loop sequencial por uma única query com CASE/WHEN:
+Alterar de:
 ```text
-UPDATE products SET display_order = CASE
-  WHEN id = 1 THEN 1
-  WHEN id = 2 THEN 2
-  ...
-END WHERE id IN (1, 2, ...);
+Arraste ou digite o número para reordenar • Salva automaticamente
 ```
+
+Para:
+```text
+Arraste para reordenar • Salva automaticamente
+```
+
+### Parte 2: Tornar Reordenação Verdadeiramente Instantânea
+
+O código atual já faz atualização local otimista (linhas 667-672), mas verificarei se há algum problema na ordenação do array após o `setProducts`.
+
+**Possível causa**: Os produtos estão sendo ordenados por `display_order` no render, mas após a atualização local, a lista pode não estar re-renderizando na ordem correta.
+
+**Solução**: Garantir que a lista de produtos filtrada pela escola seja ordenada por `display_order` antes de renderizar.
+
+### Parte 3: Carregamento Sob Demanda por Aba
+
+Ao invés de carregar tudo no `loadData()`, carregar apenas a aba ativa:
+
+- Quando muda de aba, verifica se os dados já foram carregados
+- Se não, carrega apenas aquela seção
+- Mantém botão "Atualizar" mas ele só recarrega a seção atual (não tudo)
 
 ---
 
@@ -59,75 +51,58 @@ END WHERE id IN (1, 2, ...);
 
 ### Arquivo: `src/app/admin/page.tsx`
 
-**1. Adicionar funções de reload por seção:**
+**1. Corrigir texto (linha 1231):**
 ```text
-const reloadSection = async (section: 'products' | 'feedbacks' | 'orders' | 'bolsa' | 'customers') => {
-  // Carrega apenas a seção específica
-}
+// De:
+Arraste ou digite o número para reordenar • Salva automaticamente
+
+// Para:
+Arraste para reordenar • Salva automaticamente
 ```
 
-**2. Modificar handlers para usar atualização otimista:**
-
+**2. Ordenar produtos por display_order no render (linha 1253):**
 ```text
-// Exemplo para salvar produto
-const handleSaveProduct = async (productData, isNew) => {
-  // ... salvar no backend ...
-  
-  // Atualização otimista local
-  if (isNew) {
-    setProducts(prev => [...prev, { ...productData, id: Date.now() }]);
-  } else {
-    setProducts(prev => prev.map(p => p.id === productData.id ? productData : p));
-  }
-  
-  // Recarrega só produtos (não tudo)
-  reloadSection('products');
-}
+// Adicionar sort por display_order
+{products
+  .filter(p => p.school_slug === activeSchool)
+  .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+  .map((product, index) => (
 ```
 
-**3. Remover chamadas desnecessárias de `loadData()`:**
-- `updatePaymentStatus` -> reload só bolsa
-- `toggleFeedbackVisibility` -> atualização local + reload só feedbacks
-- `saveFeedback` -> atualização local
-- `deleteProduct` -> atualização local
-- `handleDrop` (reordenar) -> já faz local, remover reload
-
-### Arquivo: `supabase/functions/admin-data/index.ts`
-
-**1. Otimizar `reorder_products` com batch update:**
-
-Usar `Promise.all` para fazer todas as atualizações em paralelo ao invés de sequencial:
+**3. Adicionar estado para controlar quais seções já foram carregadas:**
 ```text
-case 'reorder_products': {
-  const { productIds, schoolSlug } = data;
-  
-  // Atualização em paralelo
-  await Promise.all(productIds.map((id, index) => 
-    supabase.from("products")
-      .update({ display_order: index + 1 })
-      .eq("id", id)
-      .eq("school_slug", schoolSlug)
-  ));
-  
-  result = { success: true };
-  break;
-}
+const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
+```
+
+**4. Modificar loadData para carregar apenas seção ativa:**
+```text
+// Ao entrar no admin, carregar apenas a aba ativa (pedidos por padrão)
+// Quando trocar de aba, carregar sob demanda
+```
+
+**5. Modificar botão Atualizar para recarregar só a seção atual:**
+```text
+// Ao invés de loadData(), usar reloadSection(activeTab)
 ```
 
 ---
 
-## Resumo de Arquivos
+## Resumo de Alterações
 
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/app/admin/page.tsx` | Atualização otimista + reload por seção |
-| `supabase/functions/admin-data/index.ts` | Batch update paralelo para reordenação |
+| Linha | Alteração |
+|-------|-----------|
+| 1231 | Remover "ou digite o número" do texto |
+| 1253 | Adicionar `.sort()` por `display_order` |
+| 982-988 | Botão Atualizar → recarrega só seção atual |
+| 338-360 | loadData → carregar só aba ativa inicialmente |
+| Novo | useEffect para carregar aba quando mudar |
 
 ---
 
-## Resultados Esperados
+## Resultado Esperado
 
-- **Carregamento inicial:** Mais rápido (só carrega aba ativa)
-- **Ações de update:** Feedback visual imediato
-- **Reordenação:** De 10 queries sequenciais para 10 paralelas (até 5x mais rápido)
-- **Experiência do usuário:** Sem "travamentos" visuais ao interagir
+- **Carregamento inicial**: Muito mais rápido (só carrega "Pedidos")
+- **Troca de abas**: Carrega a seção sob demanda (com skeleton)
+- **Reordenação**: Instantânea, sem precisar clicar em Atualizar
+- **Animação**: Produtos deslizam suavemente para nova posição
+
