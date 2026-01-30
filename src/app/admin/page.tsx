@@ -156,6 +156,9 @@ export default function AdminPage() {
   const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
 
+  // Track which sections have been loaded (for on-demand loading)
+  const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
+
   // Data states
   const [bolsaPayments, setBolsaPayments] = useState<BolsaUniformePayment[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -335,28 +338,41 @@ export default function AdminPage() {
     if (data) config.setter(data[config.key] || []);
   };
 
+  // Map tab to section key
+  const tabToSection: Record<Tab, 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers' | null> = {
+    'pedidos': 'orders',
+    'bolsa-uniforme': 'bolsa',
+    'produtos': 'products',
+    'feedbacks': 'feedbacks',
+    'financeiro': 'orders', // Financeiro uses orders data
+    'clientes': 'customers',
+  };
+
+  // Load section on demand when tab changes
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const section = tabToSection[activeTab];
+    if (!section) return;
+    
+    // Don't reload if already loaded
+    if (loadedSections.has(section)) return;
+    
+    reloadSection(section);
+    setLoadedSections(prev => new Set(prev).add(section));
+  }, [activeTab, isAuthenticated]);
+
+  // Initial load - only load the default tab (pedidos)
   const loadData = async () => {
-    // Load all sections in parallel with individual loaders
-    setLoadingBolsa(true);
-    setLoadingOrders(true);
-    setLoadingProducts(true);
-    setLoadingFeedbacks(true);
-    setLoadingCustomers(true);
-
-    // Start all fetches in parallel
-    const [bolsaData, ordersData, productsData, feedbacksData, customersData] = await Promise.all([
-      loadSection('get_bolsa_payments').finally(() => setLoadingBolsa(false)),
-      loadSection('get_orders').finally(() => setLoadingOrders(false)),
-      loadSection('get_products').finally(() => setLoadingProducts(false)),
-      loadSection('get_feedbacks').finally(() => setLoadingFeedbacks(false)),
-      loadSection('get_customers').finally(() => setLoadingCustomers(false)),
-    ]);
-
-    if (bolsaData) setBolsaPayments(bolsaData.bolsaPayments || []);
-    if (ordersData) setOrders(ordersData.orders || []);
-    if (productsData) setProducts(productsData.products || []);
-    if (feedbacksData) setFeedbacks(feedbacksData.feedbacks || []);
-    if (customersData) setCustomers(customersData.customers || []);
+    // Reset loaded sections
+    setLoadedSections(new Set());
+    
+    // Only load the current active section
+    const section = tabToSection[activeTab];
+    if (section) {
+      await reloadSection(section);
+      setLoadedSections(new Set([section]));
+    }
   };
 
   const isLoading = loadingBolsa || loadingOrders || loadingProducts || loadingFeedbacks || loadingCustomers;
@@ -979,7 +995,10 @@ export default function AdminPage() {
           </div>
 
           <button
-            onClick={loadData}
+            onClick={() => {
+              const section = tabToSection[activeTab];
+              if (section) reloadSection(section);
+            }}
             disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
@@ -1228,7 +1247,7 @@ export default function AdminPage() {
                 <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
                   <p className="text-xs text-gray-500">
                     <GripVertical className="w-3 h-3 inline mr-1" />
-                    Arraste ou digite o número para reordenar • Salva automaticamente
+                    Arraste para reordenar • Salva automaticamente
                   </p>
                 </div>
                 {products.filter(p => p.school_slug === activeSchool).length === 0 ? (
@@ -1250,7 +1269,10 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {products.filter(p => p.school_slug === activeSchool).map((product, index) => (
+                        {products
+                          .filter(p => p.school_slug === activeSchool)
+                          .sort((a, b) => ((a as any).display_order || 0) - ((b as any).display_order || 0))
+                          .map((product, index) => (
                           <motion.tr 
                             key={product.id}
                             layout
