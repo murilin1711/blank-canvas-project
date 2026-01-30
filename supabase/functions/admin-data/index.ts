@@ -76,7 +76,7 @@ serve(async (req: Request) => {
           .from("products")
           .select("*")
           .order("school_slug", { ascending: true })
-          .order("name", { ascending: true });
+          .order("display_order", { ascending: true });
         
         if (error) throw error;
         result = { products: products || [] };
@@ -267,6 +267,21 @@ serve(async (req: Request) => {
         const { id } = data;
         const { error } = await supabase.from("products").delete().eq("id", id);
         if (error) throw error;
+        result = { success: true };
+        break;
+      }
+
+      case 'reorder_products': {
+        const { productIds, schoolSlug } = data;
+        // Update display_order for each product based on new order
+        for (let i = 0; i < productIds.length; i++) {
+          const { error } = await supabase
+            .from("products")
+            .update({ display_order: i + 1 })
+            .eq("id", productIds[i])
+            .eq("school_slug", schoolSlug);
+          if (error) throw error;
+        }
         result = { success: true };
         break;
       }

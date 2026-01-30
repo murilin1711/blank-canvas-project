@@ -56,7 +56,8 @@ export default function LojaEstiloOsklen() {
         .from("products")
         .select("*")
         .eq("school_slug", "colegio-militar")
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
       
       if (error) {
         console.error("Error fetching products:", error);
@@ -66,7 +67,10 @@ export default function LojaEstiloOsklen() {
           id: p.id,
           name: p.name,
           price: Number(p.price),
-          images: p.image_url ? [p.image_url, p.image_url, p.image_url] : [],
+          // Use images array from database, fallback to image_url
+          images: (p.images && p.images.length > 0) 
+            ? p.images 
+            : (p.image_url ? [p.image_url] : []),
           category: p.category || "Outros",
           sizes: p.sizes || ["P", "M", "G", "GG"],
         }));

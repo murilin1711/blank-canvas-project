@@ -314,6 +314,7 @@ export type Database = {
           category: string | null
           created_at: string
           description: string | null
+          display_order: number | null
           id: number
           image_url: string | null
           images: string[] | null
@@ -329,6 +330,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number | null
           id?: number
           image_url?: string | null
           images?: string[] | null
@@ -344,6 +346,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           description?: string | null
+          display_order?: number | null
           id?: number
           image_url?: string | null
           images?: string[] | null
