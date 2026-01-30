@@ -318,6 +318,23 @@ export default function AdminPage() {
     }
   };
 
+  // Reload specific section only (for optimistic updates)
+  const reloadSection = async (section: 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers') => {
+    const sectionMap = {
+      bolsa: { action: 'get_bolsa_payments', setter: setBolsaPayments, key: 'bolsaPayments', loader: setLoadingBolsa },
+      orders: { action: 'get_orders', setter: setOrders, key: 'orders', loader: setLoadingOrders },
+      products: { action: 'get_products', setter: setProducts, key: 'products', loader: setLoadingProducts },
+      feedbacks: { action: 'get_feedbacks', setter: setFeedbacks, key: 'feedbacks', loader: setLoadingFeedbacks },
+      customers: { action: 'get_customers', setter: setCustomers, key: 'customers', loader: setLoadingCustomers },
+    };
+
+    const config = sectionMap[section];
+    config.loader(true);
+    const data = await loadSection(config.action);
+    config.loader(false);
+    if (data) config.setter(data[config.key] || []);
+  };
+
   const loadData = async () => {
     // Load all sections in parallel with individual loaders
     setLoadingBolsa(true);
@@ -345,6 +362,9 @@ export default function AdminPage() {
   const isLoading = loadingBolsa || loadingOrders || loadingProducts || loadingFeedbacks || loadingCustomers;
 
   const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
+    // Optimistic update
+    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+    
     try {
       const token = getAdminToken();
       if (!token) {
@@ -365,14 +385,17 @@ export default function AdminPage() {
       }
       
       toast.success(status === "approved" ? "Pagamento aprovado!" : "Pagamento rejeitado");
-      loadData();
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Erro ao atualizar pagamento");
+      reloadSection('bolsa'); // Restore on error
     }
   };
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
+    // Optimistic update
+    setFeedbacks(prev => prev.map(f => f.id === id ? { ...f, is_visible: !currentVisibility } : f));
+    
     try {
       const token = getAdminToken();
       if (!token) {
@@ -393,10 +416,10 @@ export default function AdminPage() {
       }
       
       toast.success(!currentVisibility ? "Feedback visível no site!" : "Feedback ocultado");
-      loadData();
     } catch (error) {
       console.error("Error updating feedback:", error);
       toast.error("Erro ao atualizar feedback");
+      reloadSection('feedbacks'); // Restore on error
     }
   };
 
@@ -426,6 +449,25 @@ export default function AdminPage() {
       return;
     }
 
+    const tempId = editingFeedback?.id || `temp-${Date.now()}`;
+    const newFeedback: Feedback = {
+      id: tempId,
+      user_id: editingFeedback?.user_id || '00000000-0000-0000-0000-000000000000',
+      user_name: feedbackForm.user_name,
+      rating: feedbackForm.rating,
+      comment: feedbackForm.comment,
+      created_at: editingFeedback?.created_at || new Date().toISOString(),
+      is_visible: editingFeedback?.is_visible ?? true
+    };
+
+    // Optimistic update
+    if (editingFeedback) {
+      setFeedbacks(prev => prev.map(f => f.id === editingFeedback.id ? newFeedback : f));
+    } else {
+      setFeedbacks(prev => [newFeedback, ...prev]);
+    }
+    setShowFeedbackModal(false);
+
     try {
       const token = getAdminToken();
       if (!token) {
@@ -451,16 +493,21 @@ export default function AdminPage() {
       }
 
       toast.success(editingFeedback ? "Feedback atualizado!" : "Feedback criado!");
-      setShowFeedbackModal(false);
-      loadData();
+      // Reload to get the real ID for new feedbacks
+      if (!editingFeedback) reloadSection('feedbacks');
     } catch (error) {
       console.error("Error saving feedback:", error);
       toast.error("Erro ao salvar feedback");
+      reloadSection('feedbacks'); // Restore on error
     }
   };
 
   const deleteFeedback = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este feedback?")) return;
+
+    // Optimistic update
+    const previousFeedbacks = feedbacks;
+    setFeedbacks(prev => prev.filter(f => f.id !== id));
 
     try {
       const token = getAdminToken();
@@ -482,10 +529,10 @@ export default function AdminPage() {
       }
 
       toast.success("Feedback excluído!");
-      loadData();
     } catch (error) {
       console.error("Error deleting feedback:", error);
       toast.error("Erro ao excluir feedback");
+      setFeedbacks(previousFeedbacks); // Restore on error
     }
   };
 
@@ -500,6 +547,17 @@ export default function AdminPage() {
   };
 
   const handleSaveProduct = async (productData: any, isNew: boolean) => {
+    // Close modal immediately for better UX
+    setShowProductModal(false);
+    
+    // Optimistic update
+    if (isNew) {
+      const tempProduct = { ...productData, id: Date.now() };
+      setProducts(prev => [...prev, tempProduct]);
+    } else {
+      setProducts(prev => prev.map(p => p.id === productData.id ? { ...p, ...productData } : p));
+    }
+
     try {
       const token = getAdminToken();
       if (!token) {
@@ -523,16 +581,21 @@ export default function AdminPage() {
       }
 
       toast.success(isNew ? "Produto criado!" : "Produto atualizado!");
-      setShowProductModal(false);
-      loadData();
+      // Reload to get the real ID for new products
+      if (isNew) reloadSection('products');
     } catch (error) {
       console.error("Error saving product:", error);
       toast.error("Erro ao salvar produto");
+      reloadSection('products'); // Restore on error
     }
   };
 
   const deleteProduct = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este produto?")) return;
+
+    // Optimistic update
+    const previousProducts = products;
+    setProducts(prev => prev.filter(p => p.id !== id));
 
     try {
       const token = getAdminToken();
@@ -554,10 +617,10 @@ export default function AdminPage() {
       }
 
       toast.success("Produto excluído!");
-      loadData();
     } catch (error) {
       console.error("Error deleting product:", error);
       toast.error("Erro ao excluir produto");
+      setProducts(previousProducts); // Restore on error
     }
   };
 
@@ -627,7 +690,7 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error reordering products:", error);
       toast.error("Erro ao reordenar produtos");
-      loadData(); // Reload to restore original order
+      reloadSection('products'); // Reload to restore original order
     } finally {
       setIsReordering(false);
       setDraggedProductId(null);
