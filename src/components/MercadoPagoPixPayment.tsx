@@ -60,7 +60,7 @@ export function MercadoPagoPixPayment({
     orderId?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<number>(30 * 60); // 30 minutes
+  const [timeRemaining, setTimeRemaining] = useState<number>(10 * 60); // 10 minutes
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
   // Create Pix payment
@@ -93,13 +93,13 @@ export function MercadoPagoPixPayment({
       setPaymentData(data);
       
       // Calculate time remaining based on expiration date
-      // Mercado Pago returns 24h expiration, but we cap at 30min for better UX
+      // Mercado Pago returns 24h expiration, but we cap at 10min for better UX
       if (data.expirationDate) {
         const expirationTime = new Date(data.expirationDate).getTime();
         const now = Date.now();
         const remaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
-        // Cap at 30 minutes (1800 seconds) for display purposes
-        setTimeRemaining(Math.min(remaining, 30 * 60));
+        // Cap at 10 minutes (600 seconds) for display purposes
+        setTimeRemaining(Math.min(remaining, 10 * 60));
       }
     } catch (err) {
       console.error("Error creating Pix payment:", err);
