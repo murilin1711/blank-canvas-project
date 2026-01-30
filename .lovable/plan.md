@@ -1,108 +1,88 @@
 
+# Plano: Novo Rodapé Estilo Osklen Adaptado
 
-# Plano: Correções na Interface de Reordenação e Performance
+## Resumo
+Redesenhar o rodapé principal (`footer.tsx`) seguindo o layout das imagens de referência, com seções organizadas em colunas e uma barra inferior com informações da empresa.
 
-## Problemas Identificados
+## Estrutura do Novo Rodapé
 
-### 1. Texto Incorreto
-A mensagem ainda diz "Arraste ou **digite o número** para reordenar" mas a funcionalidade de digitar foi removida.
-
-### 2. Botão "Atualizar" Desnecessário  
-Após arrastar e soltar, aparece a mensagem de sucesso mas o usuário precisa clicar em "Atualizar" para ver a nova ordem. Isso não deveria acontecer - a atualização já está sendo feita localmente de forma otimista.
-
-### 3. Demora no Carregamento Inicial
-Quando entra no admin, carrega TODAS as seções (bolsa, pedidos, produtos, feedbacks, clientes) ao mesmo tempo, mesmo que o usuário só vá ver uma aba.
-
----
-
-## Solução Proposta
-
-### Parte 1: Corrigir Texto da Instrução
-
-Alterar de:
 ```text
-Arraste ou digite o número para reordenar • Salva automaticamente
+┌─────────────────────────────────────────────────────────────────────────┐
+│                                                                         │
+│  [Logo Goiás Minas]                                                     │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  Políticas           Minha conta        Fale conosco    Redes sociais   │
+│  ─────────           ───────────        ────────────    ──────────────  │
+│  Prazo de entrega    Meus pedidos       Central de      Instagram       │
+│  Trocas & Devoluções Meus dados         atendimento     Facebook        │
+│  Formas de pagamento Meu perfil         Fale conosco    Email           │
+│  Termos e condições                                                     │
+│  Privacidade &                                                          │
+│  Segurança                                                              │
+│  Ética e                                                                │
+│  Sustentabilidade                                                       │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Goiás Minas Uniformes Ind. e Com.de Unif. Esc. e Emp. S/A              │
+│  CNPJ 01.184.449/0001-10 Rua Guimarães Natal, 50. Setor Central.        │
+│  GO Brasil. CEP 75040030.                                               │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-Para:
-```text
-Arraste para reordenar • Salva automaticamente
-```
+## Alterações a Implementar
 
-### Parte 2: Tornar Reordenação Verdadeiramente Instantânea
+### 1. Adicionar Nova Estrutura de Colunas
+Criar um grid responsivo com 4 colunas (2 em mobile) contendo:
 
-O código atual já faz atualização local otimista (linhas 667-672), mas verificarei se há algum problema na ordenação do array após o `setProducts`.
+**Coluna 1 - Políticas:**
+- Prazo de entrega
+- Trocas & Devoluções  
+- Formas de pagamento
+- Termos e condições
+- Privacidade & Segurança
+- Ética e Sustentabilidade
 
-**Possível causa**: Os produtos estão sendo ordenados por `display_order` no render, mas após a atualização local, a lista pode não estar re-renderizando na ordem correta.
+**Coluna 2 - Minha conta:**
+- Meus pedidos (`/meus-pedidos`)
+- Meus dados
+- Meu perfil
 
-**Solução**: Garantir que a lista de produtos filtrada pela escola seja ordenada por `display_order` antes de renderizar.
+**Coluna 3 - Fale conosco:**
+- Central de atendimento
+- Fale conosco
 
-### Parte 3: Carregamento Sob Demanda por Aba
+**Coluna 4 - Redes sociais:**
+- Instagram (link: https://www.instagram.com/goiasminas/)
+- Facebook (link: https://www.facebook.com/p/Goiás-Minas-Uniformes-100075856991982/)
+- Email (link: mailto:suporte@goiasminas.com)
 
-Ao invés de carregar tudo no `loadData()`, carregar apenas a aba ativa:
+### 2. Barra Inferior
+Adicionar uma barra com fundo levemente mais escuro contendo:
+> "Goiás Minas Uniformes Ind. e Com.de Unif. Esc. e Emp. S/A CNPJ 01.184.449/0001-10 Rua Guimarães Natal, 50. Setor Central. GO Brasil. CEP 75040030."
 
-- Quando muda de aba, verifica se os dados já foram carregados
-- Se não, carrega apenas aquela seção
-- Mantém botão "Atualizar" mas ele só recarrega a seção atual (não tudo)
+### 3. Manter Elementos Existentes
+- Logo Goiás Minas no topo
+- Cor de fundo `#f8f8f8`
+- Tipografia consistente com o resto do site
 
----
+## Detalhes Técnicos
 
-## Mudanças no Código
+### Links das Redes Sociais
+- **Instagram:** `https://www.instagram.com/goiasminas/`
+- **Facebook:** `https://www.facebook.com/p/Goiás-Minas-Uniformes-100075856991982/`
+- **Email:** `mailto:suporte@goiasminas.com`
 
-### Arquivo: `src/app/admin/page.tsx`
+### Layout Responsivo
+- **Desktop (lg+):** Grid de 4 colunas
+- **Tablet (md):** Grid de 2 colunas
+- **Mobile:** Stack vertical
 
-**1. Corrigir texto (linha 1231):**
-```text
-// De:
-Arraste ou digite o número para reordenar • Salva automaticamente
+### Arquivo a Modificar
+- `src/components/sections/footer.tsx`
 
-// Para:
-Arraste para reordenar • Salva automaticamente
-```
-
-**2. Ordenar produtos por display_order no render (linha 1253):**
-```text
-// Adicionar sort por display_order
-{products
-  .filter(p => p.school_slug === activeSchool)
-  .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-  .map((product, index) => (
-```
-
-**3. Adicionar estado para controlar quais seções já foram carregadas:**
-```text
-const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
-```
-
-**4. Modificar loadData para carregar apenas seção ativa:**
-```text
-// Ao entrar no admin, carregar apenas a aba ativa (pedidos por padrão)
-// Quando trocar de aba, carregar sob demanda
-```
-
-**5. Modificar botão Atualizar para recarregar só a seção atual:**
-```text
-// Ao invés de loadData(), usar reloadSection(activeTab)
-```
-
----
-
-## Resumo de Alterações
-
-| Linha | Alteração |
-|-------|-----------|
-| 1231 | Remover "ou digite o número" do texto |
-| 1253 | Adicionar `.sort()` por `display_order` |
-| 982-988 | Botão Atualizar → recarrega só seção atual |
-| 338-360 | loadData → carregar só aba ativa inicialmente |
-| Novo | useEffect para carregar aba quando mudar |
-
----
-
-## Resultado Esperado
-
-- **Carregamento inicial**: Muito mais rápido (só carrega "Pedidos")
-- **Troca de abas**: Carrega a seção sob demanda (com skeleton)
-- **Reordenação**: Instantânea, sem precisar clicar em Atualizar
-- **Animação**: Produtos deslizam suavemente para nova posição
-
+### Estilização
+- Títulos das seções: Texto preto, negrito, tamanho pequeno
+- Links: Texto cinza escuro, fundo cinza claro (pill/badge), hover sutil
+- Barra inferior: Fundo levemente mais escuro, texto cinza centralizado
