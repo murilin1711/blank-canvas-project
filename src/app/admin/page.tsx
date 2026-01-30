@@ -28,7 +28,8 @@ import {
   Save,
   Activity,
   Clock,
-  Image
+  Image,
+  GripVertical
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -187,6 +188,10 @@ export default function AdminPage() {
   // Produtos - aba por escola
   const schoolSlugs = [...new Set(products.map(p => p.school_slug))];
   const [activeSchool, setActiveSchool] = useState("colegio-militar");
+
+  // Drag-and-drop states for product reordering
+  const [draggedProductId, setDraggedProductId] = useState<number | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
 
   // Check if user is admin on mount
   useEffect(() => {
@@ -553,6 +558,79 @@ export default function AdminPage() {
     } catch (error) {
       console.error("Error deleting product:", error);
       toast.error("Erro ao excluir produto");
+    }
+  };
+
+  // Drag-and-drop handlers for product reordering
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, productId: number) => {
+    setDraggedProductId(productId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', productId.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLTableRowElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedProductId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLTableRowElement>, targetProductId: number) => {
+    e.preventDefault();
+    if (draggedProductId === null || draggedProductId === targetProductId) return;
+
+    const schoolProducts = products.filter(p => p.school_slug === activeSchool);
+    const currentOrder = schoolProducts.map(p => p.id);
+    
+    const draggedIndex = currentOrder.indexOf(draggedProductId);
+    const targetIndex = currentOrder.indexOf(targetProductId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Reorder locally first for immediate UI feedback
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedProductId);
+
+    // Update local products state
+    const reorderedProducts = products.map(p => {
+      if (p.school_slug !== activeSchool) return p;
+      const newIndex = newOrder.indexOf(p.id);
+      return { ...p, display_order: newIndex + 1 };
+    });
+    setProducts(reorderedProducts);
+
+    // Save to database
+    setIsReordering(true);
+    try {
+      const token = getAdminToken();
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { 
+          action: 'reorder_products',
+          token,
+          data: { productIds: newOrder, schoolSlug: activeSchool }
+        }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+
+      toast.success("Ordem dos produtos atualizada!");
+    } catch (error) {
+      console.error("Error reordering products:", error);
+      toast.error("Erro ao reordenar produtos");
+      loadData(); // Reload to restore original order
+    } finally {
+      setIsReordering(false);
+      setDraggedProductId(null);
     }
   };
 
@@ -1081,6 +1159,18 @@ export default function AdminPage() {
               )}
 
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-6 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                  <p className="text-xs text-gray-500">
+                    <GripVertical className="w-3 h-3 inline mr-1" />
+                    Arraste os produtos para reordenar a exibição na loja
+                  </p>
+                  {isReordering && (
+                    <span className="text-xs text-[#2e3091] flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Salvando...
+                    </span>
+                  )}
+                </div>
                 {products.filter(p => p.school_slug === activeSchool).length === 0 ? (
                   <div className="p-12 text-center">
                     <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -1091,6 +1181,7 @@ export default function AdminPage() {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
+                          <th className="w-10 px-2 py-3"></th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
@@ -1100,7 +1191,25 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {products.filter(p => p.school_slug === activeSchool).map((product) => (
-                          <tr key={product.id} className="hover:bg-gray-50">
+                          <tr 
+                            key={product.id} 
+                            className={`hover:bg-gray-50 transition-colors ${
+                              draggedProductId === product.id ? 'opacity-50 bg-blue-50' : ''
+                            }`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, product.id)}
+                            onDragOver={handleDragOver}
+                            onDragEnd={handleDragEnd}
+                            onDrop={(e) => handleDrop(e, product.id)}
+                          >
+                            <td className="w-10 px-2 py-4">
+                              <div 
+                                className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 transition-colors"
+                                title="Arraste para reordenar"
+                              >
+                                <GripVertical className="w-4 h-4 text-gray-400" />
+                              </div>
+                            </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-3">
                                 {(product.images && product.images.length > 0) ? (
