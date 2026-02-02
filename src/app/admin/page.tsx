@@ -305,6 +305,17 @@ export default function AdminPage() {
   };
 
   // Load section data separately
+  // Map section names to friendly labels
+  const sectionLabels: Record<string, string> = {
+    'get_bolsa_payments': 'pagamentos Bolsa Uniforme',
+    'get_orders': 'pedidos',
+    'get_products': 'produtos',
+    'get_feedbacks': 'feedbacks',
+    'get_customers': 'clientes',
+    'get_financials': 'dados financeiros',
+    'get_abandoned_carts': 'carrinhos abandonados',
+  };
+
   const loadSection = async (section: string) => {
     const token = getAdminToken();
     if (!token) {
@@ -319,14 +330,18 @@ export default function AdminPage() {
 
       if (response.error) throw new Error(response.error.message);
       if (response.data?.error) {
-        if (response.data.error.includes('Token')) handleLogout();
+        if (response.data.error.includes('Token')) {
+          toast.error('Sessão expirada. Faça login novamente.');
+          handleLogout();
+        }
         throw new Error(response.data.error);
       }
 
       return response.data;
     } catch (error) {
       console.error(`Error loading ${section}:`, error);
-      toast.error(`Erro ao carregar ${section}`);
+      const friendlyLabel = sectionLabels[section] || section;
+      toast.error(`Erro ao carregar ${friendlyLabel}. Verifique sua conexão.`);
       return null;
     }
   };
