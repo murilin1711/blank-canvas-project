@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
+import { getOptimizedImageUrl } from "@/lib/utils";
 
 interface SimilarProduct {
   id: number;
@@ -139,8 +140,9 @@ export default function SimilarProducts({ productIds, schoolSlug, currentProduct
 
                     {/* Product Image */}
                     <img
-                      src={productImage || "https://via.placeholder.com/300"}
+                      src={getOptimizedImageUrl(productImage || "https://via.placeholder.com/300", 400)}
                       alt={product.name}
+                      loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>

@@ -1,5 +1,6 @@
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getOptimizedImageUrl } from '@/lib/utils';
 
 type Product = {
   id: number;
@@ -145,8 +146,9 @@ const ProductCard = ({ product }: { product: Product }) => {
 
           <div className="absolute inset-0 flex items-center justify-center p-6">
             <img
-              src={product.image1}
+              src={getOptimizedImageUrl(product.image1, 400)}
               alt={product.name}
+              loading="lazy"
               className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-105"
             />
           </div>
