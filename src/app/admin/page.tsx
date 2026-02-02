@@ -347,7 +347,8 @@ export default function AdminPage() {
   };
 
   // Reload specific section only (for optimistic updates)
-  const reloadSection = async (section: 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers') => {
+  // silent: true = don't show error toast (used after successful save operations)
+  const reloadSection = async (section: 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers', silent = false) => {
     const sectionMap = {
       bolsa: { action: 'get_bolsa_payments', setter: setBolsaPayments, key: 'bolsaPayments', loader: setLoadingBolsa },
       orders: { action: 'get_orders', setter: setOrders, key: 'orders', loader: setLoadingOrders },
@@ -358,9 +359,39 @@ export default function AdminPage() {
 
     const config = sectionMap[section];
     config.loader(true);
-    const data = await loadSection(config.action);
-    config.loader(false);
-    if (data) config.setter(data[config.key] || []);
+    
+    const token = getAdminToken();
+    if (!token) {
+      config.loader(false);
+      handleLogout();
+      return;
+    }
+
+    try {
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { action: config.action, token }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) {
+        if (response.data.error.includes('Token')) {
+          toast.error('Sessão expirada. Faça login novamente.');
+          handleLogout();
+        }
+        throw new Error(response.data.error);
+      }
+
+      config.setter(response.data[config.key] || []);
+    } catch (error) {
+      console.error(`Error loading ${config.action}:`, error);
+      // Only show error toast if not silent mode
+      if (!silent) {
+        const friendlyLabel = sectionLabels[config.action] || config.action;
+        toast.error(`Erro ao carregar ${friendlyLabel}. Verifique sua conexão.`);
+      }
+    } finally {
+      config.loader(false);
+    }
   };
 
   // Map tab to section key
@@ -628,12 +659,12 @@ export default function AdminPage() {
       }
 
       toast.success(isNew ? "Produto criado!" : "Produto atualizado!");
-      // Reload to get the real ID for new products
-      if (isNew) reloadSection('products');
+      // Reload silently to get the real ID for new products (don't show error if this fails)
+      if (isNew) reloadSection('products', true);
     } catch (error) {
       console.error("Error saving product:", error);
       toast.error("Erro ao salvar produto");
-      reloadSection('products'); // Restore on error
+      reloadSection('products', true); // Restore on error silently
     }
   };
 
