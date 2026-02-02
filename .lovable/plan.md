@@ -1,46 +1,71 @@
 
-# Plano: Corrigir Botão de Apagar Fotos no Mobile + Melhorias
 
-## Problema Identificado
-O botão de remover imagens usa `opacity-0 group-hover:opacity-100`, que depende do hover do mouse. Em celulares/tablets não existe hover, então o botão fica **permanentemente invisível**.
+# Plano: Melhorar Reordenação de Fotos no Mobile + Performance
 
----
+## Problemas Identificados
 
-## Solução
+### 1. Reordenação de Fotos Ruim no Mobile
+- O `Reorder.Group axis="x"` do framer-motion não funciona bem com toque
+- A classe `touch-none` impede interação normal
+- Arrastar horizontal compete com scroll da página
+- Imagens pequenas (96px) são difíceis de segurar com o dedo
 
-### 1. Botão de Apagar Sempre Visível
-Modificar o estilo do botão para ficar **sempre visível** (sem depender de hover):
-
-**Antes:**
-```
-className="... opacity-0 group-hover:opacity-100 ..."
-```
-
-**Depois:**
-```
-className="... opacity-100 ..."
-```
-
-Também vou melhorar o visual para que fique mais discreto mas ainda visível:
-- Fundo vermelho semi-transparente
-- Ícone de lixeira (Trash2) em vez de X simples
-- Posição no canto superior direito
+### 2. Site Travado
+- O arquivo admin/page.tsx tem 2096 linhas
+- Framer-motion com muitas animações pode causar lentidão
+- Re-renders desnecessários do modal de produto
 
 ---
 
-### 2. Adicionar Drag-and-Drop para Reordenar
-Implementar arrastar e soltar nas imagens:
-- Usar `framer-motion` (já instalado) com `Reorder` 
-- Ícone de arrastar (GripVertical) no canto superior esquerdo
-- Animação suave ao mover imagens
-- A primeira imagem continua sendo marcada como "Principal"
+## Solução: Interface Híbrida Desktop/Mobile
+
+### No Mobile: Botões de Seta
+Substituir drag-and-drop por **botões simples** para mover imagens:
+
+```text
+┌─────────────────────────────────┐
+│  ◀ Mover   [IMAGEM]   Mover ▶  │
+│            🗑️ Apagar            │
+│          "Principal"            │
+└─────────────────────────────────┘
+```
+
+- Botão ◀ move a imagem para esquerda
+- Botão ▶ move a imagem para direita  
+- Funciona perfeitamente com toque
+- Sem conflito com scroll
+
+### No Desktop: Manter Drag-and-Drop
+- Continua usando `Reorder.Group` para quem usa mouse
+- Experiência intuitiva para desktop
 
 ---
 
-### 3. Outras Melhorias do Plano Anterior
-- Remover "troca ou devolução grátis" dos produtos
-- Trocar "Similares" para "Você pode precisar"
-- Otimizar carregamento de imagens
+## Detalhes Técnicos
+
+### 1. Detectar Dispositivo Mobile
+Usar o hook `useIsMobile()` existente em `src/hooks/use-mobile.ts`
+
+### 2. Funções de Reordenação
+```typescript
+const moveImage = (index: number, direction: 'left' | 'right') => {
+  const newIndex = direction === 'left' ? index - 1 : index + 1;
+  if (newIndex < 0 || newIndex >= form.images.length) return;
+  
+  const newImages = [...form.images];
+  [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+  setForm(prev => ({ ...prev, images: newImages }));
+};
+```
+
+### 3. Renderização Condicional
+- **Mobile:** Grid de imagens com botões de seta (sem Reorder)
+- **Desktop:** `Reorder.Group` com drag-and-drop normal
+
+### 4. Otimização de Performance
+- Remover `touch-none` que impede interações
+- Usar `React.memo` para evitar re-renders desnecessários
+- Simplificar animações no mobile
 
 ---
 
@@ -48,22 +73,19 @@ Implementar arrastar e soltar nas imagens:
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/admin/ProductFormModal.tsx` | Botão apagar sempre visível + drag-and-drop |
-| `src/components/ProductPage.tsx` | Remover "troca ou devolução grátis" |
-| `src/components/sections/SimilarProducts.tsx` | Trocar título para "Você pode precisar" |
-| `src/app/escolas/colegio-militar/page.tsx` | Otimizar imagens com lazy loading |
-| `src/lib/utils.ts` | Função para URLs otimizadas |
+| `src/components/admin/ProductFormModal.tsx` | Adicionar detecção mobile + interface com botões de seta + manter drag para desktop |
 
 ---
 
-## Resultado Visual Esperado
+## Resultado Esperado
 
-### Antes (Mobile)
-- Botão de apagar: **Invisível**
-- Reordenar: Não disponível
+### Mobile (Depois)
+- Botões ◀ ▶ claros e grandes em cada imagem
+- Botão 🗑️ sempre visível
+- Operação com **um toque** por vez
+- Scroll normal da página funciona
+- Site mais responsivo
 
-### Depois (Mobile)
-- Botão de apagar: **Sempre visível** (ícone vermelho no canto)
-- Reordenar: Arrastar imagens com toque
-- Visual limpo e funcional
+### Desktop (Sem mudança significativa)
+- Drag-and-drop continua funcionando
 
