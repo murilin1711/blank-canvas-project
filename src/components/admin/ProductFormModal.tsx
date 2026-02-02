@@ -1,9 +1,9 @@
 import React, { useState, useRef } from "react";
 import { motion, Reorder } from "framer-motion";
-import { X, Plus, Upload, Trash2, Save, GripVertical } from "lucide-react";
+import { X, Plus, Upload, Trash2, Save, GripVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
+import { useIsMobile } from "@/hooks/use-mobile";
 interface Variation {
   id: string;
   name: string;
@@ -134,6 +134,18 @@ export default function ProductFormModal({
       images: prev.images.filter((_, i) => i !== index),
     }));
   };
+
+  // Move image left or right (for mobile)
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    const newIndex = direction === 'left' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= form.images.length) return;
+    
+    const newImages = [...form.images];
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    setForm(prev => ({ ...prev, images: newImages }));
+  };
+
+  const isMobile = useIsMobile();
 
   const addVariation = () => {
     if (!newVariationName.trim()) {
@@ -303,51 +315,60 @@ export default function ProductFormModal({
             />
           </div>
 
-          {/* Images with Drag-and-Drop Reordering */}
+          {/* Images with Reordering */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Imagens do Produto
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Arraste para reordenar. A primeira imagem será a principal.
+              {isMobile 
+                ? "Use as setas para reordenar. A primeira imagem será a principal."
+                : "Arraste para reordenar. A primeira imagem será a principal."
+              }
             </p>
             
             <div className="flex flex-wrap gap-3 items-start">
-              <Reorder.Group
-                axis="x"
-                values={form.images}
-                onReorder={(newOrder) => setForm((prev) => ({ ...prev, images: newOrder }))}
-                className="flex flex-wrap gap-3"
-              >
-                {form.images.map((url, index) => (
-                  <Reorder.Item
-                    key={url}
-                    value={url}
-                    className="relative cursor-grab active:cursor-grabbing touch-none"
-                  >
-                    <div className="relative">
-                      {/* Drag handle indicator */}
-                      <div className="absolute top-1 left-1 z-10 w-5 h-5 bg-black/50 backdrop-blur-sm rounded flex items-center justify-center">
-                        <GripVertical className="w-3 h-3 text-white" />
+              {/* Mobile: Simple grid with arrow buttons */}
+              {isMobile ? (
+                <div className="flex flex-wrap gap-3">
+                  {form.images.map((url, index) => (
+                    <div key={url} className="relative">
+                      {/* Move buttons */}
+                      <div className="absolute top-1 left-1 right-1 z-10 flex justify-between">
+                        <button
+                          type="button"
+                          onClick={() => moveImage(index, 'left')}
+                          disabled={index === 0}
+                          className="w-7 h-7 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center disabled:opacity-30 active:bg-black/80"
+                          aria-label="Mover para esquerda"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-white" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveImage(index, 'right')}
+                          disabled={index === form.images.length - 1}
+                          className="w-7 h-7 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center disabled:opacity-30 active:bg-black/80"
+                          aria-label="Mover para direita"
+                        >
+                          <ChevronRight className="w-4 h-4 text-white" />
+                        </button>
                       </div>
                       
                       {/* Delete button - ALWAYS VISIBLE */}
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeImage(index);
-                        }}
-                        className="absolute -top-2 -right-2 z-20 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-2 -right-2 z-20 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md active:bg-red-600"
                         aria-label="Remover imagem"
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                       
                       <img
                         src={url}
                         alt={`Imagem ${index + 1}`}
-                        className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                        className="w-28 h-28 object-cover rounded-lg border border-gray-200"
                         draggable={false}
                       />
                       
@@ -358,15 +379,65 @@ export default function ProductFormModal({
                         </span>
                       )}
                     </div>
-                  </Reorder.Item>
-                ))}
-              </Reorder.Group>
+                  ))}
+                </div>
+              ) : (
+                /* Desktop: Drag-and-drop with Reorder */
+                <Reorder.Group
+                  axis="x"
+                  values={form.images}
+                  onReorder={(newOrder) => setForm((prev) => ({ ...prev, images: newOrder }))}
+                  className="flex flex-wrap gap-3"
+                >
+                  {form.images.map((url, index) => (
+                    <Reorder.Item
+                      key={url}
+                      value={url}
+                      className="relative cursor-grab active:cursor-grabbing"
+                    >
+                      <div className="relative">
+                        {/* Drag handle indicator */}
+                        <div className="absolute top-1 left-1 z-10 w-5 h-5 bg-black/50 backdrop-blur-sm rounded flex items-center justify-center">
+                          <GripVertical className="w-3 h-3 text-white" />
+                        </div>
+                        
+                        {/* Delete button - ALWAYS VISIBLE */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImage(index);
+                          }}
+                          className="absolute -top-2 -right-2 z-20 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                          aria-label="Remover imagem"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        
+                        <img
+                          src={url}
+                          alt={`Imagem ${index + 1}`}
+                          className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                          draggable={false}
+                        />
+                        
+                        {/* Principal badge */}
+                        {index === 0 && (
+                          <span className="absolute bottom-1 left-1 text-[10px] bg-[#2e3091] text-white px-1.5 py-0.5 rounded font-medium">
+                            Principal
+                          </span>
+                        )}
+                      </div>
+                    </Reorder.Item>
+                  ))}
+                </Reorder.Group>
+              )}
 
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#2e3091] hover:text-[#2e3091] transition-colors disabled:opacity-50"
+                className={`${isMobile ? 'w-28 h-28' : 'w-24 h-24'} border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:border-[#2e3091] hover:text-[#2e3091] transition-colors disabled:opacity-50`}
               >
                 {uploading ? (
                   <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
