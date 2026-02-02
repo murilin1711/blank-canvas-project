@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, Reorder } from "framer-motion";
 import { X, Plus, Upload, Trash2, Save, GripVertical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -303,34 +303,64 @@ export default function ProductFormModal({
             />
           </div>
 
-          {/* Images */}
+          {/* Images with Drag-and-Drop Reordering */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Imagens do Produto
             </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Arraste para reordenar. A primeira imagem será a principal.
+            </p>
             
-            <div className="flex flex-wrap gap-3">
-              {form.images.map((url, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={url}
-                    alt={`Imagem ${index + 1}`}
-                    className="w-24 h-24 object-cover rounded-lg border border-gray-200"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            <div className="flex flex-wrap gap-3 items-start">
+              <Reorder.Group
+                axis="x"
+                values={form.images}
+                onReorder={(newOrder) => setForm((prev) => ({ ...prev, images: newOrder }))}
+                className="flex flex-wrap gap-3"
+              >
+                {form.images.map((url, index) => (
+                  <Reorder.Item
+                    key={url}
+                    value={url}
+                    className="relative cursor-grab active:cursor-grabbing touch-none"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                  {index === 0 && (
-                    <span className="absolute bottom-1 left-1 text-[10px] bg-[#2e3091] text-white px-1 rounded">
-                      Principal
-                    </span>
-                  )}
-                </div>
-              ))}
+                    <div className="relative">
+                      {/* Drag handle indicator */}
+                      <div className="absolute top-1 left-1 z-10 w-5 h-5 bg-black/50 backdrop-blur-sm rounded flex items-center justify-center">
+                        <GripVertical className="w-3 h-3 text-white" />
+                      </div>
+                      
+                      {/* Delete button - ALWAYS VISIBLE */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(index);
+                        }}
+                        className="absolute -top-2 -right-2 z-20 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"
+                        aria-label="Remover imagem"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                      
+                      <img
+                        src={url}
+                        alt={`Imagem ${index + 1}`}
+                        className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                        draggable={false}
+                      />
+                      
+                      {/* Principal badge */}
+                      {index === 0 && (
+                        <span className="absolute bottom-1 left-1 text-[10px] bg-[#2e3091] text-white px-1.5 py-0.5 rounded font-medium">
+                          Principal
+                        </span>
+                      )}
+                    </div>
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
 
               <button
                 type="button"
@@ -357,10 +387,6 @@ export default function ProductFormModal({
               onChange={(e) => handleImageUpload(e.target.files)}
               className="hidden"
             />
-
-            <p className="text-xs text-gray-500 mt-2">
-              Você pode adicionar quantas imagens quiser. A primeira será a imagem principal.
-            </p>
           </div>
 
           {/* Category and School */}

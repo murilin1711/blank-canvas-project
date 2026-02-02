@@ -78,13 +78,13 @@ export default function SimilarProducts({ productIds, schoolSlug, currentProduct
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-semibold tracking-wide text-gray-900" style={{ letterSpacing: "0.15em" }}>
-            SIMILARES
+            VOCÊ PODE PRECISAR
           </h2>
           <button
             onClick={() => navigate(`/escolas/${schoolSlug}`)}
             className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-[#2e3091] transition-colors"
           >
-            <span className="underline">VER SIMILARES</span>
+            <span className="underline">VER TODOS</span>
           </button>
         </div>
 

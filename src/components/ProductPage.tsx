@@ -288,10 +288,6 @@ export default function ProductPage({
               </button>
             </div>
 
-            <div className="mt-6 text-sm text-gray-500 flex items-center gap-2">
-              <Check className="w-4 h-4 text-green-600" />
-              Troca ou devolução grátis
-            </div>
           </div>
         </div>
       </div>
