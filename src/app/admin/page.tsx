@@ -777,6 +777,69 @@ export default function AdminPage() {
     saveToDatabase();
   };
 
+  // Arrow button handlers for easy reordering
+  const moveProductUp = (productId: number, sortedProducts: Product[]) => {
+    const currentIndex = sortedProducts.findIndex(p => p.id === productId);
+    if (currentIndex <= 0) return;
+    
+    const targetProduct = sortedProducts[currentIndex - 1];
+    reorderProducts(productId, targetProduct.id, sortedProducts);
+  };
+
+  const moveProductDown = (productId: number, sortedProducts: Product[]) => {
+    const currentIndex = sortedProducts.findIndex(p => p.id === productId);
+    if (currentIndex === -1 || currentIndex >= sortedProducts.length - 1) return;
+    
+    const targetProduct = sortedProducts[currentIndex + 1];
+    reorderProducts(productId, targetProduct.id, sortedProducts);
+  };
+
+  const reorderProducts = (draggedId: number, targetId: number, sortedProducts: Product[]) => {
+    const currentOrder = sortedProducts.map(p => p.id);
+    const draggedIndex = currentOrder.indexOf(draggedId);
+    const targetIndex = currentOrder.indexOf(targetId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newOrder = [...currentOrder];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedId);
+
+    // Update local state IMMEDIATELY
+    const reorderedProducts = products.map(p => {
+      if (p.school_slug !== activeSchool) return p;
+      const newIndex = newOrder.indexOf(p.id);
+      return { ...p, display_order: newIndex + 1 };
+    });
+    setProducts(reorderedProducts);
+
+    // Save to database in background
+    const saveToDatabase = async () => {
+      try {
+        const token = getAdminToken();
+        if (!token) return;
+
+        const response = await supabase.functions.invoke('admin-data', {
+          body: { 
+            action: 'reorder_products',
+            token,
+            data: { productIds: newOrder, schoolSlug: activeSchool }
+          }
+        });
+
+        if (response.error || response.data?.error) {
+          throw new Error(response.error?.message || response.data?.error);
+        }
+      } catch (error) {
+        console.error("Error reordering products:", error);
+        toast.error("Erro ao salvar ordem. Recarregando...");
+        reloadSection('products', true);
+      }
+    };
+    
+    saveToDatabase();
+  };
+
   // Category management functions
   const handleAddCategory = async (category: string) => {
     // Categories are stored in products, so we just need to use them
@@ -1457,8 +1520,7 @@ export default function AdminPage() {
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
                   <p className="text-xs text-gray-500">
-                    <GripVertical className="w-3 h-3 inline mr-1" />
-                    Arraste para reordenar • Salva automaticamente
+                    Use os botões ▲ ▼ ou arraste para reordenar • Salva automaticamente
                   </p>
                 </div>
                 {products.filter(p => p.school_slug === activeSchool).length === 0 ? (
@@ -1471,7 +1533,7 @@ export default function AdminPage() {
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="w-16 px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">#</th>
+                          <th className="w-24 px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ordem</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Preço</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
@@ -1483,13 +1545,9 @@ export default function AdminPage() {
                         {products
                           .filter(p => p.school_slug === activeSchool)
                           .sort((a, b) => ((a as any).display_order || 0) - ((b as any).display_order || 0))
-                          .map((product, index) => (
-                          <motion.tr 
+                          .map((product, index, arr) => (
+                          <tr 
                             key={product.id}
-                            layout
-                            initial={false}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
                             className={`hover:bg-gray-50 ${
                               draggedProductId === product.id ? 'opacity-50 bg-blue-50' : ''
                             }`}
@@ -1499,13 +1557,34 @@ export default function AdminPage() {
                             onDragEnd={handleDragEnd}
                             onDrop={(e) => handleDrop(e as any, product.id)}
                           >
-                            <td className="w-16 px-2 py-4">
-                              <div 
-                                className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing p-1.5 rounded hover:bg-gray-200 transition-colors"
-                                title="Arraste para reordenar"
-                              >
-                                <GripVertical className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm font-bold text-[#2e3091] min-w-[20px] text-center">{index + 1}</span>
+                            <td className="w-24 px-2 py-4">
+                              <div className="flex items-center gap-1">
+                                {/* Arrow buttons for easy reordering */}
+                                <div className="flex flex-col gap-0.5">
+                                  <button
+                                    onClick={() => moveProductUp(product.id, arr)}
+                                    disabled={index === 0}
+                                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Mover para cima"
+                                  >
+                                    <ChevronUp className="w-4 h-4 text-gray-600" />
+                                  </button>
+                                  <button
+                                    onClick={() => moveProductDown(product.id, arr)}
+                                    disabled={index === arr.length - 1}
+                                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    title="Mover para baixo"
+                                  >
+                                    <ChevronDown className="w-4 h-4 text-gray-600" />
+                                  </button>
+                                </div>
+                                <div 
+                                  className="flex items-center gap-1 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-gray-200 transition-colors"
+                                  title="Arraste para reordenar"
+                                >
+                                  <GripVertical className="w-4 h-4 text-gray-400" />
+                                  <span className="text-sm font-bold text-[#2e3091] min-w-[20px] text-center">{index + 1}</span>
+                                </div>
                               </div>
                             </td>
                             <td className="px-6 py-4">
@@ -1562,7 +1641,7 @@ export default function AdminPage() {
                                 </button>
                               </div>
                             </td>
-                          </motion.tr>
+                          </tr>
                         ))}
                       </tbody>
                     </table>

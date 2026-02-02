@@ -27,6 +27,7 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getOptimizedImageUrl } from "@/lib/utils";
 
 /* -------------------- Tipos -------------------- */
 type Product = {
@@ -461,7 +462,7 @@ export default function LojaEstiloOsklen() {
                     {p.images.map((src, i) => (
                       <img
                         key={src + i}
-                        src={src}
+                        src={getOptimizedImageUrl(src, 400)}
                         alt={`${p.name} - ${i + 1}`}
                         loading="lazy"
                         onClick={(e) => handleImageClick(e, p)}
