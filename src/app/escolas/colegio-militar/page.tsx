@@ -463,6 +463,7 @@ export default function LojaEstiloOsklen() {
                         key={src + i}
                         src={src}
                         alt={`${p.name} - ${i + 1}`}
+                        loading="lazy"
                         onClick={(e) => handleImageClick(e, p)}
                         className={`w-full h-full object-contain absolute inset-0 transition-all duration-300 ${
                           i === idx
