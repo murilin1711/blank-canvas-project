@@ -203,8 +203,24 @@ export default function AdminPage() {
   const [ordersSelectedCategories, setOrdersSelectedCategories] = useState<string[]>([]);
   const [bolsaSelectedCategories, setBolsaSelectedCategories] = useState<string[]>([]);
 
-  // Get unique categories from products
-  const availableCategories = [...new Set(products.filter(p => p.category).map(p => p.category!))].sort();
+  // Custom categories stored locally (persist between sessions)
+  const [customCategories, setCustomCategories] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('admin_custom_categories');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  // Save custom categories to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('admin_custom_categories', JSON.stringify(customCategories));
+  }, [customCategories]);
+
+  // Combine custom categories + categories from products
+  const availableCategories = [...new Set([
+    ...customCategories,
+    ...products.filter(p => p.category).map(p => p.category!)
+  ])].sort();
 
   // Check if user is admin on mount
   useEffect(() => {
@@ -841,10 +857,11 @@ export default function AdminPage() {
   };
 
   // Category management functions
-  const handleAddCategory = async (category: string) => {
-    // Categories are stored in products, so we just need to use them
-    // For now, we'll allow any new category typed in the product form
-    toast.success(`Categoria "${category}" adicionada!`);
+  const handleAddCategory = (category: string) => {
+    // Add to custom categories state (persisted in localStorage)
+    if (!customCategories.includes(category) && !availableCategories.includes(category)) {
+      setCustomCategories(prev => [...prev, category]);
+    }
   };
 
   const handleEditCategory = async (oldCategory: string, newCategory: string) => {
@@ -883,33 +900,39 @@ export default function AdminPage() {
   };
 
   const handleDeleteCategory = async (category: string) => {
+    // Remove from custom categories if it's there
+    setCustomCategories(prev => prev.filter(c => c !== category));
+    
     // Set category to null for all products with this category
-    setProducts(prev => prev.map(p => 
-      p.category === category ? { ...p, category: null } : p
-    ));
+    const productsWithCategory = products.filter(p => p.category === category);
+    if (productsWithCategory.length > 0) {
+      setProducts(prev => prev.map(p => 
+        p.category === category ? { ...p, category: null } : p
+      ));
 
-    try {
-      const token = getAdminToken();
-      if (!token) {
-        handleLogout();
-        return;
-      }
-
-      const response = await supabase.functions.invoke('admin-data', {
-        body: { 
-          action: 'delete_category',
-          token,
-          data: { category }
+      try {
+        const token = getAdminToken();
+        if (!token) {
+          handleLogout();
+          return;
         }
-      });
 
-      if (response.error || response.data?.error) {
-        throw new Error(response.error?.message || response.data?.error);
+        const response = await supabase.functions.invoke('admin-data', {
+          body: { 
+            action: 'delete_category',
+            token,
+            data: { category }
+          }
+        });
+
+        if (response.error || response.data?.error) {
+          throw new Error(response.error?.message || response.data?.error);
+        }
+      } catch (error) {
+        console.error("Error deleting category:", error);
+        toast.error("Erro ao excluir categoria");
+        reloadSection('products');
       }
-    } catch (error) {
-      console.error("Error deleting category:", error);
-      toast.error("Erro ao excluir categoria");
-      reloadSection('products');
     }
   };
 
