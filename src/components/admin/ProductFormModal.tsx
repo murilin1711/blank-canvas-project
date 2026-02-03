@@ -603,77 +603,78 @@ export default function ProductFormModal({
             )}
           </div>
 
-          {/* Similar Products */}
+          {/* Similar Products - Multi-Select with Checkboxes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Produtos Similares
+              Produtos Similares ({form.similar_products.length} selecionados)
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Selecione os produtos que aparecerão na seção "Similares" desta página de produto.
+              Marque os produtos que aparecerão na seção "Você Pode Precisar" desta página.
             </p>
             
-            {/* Selected similar products */}
+            {/* Grid with checkboxes for multi-select */}
+            <div className="border border-gray-200 rounded-lg p-3 max-h-64 overflow-y-auto">
+              {allProducts.filter(p => p.id !== editingProduct?.id).length === 0 ? (
+                <p className="text-sm text-gray-500 italic text-center py-4">
+                  Nenhum outro produto disponível
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {allProducts
+                    .filter(p => p.id !== editingProduct?.id)
+                    .map(product => {
+                      const isSelected = form.similar_products.includes(product.id);
+                      const productImage = product.images?.[0] || product.image_url;
+                      return (
+                        <label
+                          key={product.id}
+                          className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                            isSelected 
+                              ? 'bg-[#2e3091]/10 border border-[#2e3091]/30' 
+                              : 'hover:bg-gray-50 border border-transparent'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {
+                              setForm(prev => ({
+                                ...prev,
+                                similar_products: isSelected
+                                  ? prev.similar_products.filter(id => id !== product.id)
+                                  : [...prev.similar_products, product.id]
+                              }));
+                            }}
+                            className="w-4 h-4 accent-[#2e3091] rounded flex-shrink-0"
+                          />
+                          {productImage && (
+                            <img
+                              src={productImage}
+                              alt={product.name}
+                              className="w-10 h-10 object-cover rounded flex-shrink-0"
+                            />
+                          )}
+                          <span className="text-sm text-gray-700 truncate">
+                            {product.name}
+                          </span>
+                        </label>
+                      );
+                    })
+                  }
+                </div>
+              )}
+            </div>
+            
+            {/* Quick clear button if any selected */}
             {form.similar_products.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {form.similar_products.map((productId) => {
-                  const product = allProducts.find(p => p.id === productId);
-                  if (!product) return null;
-                  const productImage = product.images?.[0] || product.image_url;
-                  return (
-                    <div
-                      key={productId}
-                      className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg"
-                    >
-                      {productImage && (
-                        <img
-                          src={productImage}
-                          alt={product.name}
-                          className="w-8 h-8 object-cover rounded"
-                        />
-                      )}
-                      <span className="text-sm text-gray-700 max-w-[150px] truncate">
-                        {product.name}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setForm(prev => ({
-                          ...prev,
-                          similar_products: prev.similar_products.filter(id => id !== productId)
-                        }))}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+              <button
+                type="button"
+                onClick={() => setForm(prev => ({ ...prev, similar_products: [] }))}
+                className="mt-2 text-xs text-red-500 hover:text-red-600 transition-colors"
+              >
+                Limpar seleção
+              </button>
             )}
-
-            {/* Dropdown to add similar products */}
-            <select
-              value=""
-              onChange={(e) => {
-                const productId = parseInt(e.target.value);
-                if (productId && !form.similar_products.includes(productId)) {
-                  setForm(prev => ({
-                    ...prev,
-                    similar_products: [...prev.similar_products, productId]
-                  }));
-                }
-              }}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091] bg-white"
-            >
-              <option value="">Adicionar produto similar...</option>
-              {allProducts
-                .filter(p => p.id !== editingProduct?.id && !form.similar_products.includes(p.id))
-                .map(product => (
-                  <option key={product.id} value={product.id}>
-                    {product.name}
-                  </option>
-                ))
-              }
-            </select>
           </div>
 
           {/* Active toggle */}
