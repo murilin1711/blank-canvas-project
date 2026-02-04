@@ -89,16 +89,21 @@ export default function DynamicProductPage() {
   // Get similar products from the product data
   const similarProductIds = product.similar_products || [];
 
+  // Get variations for price per size feature
+  const productVariations = product.variations || [];
+
   return (
     <ProductPage
       schoolName="Colégio Militar"
       productName={product.name}
       productDescription={product.description || ""}
       price={`R$ ${Number(product.price).toFixed(2).replace(".", ",")}`}
+      basePrice={Number(product.price)}
       images={productImages.length > 0 ? productImages : ["https://via.placeholder.com/400"]}
       sizes={productSizes}
       productId={product.id}
       similarProductIds={similarProductIds}
+      variations={productVariations}
     />
   );
 }

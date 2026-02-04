@@ -4,10 +4,16 @@ import { X, Plus, Upload, Trash2, Save, GripVertical, ChevronLeft, ChevronRight 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+// Opção de variação com preço opcional
+interface VariationOption {
+  value: string;
+  price: number | null; // null = usa preço base do produto
+}
+
 interface Variation {
   id: string;
   name: string;
-  options: string[];
+  options: (string | VariationOption)[]; // Suporta formato antigo (string) e novo (objeto)
 }
 
 interface ProductFormData {
@@ -73,6 +79,17 @@ export default function ProductFormModal({
   const [form, setForm] = useState<ProductFormData>(getInitialForm);
   const [newVariationName, setNewVariationName] = useState("");
   const [newOptionValue, setNewOptionValue] = useState<Record<string, string>>({});
+  const [newOptionPrice, setNewOptionPrice] = useState<Record<string, string>>({});
+
+  // Helper para extrair valor de opção (suporta string e VariationOption)
+  const getOptionValue = (option: string | VariationOption): string => {
+    return typeof option === 'string' ? option : option.value;
+  };
+
+  // Helper para extrair preço de opção
+  const getOptionPrice = (option: string | VariationOption): number | null => {
+    return typeof option === 'string' ? null : option.price;
+  };
 
   // Reset form when modal opens/closes or editingProduct changes
   React.useEffect(() => {
@@ -80,6 +97,7 @@ export default function ProductFormModal({
       setForm(getInitialForm());
       setNewVariationName("");
       setNewOptionValue({});
+      setNewOptionPrice({});
     }
   }, [isOpen, editingProduct]);
 
@@ -177,15 +195,24 @@ export default function ProductFormModal({
     const optionValue = newOptionValue[variationId]?.trim();
     if (!optionValue) return;
 
+    const priceStr = newOptionPrice[variationId]?.trim();
+    const price = priceStr ? parseFloat(priceStr.replace(',', '.')) : null;
+
+    const newOption: VariationOption = {
+      value: optionValue,
+      price: price && !isNaN(price) ? price : null,
+    };
+
     setForm((prev) => ({
       ...prev,
       variations: prev.variations.map((v) =>
         v.id === variationId
-          ? { ...v, options: [...v.options, optionValue] }
+          ? { ...v, options: [...v.options, newOption] }
           : v
       ),
     }));
     setNewOptionValue((prev) => ({ ...prev, [variationId]: "" }));
+    setNewOptionPrice((prev) => ({ ...prev, [variationId]: "" }));
   };
 
   const removeOption = (variationId: string, optionIndex: number) => {
@@ -212,6 +239,14 @@ export default function ProductFormModal({
     setSaving(true);
 
     try {
+      // Extrair os valores de tamanho para o campo sizes (compatibilidade)
+      const sizeVariation = form.variations.find((v) => 
+        v.name.toLowerCase() === "tamanho" || v.name.toLowerCase() === "tamanhos"
+      );
+      const sizes = sizeVariation
+        ? sizeVariation.options.map(opt => getOptionValue(opt))
+        : ["P", "M", "G", "GG"];
+
       const productData = {
         name: form.name.trim(),
         price: parseFloat(form.price),
@@ -220,9 +255,7 @@ export default function ProductFormModal({
         images: form.images,
         category: form.category.trim() || null,
         variations: form.variations,
-        sizes: form.variations.find((v) => 
-          v.name.toLowerCase() === "tamanho" || v.name.toLowerCase() === "tamanhos"
-        )?.options || ["P", "M", "G", "GG"],
+        sizes,
         is_active: form.is_active,
         school_slug: form.school_slug,
         similar_products: form.similar_products,
@@ -548,27 +581,36 @@ export default function ProductFormModal({
                     </button>
                   </div>
 
-                  {/* Options */}
+                  {/* Options com preço */}
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {variation.options.map((option, optIndex) => (
-                      <span
-                        key={optIndex}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-gray-200 rounded-lg text-sm"
-                      >
-                        {option}
-                        <button
-                          type="button"
-                          onClick={() => removeOption(variation.id, optIndex)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
+                    {variation.options.map((option, optIndex) => {
+                      const optValue = getOptionValue(option);
+                      const optPrice = getOptionPrice(option);
+                      return (
+                        <span
+                          key={optIndex}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    ))}
+                          <span className="font-medium">{optValue}</span>
+                          {optPrice !== null && (
+                            <span className="text-green-600 text-xs">
+                              R$ {optPrice.toFixed(2).replace('.', ',')}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeOption(variation.id, optIndex)}
+                            className="text-gray-400 hover:text-red-500 transition-colors ml-1"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
 
-                  {/* Add option */}
-                  <div className="flex gap-2">
+                  {/* Add option com preço opcional */}
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       value={newOptionValue[variation.id] || ""}
@@ -581,8 +623,23 @@ export default function ProductFormModal({
                       onKeyDown={(e) =>
                         e.key === "Enter" && addOption(variation.id)
                       }
-                      placeholder={`Adicionar ${variation.name.toLowerCase()}`}
+                      placeholder={`Nome (ex: ${variation.name === 'Tamanho' ? 'GG' : '42'})`}
                       className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                    />
+                    <input
+                      type="text"
+                      value={newOptionPrice[variation.id] || ""}
+                      onChange={(e) =>
+                        setNewOptionPrice((prev) => ({
+                          ...prev,
+                          [variation.id]: e.target.value,
+                        }))
+                      }
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && addOption(variation.id)
+                      }
+                      placeholder="Preço (opcional)"
+                      className="w-24 sm:w-28 px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
                     />
                     <button
                       type="button"
@@ -592,6 +649,9 @@ export default function ProductFormModal({
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Deixe o preço vazio para usar o preço base do produto
+                  </p>
                 </div>
               ))}
             </div>
