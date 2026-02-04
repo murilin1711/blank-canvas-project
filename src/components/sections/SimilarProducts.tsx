@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
@@ -52,14 +52,6 @@ export default function SimilarProducts({ productIds, schoolSlug, currentProduct
     fetchSimilarProducts();
   }, [productIds]);
 
-  const scroll = (direction: "left" | "right") => {
-    if (!scrollContainerRef.current) return;
-    const scrollAmount = 320;
-    scrollContainerRef.current.scrollBy({
-      left: direction === "left" ? -scrollAmount : scrollAmount,
-      behavior: "smooth",
-    });
-  };
 
   const handleFavoriteClick = async (e: React.MouseEvent, productId: number) => {
     e.stopPropagation();
@@ -90,22 +82,8 @@ export default function SimilarProducts({ productIds, schoolSlug, currentProduct
         </div>
 
         {/* Carousel */}
+        {/* Container sem setas - apenas swipe/drag */}
         <div className="relative">
-          {/* Navigation Buttons */}
-          <button
-            onClick={() => scroll("left")}
-            className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
-            aria-label="Anterior"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </button>
-          <button
-            onClick={() => scroll("right")}
-            className="absolute -right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
-            aria-label="Próximo"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-700" />
-          </button>
 
           {/* Products Container */}
           <div

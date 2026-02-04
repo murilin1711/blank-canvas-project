@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -8,9 +8,22 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
 import SimilarProducts from "@/components/sections/SimilarProducts";
+import { getOptimizedImageUrl } from "@/lib/utils";
 import ectomorphImg from "@/assets/body-types/ectomorph.png";
 import mesomorphImg from "@/assets/body-types/mesomorph.png";
 import endomorphImg from "@/assets/body-types/endomorph.png";
+
+// Tipos para variação com preço
+interface VariationOption {
+  value: string;
+  price: number | null;
+}
+
+interface Variation {
+  id: string;
+  name: string;
+  options: (string | VariationOption)[];
+}
 
 interface ProductPageProps {
   schoolName: string;
@@ -21,6 +34,8 @@ interface ProductPageProps {
   sizes?: string[];
   productId?: number;
   similarProductIds?: number[];
+  variations?: Variation[];
+  basePrice?: number;
 }
 
 export default function ProductPage({
@@ -32,6 +47,8 @@ export default function ProductPage({
   sizes = ["PP", "P", "M", "G", "GG"],
   productId = 1,
   similarProductIds = [],
+  variations = [],
+  basePrice,
 }: ProductPageProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
@@ -49,6 +66,46 @@ export default function ProductPage({
   const schoolSlug = "colegio-militar";
   const isFav = isFavorite(productId, schoolSlug);
 
+  // Helper para extrair valor de opção
+  const getOptionValue = (option: string | VariationOption): string => {
+    return typeof option === 'string' ? option : option.value;
+  };
+
+  // Helper para extrair preço de opção
+  const getOptionPrice = (option: string | VariationOption): number | null => {
+    return typeof option === 'string' ? null : option.price;
+  };
+
+  // Calcular preço efetivo baseado na variação selecionada
+  const effectivePrice = useMemo(() => {
+    // Parse do preço base (da prop price ou basePrice)
+    const parsedBasePrice = basePrice ?? parseFloat(price.replace("R$ ", "").replace(".", "").replace(",", "."));
+    
+    if (!selectedSize || variations.length === 0) {
+      return parsedBasePrice;
+    }
+
+    // Encontrar variação de tamanho
+    const sizeVariation = variations.find(v => 
+      v.name.toLowerCase() === 'tamanho' || v.name.toLowerCase() === 'tamanhos'
+    );
+
+    if (!sizeVariation) return parsedBasePrice;
+
+    // Encontrar a opção selecionada
+    const selectedOption = sizeVariation.options.find(opt => 
+      getOptionValue(opt) === selectedSize
+    );
+
+    if (!selectedOption) return parsedBasePrice;
+
+    const optionPrice = getOptionPrice(selectedOption);
+    return optionPrice !== null ? optionPrice : parsedBasePrice;
+  }, [selectedSize, variations, price, basePrice]);
+
+  // Formatar preço para exibição
+  const displayPrice = `R$ ${effectivePrice.toFixed(2).replace('.', ',')}`;
+
   const handleFavorite = async () => {
     const success = await toggleFavorite(productId, schoolSlug);
     if (!success) {
@@ -61,12 +118,11 @@ export default function ProductPage({
       toast.error("Selecione um tamanho");
       return;
     }
-    const priceNum = parseFloat(price.replace("R$ ", "").replace(".", "").replace(",", "."));
     addItem({
       productId,
       productName,
       productImage: images[0],
-      price: priceNum,
+      price: effectivePrice,
       size: selectedSize,
       quantity: 1,
       schoolSlug,
@@ -126,8 +182,9 @@ export default function ProductPage({
                 {images.map((img, i) => (
                   <img
                     key={img + i}
-                    src={img}
+                    src={getOptimizedImageUrl(img, 800)}
                     alt={`${productName} - ${i + 1}`}
+                    loading="lazy"
                     className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${
                       i === activeIndex
                         ? "translate-x-0 opacity-100"
@@ -168,7 +225,7 @@ export default function ProductPage({
                 aria-label="Avançar imagem"
               >
                 <img
-                  src={images[activeIndex]}
+                  src={getOptimizedImageUrl(images[activeIndex], 800)}
                   alt="Imagem principal do produto"
                   className="w-full h-full object-cover"
                 />
@@ -187,8 +244,9 @@ export default function ProductPage({
                     aria-label={`Mostrar imagem ${i + 1}`}
                   >
                     <img
-                      src={img}
+                      src={getOptimizedImageUrl(img, 300)}
                       alt={`Imagem ${i + 1}`}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -205,7 +263,7 @@ export default function ProductPage({
             <h1 className="text-2xl md:text-3xl font-semibold text-gray-900 leading-tight">
               {productName}
             </h1>
-            <p className="mt-4 text-xl font-bold text-gray-900">{price}</p>
+            <p className="mt-4 text-xl font-bold text-gray-900">{displayPrice}</p>
             <p className="mt-4 text-sm text-gray-600 leading-relaxed">
               {productDescription}
             </p>
@@ -254,12 +312,11 @@ export default function ProductPage({
                       toast.error("Selecione um tamanho");
                       return;
                     }
-                    const priceNum = parseFloat(price.replace("R$ ", "").replace(".", "").replace(",", "."));
                     addItem({
                       productId,
                       productName,
                       productImage: images[0],
-                      price: priceNum,
+                      price: effectivePrice,
                       size: selectedSize,
                       quantity: 1,
                       schoolSlug,

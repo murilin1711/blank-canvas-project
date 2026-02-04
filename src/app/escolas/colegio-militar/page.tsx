@@ -478,52 +478,25 @@ export default function LojaEstiloOsklen() {
                       />
                     ))}
 
+                    {/* indicadores - linhas finas (sem setas, apenas swipe) */}
                     {p.images.length > 1 && (
-                      <>
-                        {/* Setas minimalistas: sem circulo, opacidade baixa e mais discreta */}
-                        <button
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            prevImage(p.id, p.images.length);
-                          }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-1 opacity-30 hover:opacity-95 transition"
-                          aria-label="Anterior"
-                          style={{ background: "transparent" }}
-                        >
-                          <ChevronLeft className="w-5 h-5 text-[#2e3091]" />
-                        </button>
-
-                        <button
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            nextImage(p.id, p.images.length);
-                          }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-1 opacity-30 hover:opacity-95 transition"
-                          aria-label="Próxima"
-                          style={{ background: "transparent" }}
-                        >
-                          <ChevronRight className="w-5 h-5 text-[#2e3091]" />
-                        </button>
-
-                        {/* indicadores - linhas finas como na referência */}
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-1.5 z-20">
-                          {p.images.map((_, i) => (
-                            <button
-                              key={i}
-                              onClick={(ev) => {
-                                ev.stopPropagation();
-                                setActiveIndex(p.id, i);
-                              }}
-                              className={`h-[3px] rounded-full transition-all ${
-                                i === idx
-                                  ? "bg-[#2e3091] w-8"
-                                  : "bg-neutral-300 w-5"
-                              }`}
-                              aria-label={`Ir para imagem ${i + 1}`}
-                            />
-                          ))}
-                        </div>
-                      </>
+                      <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-1.5 z-20">
+                        {p.images.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setActiveIndex(p.id, i);
+                            }}
+                            className={`h-[3px] rounded-full transition-all ${
+                              i === idx
+                                ? "bg-[#2e3091] w-8"
+                                : "bg-neutral-300 w-5"
+                            }`}
+                            aria-label={`Ir para imagem ${i + 1}`}
+                          />
+                        ))}
+                      </div>
                     )}
 
                     {/* Botão + central */}
