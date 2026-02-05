@@ -168,9 +168,21 @@ export default function CarrinhoPage() {
                                   {item.productName}
                                 </h3>
                               </Link>
-                              <p className="font-suisse text-base md:text-lg font-semibold text-text-primary mb-3">
+                              <p className="font-suisse text-base md:text-lg font-semibold text-text-primary mb-1">
                                 R$ {item.price.toFixed(2).replace(".", ",")}
                               </p>
+                              
+                              {/* Embroidery Info */}
+                              {item.embroideryName && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">
+                                  <p className="text-xs text-amber-800">
+                                    <strong>Bordado:</strong> {item.embroideryName}
+                                  </p>
+                                  <p className="text-xs text-amber-600">
+                                    + R$ {(item.embroideryPrice || 0).toFixed(2).replace(".", ",")}
+                                  </p>
+                                </div>
+                              )}
 
                               {/* Size Selector */}
                               <div className="flex items-center gap-3 mb-4">
@@ -201,7 +213,7 @@ export default function CarrinhoPage() {
                             {/* Item Total - Desktop */}
                             <div className="hidden md:block text-right">
                               <span className="font-suisse text-lg font-semibold text-text-primary">
-                                R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}
+                                R$ {((item.price + (item.embroideryPrice || 0)) * item.quantity).toFixed(2).replace(".", ",")}
                               </span>
                             </div>
 

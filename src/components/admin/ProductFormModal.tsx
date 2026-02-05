@@ -26,6 +26,7 @@ interface ProductFormData {
   is_active: boolean;
   school_slug: string;
   similar_products: number[];
+  allows_embroidery: boolean;
 }
 
 interface ProductFormModalProps {
@@ -61,6 +62,7 @@ export default function ProductFormModal({
         is_active: editingProduct.is_active !== false,
         school_slug: editingProduct.school_slug || "colegio-militar",
         similar_products: editingProduct.similar_products || [],
+        allows_embroidery: editingProduct.allows_embroidery || false,
       };
     }
     return {
@@ -73,6 +75,7 @@ export default function ProductFormModal({
       is_active: true,
       school_slug: "colegio-militar",
       similar_products: [],
+      allows_embroidery: false,
     };
   };
 
@@ -259,6 +262,7 @@ export default function ProductFormModal({
         is_active: form.is_active,
         school_slug: form.school_slug,
         similar_products: form.similar_products,
+        allows_embroidery: form.allows_embroidery,
       };
 
       if (editingProduct) {
@@ -736,6 +740,20 @@ export default function ProductFormModal({
               </button>
             )}
           </div>
+
+          {/* Embroidery toggle */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.allows_embroidery}
+              onChange={(e) => setForm({ ...form, allows_embroidery: e.target.checked })}
+              className="w-5 h-5 accent-[#2e3091] rounded"
+            />
+            <div>
+              <span className="text-sm text-gray-700 font-medium">Permite bordado</span>
+              <p className="text-xs text-gray-500">Cliente pode adicionar nome bordado na peça</p>
+            </div>
+          </label>
 
           {/* Active toggle */}
           <label className="flex items-center gap-3 cursor-pointer">

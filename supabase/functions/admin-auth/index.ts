@@ -14,37 +14,43 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { password } = await req.json();
+    const { password, type } = await req.json();
     
     const adminPassword = Deno.env.get('ADMIN_PASSWORD');
+    const caixaPassword = Deno.env.get('CAIXA_PASSWORD');
     
-    if (!adminPassword) {
-      console.error('ADMIN_PASSWORD not configured');
+    // Determine which login type
+    const loginType = type === 'caixa' ? 'caixa' : 'admin';
+    const targetPassword = loginType === 'caixa' ? caixaPassword : adminPassword;
+    
+    if (!targetPassword) {
+      console.error(`${loginType.toUpperCase()}_PASSWORD not configured`);
       return new Response(
         JSON.stringify({ error: 'Configuração de servidor inválida' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (password !== adminPassword) {
-      console.log('Invalid password attempt');
+    if (password !== targetPassword) {
+      console.log(`Invalid ${loginType} password attempt`);
       return new Response(
         JSON.stringify({ error: 'Senha incorreta' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Generate a simple session token (valid for 1 hour)
+    // Generate a session token (valid for 1 hour)
     const expiresAt = Date.now() + (60 * 60 * 1000); // 1 hour from now
-    const token = btoa(`admin:${expiresAt}:${crypto.randomUUID()}`);
+    const token = btoa(`${loginType}:${expiresAt}:${crypto.randomUUID()}`);
 
-    console.log('Admin login successful');
+    console.log(`${loginType} login successful`);
     
     return new Response(
       JSON.stringify({ 
         success: true, 
         token,
-        expiresAt 
+        expiresAt,
+        type: loginType
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

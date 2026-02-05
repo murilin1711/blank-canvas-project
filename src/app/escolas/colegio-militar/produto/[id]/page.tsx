@@ -104,6 +104,7 @@ export default function DynamicProductPage() {
       productId={product.id}
       similarProductIds={similarProductIds}
       variations={productVariations}
+      allowsEmbroidery={product.allows_embroidery || false}
     />
   );
 }

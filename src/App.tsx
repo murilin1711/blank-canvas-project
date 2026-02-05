@@ -23,6 +23,7 @@ import Produto4Page from '@/app/escolas/colegio-militar/produto4/page';
 import Produto5Page from '@/app/escolas/colegio-militar/produto5/page';
 import Produto6Page from '@/app/escolas/colegio-militar/produto6/page';
 import AdminPage from '@/app/admin/page';
+import CaixaPage from '@/app/caixa/page';
 import EmpresarialPage from '@/app/empresarial/page';
 import LinhaEmpresarialPage from '@/app/empresarial/linha/page';
 import PersonalizacaoPage from '@/app/personalizacao/page';
@@ -38,6 +39,7 @@ function App() {
             <Routes>
               {/* Admin route without header */}
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/caixa" element={<CaixaPage />} />
               
               {/* Regular routes with header */}
               <Route path="/*" element={

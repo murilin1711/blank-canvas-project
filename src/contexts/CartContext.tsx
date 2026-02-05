@@ -12,6 +12,8 @@ export interface CartItem {
   size: string;
   quantity: number;
   schoolSlug: string;
+  embroideryName?: string;
+  embroideryPrice?: number;
 }
 
 interface CartContextType {
@@ -88,7 +90,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("cart");
   };
 
-  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const subtotal = items.reduce((acc, item) => acc + (item.price + (item.embroideryPrice || 0)) * item.quantity, 0);
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
