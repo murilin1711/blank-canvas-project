@@ -27,14 +27,15 @@ type Tab = "pedidos" | "bolsa-uniforme" | "feedbacks" | "clientes";
 interface BolsaUniformePayment {
   id: string;
   user_id: string;
-  qr_code_image: string;
+  // Carregado apenas ao abrir “Ver detalhes” (evita payload gigante no list)
+  qr_code_image?: string | null;
   status: "pending" | "approved" | "rejected";
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
   total_amount: number;
-  items: any;
-  shipping_address: any;
+  items?: any;
+  shipping_address?: any;
   notes: string | null;
   password: string | null;
   created_at: string;
@@ -114,7 +115,8 @@ export default function CaixaPage() {
 
   // Modal states
   const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
-  const [showImageModal, setShowImageModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
@@ -571,16 +573,41 @@ export default function CaixaPage() {
                       </span>
                     </div>
 
-                    {/* QR Code */}
+                    {/* Detalhes */}
                     <div className="mt-4">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           setSelectedPayment(payment);
-                          setShowImageModal(true);
+                          setShowDetailsModal(true);
+                          setLoadingPaymentDetails(true);
+
+                          try {
+                            const token = getToken();
+                            if (!token) {
+                              handleLogout();
+                              return;
+                            }
+
+                            const response = await supabase.functions.invoke('admin-data', {
+                              body: { action: 'get_bolsa_payment_details', token, data: { id: payment.id } }
+                            });
+
+                            if (response.error) throw new Error(response.error.message);
+                            if (response.data?.error) throw new Error(response.data.error);
+
+                            if (response.data?.bolsaPayment) {
+                              setSelectedPayment(response.data.bolsaPayment);
+                            }
+                          } catch (e) {
+                            console.error('Error loading bolsa payment details:', e);
+                            toast.error('Erro ao carregar detalhes.');
+                          } finally {
+                            setLoadingPaymentDetails(false);
+                          }
                         }}
                         className="text-[#2e3091] underline text-sm"
                       >
-                        Ver QR Code
+                        Ver detalhes
                       </button>
                     </div>
 
@@ -719,28 +746,171 @@ export default function CaixaPage() {
         </div>
       </main>
 
-      {/* QR Code Modal */}
+      {/* Detalhes do Pagamento (Bolsa Uniforme) */}
       <AnimatePresence>
-        {showImageModal && selectedPayment && (
+        {showDetailsModal && selectedPayment && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowImageModal(false)}
+            onClick={() => setShowDetailsModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="bg-white rounded-2xl p-4 max-w-md w-full"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={selectedPayment.qr_code_image}
-                alt="QR Code"
-                className="w-full rounded-lg"
-              />
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">Detalhes do Pagamento</h2>
+                <button
+                  onClick={() => setShowDetailsModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {loadingPaymentDetails ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="w-8 h-8 animate-spin text-[#2e3091]" />
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-500">Cliente</p>
+                        <p className="font-medium text-gray-900">{selectedPayment.customer_name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Telefone</p>
+                        <p className="font-medium text-gray-900">{selectedPayment.customer_phone}</p>
+                      </div>
+                      {selectedPayment.customer_email && (
+                        <div>
+                          <p className="text-sm text-gray-500">Email</p>
+                          <p className="font-medium text-gray-900">{selectedPayment.customer_email}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-gray-500">Valor Total</p>
+                        <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount))}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Data</p>
+                        <p className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</p>
+                      </div>
+                      {selectedPayment.password && (
+                        <div>
+                          <p className="text-sm text-gray-500">Senha do Cartão</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-lg font-bold text-[#2e3091] bg-gray-100 px-3 py-1 rounded">
+                              {revealedPasswords[selectedPayment.id] ? selectedPayment.password : '••••'}
+                            </p>
+                            <button
+                              onClick={() => setRevealedPasswords(prev => ({ ...prev, [selectedPayment.id]: !prev[selectedPayment.id] }))}
+                              className="p-1.5 hover:bg-gray-100 rounded transition-colors"
+                            >
+                              {revealedPasswords[selectedPayment.id] ? (
+                                <EyeOff className="w-4 h-4 text-gray-500" />
+                              ) : (
+                                <Eye className="w-4 h-4 text-gray-500" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm text-gray-500">Status</p>
+                        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                          selectedPayment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          selectedPayment.status === 'approved' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>
+                          {selectedPayment.status === 'pending' ? 'Pendente' : selectedPayment.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-500 mb-2">QR Code</p>
+                      {selectedPayment.qr_code_image ? (
+                        <img
+                          src={selectedPayment.qr_code_image}
+                          alt="QR Code"
+                          className="w-full max-w-[220px] rounded-lg border border-gray-200"
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-500">QR code indisponível.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <p className="text-sm text-gray-500 mb-2">Itens do Pedido</p>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                      {Array.isArray(selectedPayment.items) && selectedPayment.items.length > 0 ? (
+                        selectedPayment.items.map((item: any, idx: number) => (
+                          <div key={idx} className="flex justify-between items-center">
+                            <span className="text-sm text-gray-700">
+                              {item.productName} - {item.size} (x{item.quantity})
+                            </span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {formatCurrency(item.price * item.quantity)}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">Sem itens.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {selectedPayment.shipping_address && (
+                    <div className="mt-6">
+                      <p className="text-sm text-gray-500 mb-2">Endereço de Entrega</p>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-700">
+                          {selectedPayment.shipping_address.street}, {selectedPayment.shipping_address.number}
+                          {selectedPayment.shipping_address.complement && ` - ${selectedPayment.shipping_address.complement}`}
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          {selectedPayment.shipping_address.neighborhood}, {selectedPayment.shipping_address.city} - {selectedPayment.shipping_address.state}
+                        </p>
+                        <p className="text-sm text-gray-700">CEP: {selectedPayment.shipping_address.cep}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPayment.status === 'pending' && (
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        onClick={() => {
+                          updatePaymentStatus(selectedPayment.id, 'approved');
+                          setShowDetailsModal(false);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#2e3091] text-white rounded-lg font-medium hover:bg-[#252a7a] transition-colors"
+                      >
+                        <Check className="w-4 h-4" />
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => {
+                          updatePaymentStatus(selectedPayment.id, 'rejected');
+                          setShowDetailsModal(false);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Rejeitar
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
             </motion.div>
           </motion.div>
         )}

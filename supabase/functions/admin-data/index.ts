@@ -27,8 +27,26 @@ Deno.serve(async (req: Request) => {
     let result: any = {};
 
     if (action === 'get_bolsa_payments') {
-      const { data: d } = await supabase.from("bolsa_uniforme_payments").select("*").order("created_at", { ascending: true });
+      // IMPORTANT: do not send qr_code_image in the list payload (it's a large base64 string)
+      const { data: d } = await supabase
+        .from("bolsa_uniforme_payments")
+        .select("id, user_id, order_id, total_amount, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
+        .order("created_at", { ascending: true });
+
       result = { bolsaPayments: d || [] };
+    } else if (action === 'get_bolsa_payment_details') {
+      const paymentId = data?.id;
+      if (!paymentId) {
+        return new Response(JSON.stringify({ error: 'ID do pagamento é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const { data: d } = await supabase
+        .from("bolsa_uniforme_payments")
+        .select("*")
+        .eq("id", paymentId)
+        .maybeSingle();
+
+      result = { bolsaPayment: d };
     } else if (action === 'get_orders') {
       const { data: d } = await supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
       result = { orders: d || [] };

@@ -44,14 +44,15 @@ type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro
 interface BolsaUniformePayment {
   id: string;
   user_id: string;
-  qr_code_image: string;
+  // Carregado apenas ao abrir “Ver detalhes” (evita payload gigante no list)
+  qr_code_image?: string | null;
   status: "pending" | "approved" | "rejected";
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
   total_amount: number;
-  items: any;
-  shipping_address: any;
+  items?: any;
+  shipping_address?: any;
   notes: string | null;
   password: string | null;
   created_at: string;
@@ -176,6 +177,7 @@ export default function AdminPage() {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
 
   // Product edit states
@@ -1073,9 +1075,38 @@ export default function AdminPage() {
     }));
   };
 
-  const openPaymentDetails = (payment: BolsaUniformePayment) => {
+  const fetchBolsaPaymentDetails = async (paymentId: string) => {
+    const token = getAdminToken();
+    if (!token) {
+      handleLogout();
+      return null;
+    }
+
+    try {
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { action: 'get_bolsa_payment_details', token, data: { id: paymentId } }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+
+      return response.data?.bolsaPayment || null;
+    } catch (e) {
+      console.error('Error loading bolsa payment details:', e);
+      toast.error('Erro ao carregar detalhes do pagamento.');
+      return null;
+    }
+  };
+
+  const openPaymentDetails = async (payment: BolsaUniformePayment) => {
     setSelectedPayment(payment);
     setShowDetailsModal(true);
+    setLoadingPaymentDetails(true);
+
+    const fullPayment = await fetchBolsaPaymentDetails(payment.id);
+    if (fullPayment) setSelectedPayment(fullPayment);
+
+    setLoadingPaymentDetails(false);
   };
 
   const getPassword = (payment: BolsaUniformePayment): string => {
@@ -2171,11 +2202,19 @@ export default function AdminPage() {
 
                 <div>
                   <p className="text-sm text-gray-500 mb-2">QR Code</p>
-                  <img 
-                    src={selectedPayment.qr_code_image} 
-                    alt="QR Code" 
-                    className="w-full max-w-[200px] rounded-lg border border-gray-200"
-                  />
+                  {loadingPaymentDetails ? (
+                    <div className="flex items-center justify-center py-10">
+                      <RefreshCw className="w-8 h-8 animate-spin text-[#2e3091]" />
+                    </div>
+                  ) : selectedPayment.qr_code_image ? (
+                    <img 
+                      src={selectedPayment.qr_code_image} 
+                      alt="QR Code" 
+                      className="w-full max-w-[200px] rounded-lg border border-gray-200"
+                    />
+                  ) : (
+                    <div className="text-sm text-gray-500">QR code indisponível.</div>
+                  )}
                 </div>
               </div>
 
