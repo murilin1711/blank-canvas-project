@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -17,21 +16,14 @@ serve(async (req: Request) => {
   try {
     const { action, token, data } = await req.json();
     
-    // Validate admin token
-    const adminPassword = Deno.env.get('ADMIN_PASSWORD');
-    if (!adminPassword) {
-      return new Response(
-        JSON.stringify({ error: 'Configuração de servidor inválida' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Decode and validate token
+    // Validate token
     try {
       const decoded = atob(token);
-      const [prefix, expiresAt] = decoded.split(':');
-      if (prefix !== 'admin' || Date.now() > parseInt(expiresAt)) {
-        throw new Error('Token inválido ou expirado');
+      const parts = decoded.split(':');
+      const prefix = parts[0];
+      const expiresAt = parseInt(parts[1]);
+      if ((prefix !== 'admin' && prefix !== 'caixa') || Date.now() > expiresAt) {
+        throw new Error('Token inválido');
       }
     } catch {
       return new Response(
@@ -40,7 +32,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Create Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -48,13 +39,11 @@ serve(async (req: Request) => {
     let result;
 
     switch (action) {
-      // Section-based loading for better performance
       case 'get_bolsa_payments': {
         const { data: bolsaPayments, error } = await supabase
           .from("bolsa_uniforme_payments")
           .select("*")
-          .order("created_at", { ascending: true }); // Oldest first
-        
+          .order("created_at", { ascending: true });
         if (error) throw error;
         result = { bolsaPayments: bolsaPayments || [] };
         break;
@@ -65,7 +54,6 @@ serve(async (req: Request) => {
           .from("orders")
           .select("*, order_items(*)")
           .order("created_at", { ascending: false });
-        
         if (error) throw error;
         result = { orders: orders || [] };
         break;
@@ -77,7 +65,6 @@ serve(async (req: Request) => {
           .select("*")
           .order("school_slug", { ascending: true })
           .order("display_order", { ascending: true });
-        
         if (error) throw error;
         result = { products: products || [] };
         break;
@@ -88,20 +75,17 @@ serve(async (req: Request) => {
           .from("feedbacks")
           .select("*")
           .order("created_at", { ascending: false });
-        
         if (error) throw error;
         result = { feedbacks: feedbacks || [] };
         break;
       }
 
       case 'get_customers': {
-        // Optimized: single query for profiles, then batch queries for related data
-        const { data: profiles, error: profilesError } = await supabase
+        const { data: profiles, error } = await supabase
           .from("profiles")
           .select("*")
           .order("created_at", { ascending: false });
-        
-        if (profilesError) throw profilesError;
+        if (error) throw error;
         
         if (!profiles || profiles.length === 0) {
           result = { customers: [] };
@@ -109,15 +93,12 @@ serve(async (req: Request) => {
         }
 
         const userIds = profiles.map(p => p.user_id);
-        
-        // Batch queries in parallel
         const [ordersRes, cartsRes, activitiesRes] = await Promise.all([
           supabase.from("orders").select("user_id, total, created_at").in("user_id", userIds),
           supabase.from("cart_items").select("user_id, id").in("user_id", userIds),
           supabase.from("user_activities").select("user_id, activity_type, description, created_at, metadata").in("user_id", userIds).order("created_at", { ascending: false })
         ]);
 
-        // Group data by user_id for O(1) lookup
         const ordersByUser: Record<string, any[]> = {};
         const cartsByUser: Record<string, any[]> = {};
         const activitiesByUser: Record<string, any[]> = {};
@@ -126,37 +107,26 @@ serve(async (req: Request) => {
           if (!ordersByUser[o.user_id]) ordersByUser[o.user_id] = [];
           ordersByUser[o.user_id].push(o);
         });
-
         (cartsRes.data || []).forEach(c => {
           if (!cartsByUser[c.user_id]) cartsByUser[c.user_id] = [];
           cartsByUser[c.user_id].push(c);
         });
-
         (activitiesRes.data || []).forEach(a => {
           if (!activitiesByUser[a.user_id]) activitiesByUser[a.user_id] = [];
           activitiesByUser[a.user_id].push(a);
         });
 
-        // Map profiles with aggregated data
         const customers = profiles.map(profile => {
           const userOrders = ordersByUser[profile.user_id] || [];
-          const ordersCount = userOrders.length;
-          const totalSpent = userOrders.reduce((sum, o) => sum + Number(o.total), 0);
-          const lastOrder = userOrders.sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          )[0];
-          const recentActivities = (activitiesByUser[profile.user_id] || []).slice(0, 5);
-
           return {
             profile,
-            ordersCount,
-            totalSpent,
+            ordersCount: userOrders.length,
+            totalSpent: userOrders.reduce((sum, o) => sum + Number(o.total), 0),
             cartItems: cartsByUser[profile.user_id] || [],
-            lastActivity: lastOrder?.created_at || profile.created_at,
-            recentActivities
+            lastActivity: userOrders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || profile.created_at,
+            recentActivities: (activitiesByUser[profile.user_id] || []).slice(0, 5)
           };
         });
-
         result = { customers };
         break;
       }
@@ -166,19 +136,16 @@ serve(async (req: Request) => {
           .from("abandoned_carts")
           .select("*")
           .order("last_interaction", { ascending: false });
-        
         if (error) throw error;
         result = { abandonedCarts: abandonedCarts || [] };
         break;
       }
 
       case 'get_financials': {
-        // Get orders for financial calculations
         const { data: orders, error } = await supabase
           .from("orders")
           .select("total, created_at, status")
           .order("created_at", { ascending: false });
-        
         if (error) throw error;
         result = { orders: orders || [] };
         break;
@@ -190,7 +157,6 @@ serve(async (req: Request) => {
           .from("bolsa_uniforme_payments")
           .update({ status, processed_at: new Date().toISOString() })
           .eq("id", id);
-        
         if (error) throw error;
         result = { success: true };
         break;
@@ -198,11 +164,7 @@ serve(async (req: Request) => {
 
       case 'toggle_feedback_visibility': {
         const { id, is_visible } = data;
-        const { error } = await supabase
-          .from("feedbacks")
-          .update({ is_visible })
-          .eq("id", id);
-        
+        const { error } = await supabase.from("feedbacks").update({ is_visible }).eq("id", id);
         if (error) throw error;
         result = { success: true };
         break;
@@ -210,11 +172,7 @@ serve(async (req: Request) => {
 
       case 'update_feedback': {
         const { id, user_name, rating, comment } = data;
-        const { error } = await supabase
-          .from("feedbacks")
-          .update({ user_name, rating, comment, updated_at: new Date().toISOString() })
-          .eq("id", id);
-        
+        const { error } = await supabase.from("feedbacks").update({ user_name, rating, comment, updated_at: new Date().toISOString() }).eq("id", id);
         if (error) throw error;
         result = { success: true };
         break;
@@ -222,11 +180,7 @@ serve(async (req: Request) => {
 
       case 'delete_feedback': {
         const { id } = data;
-        const { error } = await supabase
-          .from("feedbacks")
-          .delete()
-          .eq("id", id);
-        
+        const { error } = await supabase.from("feedbacks").delete().eq("id", id);
         if (error) throw error;
         result = { success: true };
         break;
@@ -234,16 +188,10 @@ serve(async (req: Request) => {
 
       case 'create_feedback': {
         const { user_name, rating, comment } = data;
-        const { error } = await supabase
-          .from("feedbacks")
-          .insert({
-            user_id: '00000000-0000-0000-0000-000000000000', // Admin-created feedback
-            user_name,
-            rating,
-            comment,
-            is_visible: true
-          });
-        
+        const { error } = await supabase.from("feedbacks").insert({
+          user_id: '00000000-0000-0000-0000-000000000000',
+          user_name, rating, comment, is_visible: true
+        });
         if (error) throw error;
         result = { success: true };
         break;
@@ -273,13 +221,8 @@ serve(async (req: Request) => {
 
       case 'reorder_products': {
         const { productIds, schoolSlug } = data;
-        // Update display_order in parallel for better performance
         await Promise.all(productIds.map((id: number, index: number) => 
-          supabase
-            .from("products")
-            .update({ display_order: index + 1 })
-            .eq("id", id)
-            .eq("school_slug", schoolSlug)
+          supabase.from("products").update({ display_order: index + 1 }).eq("id", id).eq("school_slug", schoolSlug)
         ));
         result = { success: true };
         break;
@@ -287,11 +230,7 @@ serve(async (req: Request) => {
 
       case 'update_category': {
         const { oldCategory, newCategory } = data;
-        const { error } = await supabase
-          .from("products")
-          .update({ category: newCategory })
-          .eq("category", oldCategory);
-        
+        const { error } = await supabase.from("products").update({ category: newCategory }).eq("category", oldCategory);
         if (error) throw error;
         result = { success: true };
         break;
@@ -299,11 +238,7 @@ serve(async (req: Request) => {
 
       case 'delete_category': {
         const { category } = data;
-        const { error } = await supabase
-          .from("products")
-          .update({ category: null })
-          .eq("category", category);
-        
+        const { error } = await supabase.from("products").update({ category: null }).eq("category", category);
         if (error) throw error;
         result = { success: true };
         break;
@@ -320,11 +255,10 @@ serve(async (req: Request) => {
       JSON.stringify(result),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
     console.error('Error in admin-data:', error);
     return new Response(
-      JSON.stringify({ error: error.message || 'Erro interno do servidor' }),
+      JSON.stringify({ error: error.message || 'Erro interno' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
