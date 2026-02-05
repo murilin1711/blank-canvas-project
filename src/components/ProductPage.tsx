@@ -36,7 +36,10 @@ interface ProductPageProps {
   similarProductIds?: number[];
   variations?: Variation[];
   basePrice?: number;
+  allowsEmbroidery?: boolean;
 }
+
+const EMBROIDERY_PRICE = 15.00;
 
 export default function ProductPage({
   schoolName,
@@ -49,6 +52,7 @@ export default function ProductPage({
   similarProductIds = [],
   variations = [],
   basePrice,
+  allowsEmbroidery = false,
 }: ProductPageProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
@@ -62,6 +66,12 @@ export default function ProductPage({
   const [sexo, setSexo] = useState<"m" | "f" | null>(null);
   const [caimento, setCaimento] = useState<"justo" | "regular" | "oversize" | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  
+  // Embroidery states
+  const [wantsEmbroidery, setWantsEmbroidery] = useState(false);
+  const [embroideryName, setEmbroideryName] = useState("");
+  const [showEmbroideryConfirm, setShowEmbroideryConfirm] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"cart" | "buy" | null>(null);
 
   const schoolSlug = "colegio-militar";
   const isFav = isFavorite(productId, schoolSlug);
@@ -113,11 +123,34 @@ export default function ProductPage({
     }
   };
 
-  const handleAddToCart = () => {
+  // Validate embroidery name (max 3 names)
+  const validateEmbroideryName = (name: string): boolean => {
+    const words = name.trim().split(/\s+/).filter(w => w.length > 0);
+    return words.length <= 3 && words.length > 0;
+  };
+
+  const handleAddToCart = (goToCheckout: boolean = false) => {
     if (!selectedSize) {
       toast.error("Selecione um tamanho");
       return;
     }
+    
+    // If embroidery is enabled and user wants it, validate and confirm
+    if (allowsEmbroidery && wantsEmbroidery) {
+      if (!embroideryName.trim()) {
+        toast.error("Digite o nome para bordado");
+        return;
+      }
+      if (!validateEmbroideryName(embroideryName)) {
+        toast.error("O nome pode ter no máximo 3 palavras");
+        return;
+      }
+      setPendingAction(goToCheckout ? "buy" : "cart");
+      setShowEmbroideryConfirm(true);
+      return;
+    }
+    
+    // Add to cart without embroidery
     addItem({
       productId,
       productName,
@@ -127,6 +160,34 @@ export default function ProductPage({
       quantity: 1,
       schoolSlug,
     });
+    
+    if (goToCheckout) {
+      navigate("/checkout");
+    }
+  };
+
+  const confirmEmbroideryAndAdd = () => {
+    if (!selectedSize) return;
+    
+    addItem({
+      productId,
+      productName,
+      productImage: images[0],
+      price: effectivePrice,
+      size: selectedSize,
+      quantity: 1,
+      schoolSlug,
+      embroideryName: embroideryName.trim(),
+      embroideryPrice: EMBROIDERY_PRICE,
+    });
+    
+    setShowEmbroideryConfirm(false);
+    
+    if (pendingAction === "buy") {
+      navigate("/checkout");
+    }
+    
+    setPendingAction(null);
   };
 
   const computeRecommendedSize = (): string => {
@@ -304,31 +365,74 @@ export default function ProductPage({
                 })}
               </div>
 
+              {/* Embroidery Section */}
+              {allowsEmbroidery && (
+                <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <p className="font-medium text-gray-900 mb-2">
+                    Deseja bordar sua peça com seu nome?
+                  </p>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-amber-800">
+                      ⚠️ <strong>Observação:</strong> O cartão Bolsa Uniforme não cobre o bordado. O valor é cobrado à parte.
+                    </p>
+                  </div>
+                  
+                  <div className="flex gap-3 mb-4">
+                    <button
+                      onClick={() => setWantsEmbroidery(false)}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                        !wantsEmbroidery
+                          ? "bg-[#2e3091] text-white"
+                          : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      Não, obrigado
+                    </button>
+                    <button
+                      onClick={() => setWantsEmbroidery(true)}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+                        wantsEmbroidery
+                          ? "bg-[#2e3091] text-white"
+                          : "bg-white border border-gray-200 text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      Sim, quero bordar
+                    </button>
+                  </div>
+                  
+                  {wantsEmbroidery && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm text-gray-700 mb-1 block">
+                          Nome para bordado (máx. 3 nomes)
+                        </label>
+                        <input
+                          type="text"
+                          value={embroideryName}
+                          onChange={(e) => setEmbroideryName(e.target.value)}
+                          placeholder="Ex: João Pedro Silva"
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091]"
+                          maxLength={50}
+                        />
+                      </div>
+                      <p className="text-sm text-green-600 font-medium">
+                        + R$ {EMBROIDERY_PRICE.toFixed(2).replace('.', ',')} (valor do bordado)
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Botões de ação */}
               <div className="mt-6 flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => {
-                    if (!selectedSize) {
-                      toast.error("Selecione um tamanho");
-                      return;
-                    }
-                    addItem({
-                      productId,
-                      productName,
-                      productImage: images[0],
-                      price: effectivePrice,
-                      size: selectedSize,
-                      quantity: 1,
-                      schoolSlug,
-                    });
-                    navigate("/checkout");
-                  }}
+                  onClick={() => handleAddToCart(true)}
                   className="flex-1 bg-[#2e3091] text-white py-3 px-6 rounded-lg text-sm font-semibold hover:bg-[#252a7a] hover:shadow-lg transition-all"
                 >
                   Comprar Agora
                 </button>
                 <button
-                  onClick={handleAddToCart}
+                  onClick={() => handleAddToCart(false)}
                   className="flex-1 border-2 border-[#2e3091] text-[#2e3091] py-3 px-6 rounded-lg text-sm font-semibold hover:bg-[#2e3091] hover:text-white transition-all"
                 >
                   Adicionar ao carrinho
@@ -621,6 +725,65 @@ export default function ProductPage({
       </AnimatePresence>
 
       <LoginRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
+
+      {/* Embroidery Confirmation Modal */}
+      <AnimatePresence>
+        {showEmbroideryConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black z-50"
+              onClick={() => setShowEmbroideryConfirm(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-3xl">⚠️</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Confirmação de Bordado
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    O nome a seguir será bordado na sua peça:
+                  </p>
+                  <p className="text-2xl font-bold text-[#2e3091] bg-gray-50 py-3 px-4 rounded-lg">
+                    "{embroideryName.trim()}"
+                  </p>
+                  <p className="text-sm text-amber-600 mt-4">
+                    Esta ação não pode ser desfeita após a confirmação do pedido.
+                  </p>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowEmbroideryConfirm(false);
+                      setPendingAction(null);
+                    }}
+                    className="flex-1 py-3 border border-gray-200 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmEmbroideryAndAdd}
+                    className="flex-1 py-3 bg-[#2e3091] text-white rounded-lg font-semibold hover:bg-[#252a7a] transition-colors"
+                  >
+                    Confirmar Bordado
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Similar Products Section */}
       {similarProductIds.length > 0 && (
