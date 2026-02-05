@@ -311,6 +311,7 @@ export type Database = {
       }
       products: {
         Row: {
+          allows_embroidery: boolean | null
           category: string | null
           created_at: string
           description: string | null
@@ -328,6 +329,7 @@ export type Database = {
           variations: Json | null
         }
         Insert: {
+          allows_embroidery?: boolean | null
           category?: string | null
           created_at?: string
           description?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           variations?: Json | null
         }
         Update: {
+          allows_embroidery?: boolean | null
           category?: string | null
           created_at?: string
           description?: string | null
