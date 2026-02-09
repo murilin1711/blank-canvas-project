@@ -1,61 +1,47 @@
 
-# Plano: Corrigir Produtos com Preço por Tamanho + Acelerar Carregamento
 
-## Problema 1: Produtos com preço variável não abrem
+# Plano: Imagens Carregando Instantaneamente
 
-A causa raiz está no arquivo `src/app/escolas/colegio-militar/produto/[id]/page.tsx`. Quando um produto tem variações com preço por tamanho (ex: Saia Marrom), os dados vêm assim do banco:
+## Problema Raiz Identificado
+
+A funcao `getOptimizedImageUrl` nao esta funcionando. As URLs dos produtos usam o caminho `/object/public/` (arquivo original, sem transformacao). A funcao apenas adiciona `?width=400` nesse caminho, mas o Supabase **ignora esses parametros** em URLs `/object/`. Para que a transformacao funcione, a URL precisa usar `/render/image/public/`.
+
+Resultado atual: o navegador baixa a imagem **original em tamanho cheio** (varios MB) em vez de uma versao redimensionada (poucos KB). Por isso demora e as fotos "carregam pela metade".
+
+## Correcao
+
+### 1. Corrigir `getOptimizedImageUrl` (src/lib/utils.ts)
+
+Converter URLs de `/object/public/` para `/render/image/public/` antes de adicionar os parametros de redimensionamento. Isso faz o Supabase servir a imagem ja redimensionada no servidor.
 
 ```text
-options: ["30", "32", ..., {price: 116.9, value: "46"}, {price: 116.9, value: "48"}]
+Antes:  .../storage/v1/object/public/product-images/foto.png?width=400
+Depois: .../storage/v1/render/image/public/product-images/foto.png?width=400&resize=contain
 ```
 
-O código atual na linha 84 passa esses objetos diretamente para o prop `sizes`, que espera apenas strings. Quando o React tenta renderizar `{size}` com um objeto, dá erro e a página quebra.
+Tambem limpar parametros duplicados caso a URL ja tenha `width`/`height`/`resize`.
 
-### Correção
+### 2. Reduzir tamanho das imagens no mobile
 
-No `DynamicProductPage`, ao extrair os tamanhos das variações, converter os objetos para strings:
+- Grade de produtos (listing): 400px de largura (ja esta)
+- Pagina do produto no mobile: reduzir de 800px para 500px (suficiente para telas de celular)
+- Thumbnails no desktop: usar 200px em vez de 800px
 
-```typescript
-// Antes (quebra):
-productSizes = sizeVariation.options;
+### 3. Preload da primeira imagem na pagina de produto
 
-// Depois (funciona):
-productSizes = sizeVariation.options.map((opt: any) =>
-  typeof opt === 'string' ? opt : opt.value
-);
-```
+Apos buscar o produto do banco, injetar um `<link rel="preload">` no `<head>` para a primeira imagem ja com a URL otimizada, fazendo o browser comecar o download antes mesmo do React renderizar o componente.
 
-O preço por variação já é tratado corretamente pelo `ProductPage.tsx` via o prop `variations` (que recebe os dados completos com preços).
-
-**Arquivo:** `src/app/escolas/colegio-militar/produto/[id]/page.tsx` (linha 85)
-
----
-
-## Problema 2: Produtos demoram para abrir
-
-Atualmente, ao clicar num produto, a tela fica em branco com um spinner enquanto faz a query ao banco. Para parecer "quase instantâneo":
-
-### Correções
-
-1. **Substituir tela de loading por skeleton** -- ao invés de uma tela branca com spinner, mostrar um layout esqueleto (skeleton) que já tem o formato da página de produto (galeria + info). Isso dá percepção de velocidade.
-
-2. **Preload da imagem principal** -- após buscar o produto do banco, usar `<link rel="preload">` para a primeira imagem antes de renderizar.
-
-**Arquivo:** `src/app/escolas/colegio-militar/produto/[id]/page.tsx`
-
----
-
-## Resumo de Alterações
+## Resumo de Alteracoes
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/app/escolas/colegio-militar/produto/[id]/page.tsx` | Converter objetos de variação para strings no `sizes`; trocar spinner por skeleton layout |
+| `src/lib/utils.ts` | Corrigir `getOptimizedImageUrl` para usar `/render/image/` em vez de `/object/`; limpar params duplicados |
+| `src/components/ProductPage.tsx` | Reduzir imagem mobile para 500px; thumbnails para 200px |
+| `src/app/escolas/colegio-militar/produto/[id]/page.tsx` | Preload da primeira imagem no head |
 
-### Detalhes Técnicos
+## Impacto Esperado
 
-O skeleton layout terá:
-- Um retangulo cinza animado no lugar da galeria (aspect-ratio 3/4)
-- Barras cinzas animadas no lugar do nome, preco e descricao
-- Botoes cinzas no lugar dos tamanhos
+- Imagens na grade: de ~2-5MB cada para ~30-80KB cada (reducao de 95%+)
+- Imagens no produto: de ~2-5MB para ~100-200KB
+- Carregamento percebido: praticamente instantaneo
 
-Isso faz o usuario perceber que a pagina ja carregou e so os dados estao chegando, em vez de ver uma tela vazia.
