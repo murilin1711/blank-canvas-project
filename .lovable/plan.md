@@ -1,262 +1,61 @@
 
-# Plano: Performance + Scroll + Bordado + Dashboard Caixa
+# Plano: Corrigir Produtos com Preço por Tamanho + Acelerar Carregamento
 
-## Problemas Identificados
+## Problema 1: Produtos com preço variável não abrem
 
-### 1. Site Lento para Carregar
-O site está lento porque:
-- Imagens grandes sendo carregadas sem otimização consistente
-- Falta de lazy loading em algumas imagens críticas
-- Falta de preload nas imagens principais
-
-### 2. Scroll Não Restaura Posição ao Voltar
-O componente `ScrollToTop.tsx` existe e usa a lógica correta, mas:
-- Precisa de um delay maior para aguardar o conteúdo carregar
-- Precisa desabilitar o scroll automático do navegador no App.tsx
-
-### 3. Sistema de Bordado (Nova Feature)
-Precisa criar:
-- Campo `allows_embroidery` na tabela products
-- UI no ProductPage para perguntar sobre bordado
-- Pop-up de confirmação do nome
-- Modificar o carrinho para armazenar nome bordado
-- Controle no admin para habilitar/desabilitar bordado por produto
-
-### 4. Dashboard Caixa (Nova Feature)
-Precisa criar:
-- Nova rota /caixa
-- Senha diferente (140904gm) - precisa adicionar novo secret
-- Acesso apenas a: Pedidos, Bolsa Uniforme, Feedbacks, Clientes
-
----
-
-## Alterações no Banco de Dados
-
-### Adicionar campo de bordado na tabela products
-```sql
-ALTER TABLE products ADD COLUMN allows_embroidery BOOLEAN DEFAULT false;
-```
-
-### Adicionar nova senha para caixa (Edge Function)
-Precisamos adicionar o secret `CAIXA_PASSWORD` com valor `140904gm`
-
----
-
-## Arquivos a Modificar
-
-### Performance e Scroll
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/App.tsx` | Adicionar `window.history.scrollRestoration = 'manual'` |
-| `src/components/ScrollToTop.tsx` | Aumentar delay e adicionar fallback mais robusto |
-| `src/app/escolas/colegio-militar/page.tsx` | Garantir lazy loading em todas as imagens |
-
-### Sistema de Bordado
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/components/ProductPage.tsx` | Adicionar UI de bordado com pergunta, input e confirmação |
-| `src/contexts/CartContext.tsx` | Adicionar campo `embroideryName` no CartItem |
-| `src/components/admin/ProductFormModal.tsx` | Adicionar toggle "Permite Bordado" |
-| `src/app/carrinho/page.tsx` | Exibir nome bordado e valor adicional |
-
-### Dashboard Caixa
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/App.tsx` | Adicionar rota /caixa |
-| `src/app/caixa/page.tsx` | NOVO - Dashboard com abas limitadas |
-| `supabase/functions/admin-auth/index.ts` | Adicionar suporte para senha do caixa |
-
----
-
-## Detalhes Técnicos
-
-### 1. Performance - Scroll Restoration Robusto
-
-```typescript
-// ScrollToTop.tsx - versão melhorada
-export function ScrollToTop() {
-  const { pathname, key } = useLocation();
-  const navigationType = useNavigationType();
-  const scrollPositions = useRef<Map<string, number>>(new Map());
-  const prevKey = useRef<string>('');
-
-  useEffect(() => {
-    // Salvar posição atual antes de navegar
-    if (prevKey.current) {
-      scrollPositions.current.set(prevKey.current, window.scrollY);
-    }
-    prevKey.current = key;
-
-    if (navigationType === 'POP') {
-      const savedPosition = scrollPositions.current.get(key);
-      if (savedPosition !== undefined) {
-        // Múltiplas tentativas com delays crescentes
-        const attempts = [0, 50, 150, 300];
-        attempts.forEach((delay) => {
-          setTimeout(() => {
-            window.scrollTo(0, savedPosition);
-          }, delay);
-        });
-        return;
-      }
-    }
-
-    window.scrollTo(0, 0);
-  }, [pathname, key, navigationType]);
-
-  return null;
-}
-```
-
-### 2. Sistema de Bordado - CartItem Atualizado
-
-```typescript
-export interface CartItem {
-  id?: string;
-  productId: number;
-  productName: string;
-  productImage: string;
-  price: number;
-  size: string;
-  quantity: number;
-  schoolSlug: string;
-  embroideryName?: string;      // Nome para bordar (opcional)
-  embroideryPrice?: number;     // Preço adicional do bordado
-}
-```
-
-### 3. UI de Bordado no ProductPage
+A causa raiz está no arquivo `src/app/escolas/colegio-militar/produto/[id]/page.tsx`. Quando um produto tem variações com preço por tamanho (ex: Saia Marrom), os dados vêm assim do banco:
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│  Deseja bordar sua peça com seu nome?              │
-│                                                     │
-│  ⚠️ Observação: O cartão Bolsa Uniforme não cobre │
-│     o bordado. O valor é cobrado à parte.          │
-│                                                     │
-│  [   ] Não, obrigado                               │
-│  [ ✓ ] Sim, quero bordar                           │
-│                                                     │
-│  ┌─────────────────────────────────────────────┐   │
-│  │  Nome para bordado (máx. 3 nomes)          │   │
-│  │  [João Pedro Silva___________________]     │   │
-│  └─────────────────────────────────────────────┘   │
-│                                                     │
-│  + R$ 15,00 (valor sugerido para bordado)          │
-└─────────────────────────────────────────────────────┘
+options: ["30", "32", ..., {price: 116.9, value: "46"}, {price: 116.9, value: "48"}]
 ```
 
-### 4. Pop-up de Confirmação do Bordado
+O código atual na linha 84 passa esses objetos diretamente para o prop `sizes`, que espera apenas strings. Quando o React tenta renderizar `{size}` com um objeto, dá erro e a página quebra.
 
-Quando o cliente clicar em "Comprar" ou "Adicionar ao Carrinho":
+### Correção
 
-```text
-┌─────────────────────────────────────────────────────┐
-│        ⚠️ Confirmação de Bordado                   │
-│                                                     │
-│  O nome a seguir será bordado na sua peça:         │
-│                                                     │
-│          "João Pedro Silva"                        │
-│                                                     │
-│  Esta ação não pode ser desfeita após a            │
-│  confirmação do pedido.                             │
-│                                                     │
-│       [Cancelar]        [Confirmar Bordado]        │
-└─────────────────────────────────────────────────────┘
-```
-
-### 5. Dashboard Caixa - Estrutura
-
-A página `/caixa` será similar à `/admin`, mas:
-- Senha diferente (140904gm)
-- Apenas 4 abas: Pedidos, Bolsa Uniforme, Feedbacks, Clientes
-- Sem acesso a: Produtos, Financeiro
-- Token de sessão separado (caixa_token)
-
-### 6. Edge Function admin-auth atualizada
+No `DynamicProductPage`, ao extrair os tamanhos das variações, converter os objetos para strings:
 
 ```typescript
-// Verificar qual tipo de login
-const { password, type } = await req.json();
+// Antes (quebra):
+productSizes = sizeVariation.options;
 
-const adminPassword = Deno.env.get('ADMIN_PASSWORD');
-const caixaPassword = Deno.env.get('CAIXA_PASSWORD');
-
-if (type === 'caixa') {
-  if (password !== caixaPassword) {
-    return new Response(
-      JSON.stringify({ error: 'Senha incorreta' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-  // Token com prefixo caixa
-  const token = btoa(`caixa:${expiresAt}:${crypto.randomUUID()}`);
-  // ...
-}
+// Depois (funciona):
+productSizes = sizeVariation.options.map((opt: any) =>
+  typeof opt === 'string' ? opt : opt.value
+);
 ```
 
----
+O preço por variação já é tratado corretamente pelo `ProductPage.tsx` via o prop `variations` (que recebe os dados completos com preços).
 
-## Fluxo do Bordado
-
-```text
-1. Cliente acessa página do produto
-2. Se produto permite bordado (allows_embroidery = true):
-   - Mostra pergunta "Deseja bordar sua peça com seu nome?"
-   - Mostra observação sobre Bolsa Uniforme
-3. Cliente clica "Sim"
-   - Aparece input para digitar nome (máx. 3 nomes)
-   - Mostra preço adicional
-4. Cliente clica "Comprar" ou "Adicionar ao Carrinho"
-   - Pop-up de confirmação aparece
-   - Cliente confirma
-5. Item é adicionado ao carrinho com embroideryName e embroideryPrice
-6. No carrinho e checkout, mostra nome bordado e valor adicional
-7. No admin (Pedidos), mostra nome bordado no item
-```
+**Arquivo:** `src/app/escolas/colegio-militar/produto/[id]/page.tsx` (linha 85)
 
 ---
 
-## Secrets Necessários
+## Problema 2: Produtos demoram para abrir
 
-| Nome | Valor |
-|------|-------|
-| CAIXA_PASSWORD | 140904gm |
+Atualmente, ao clicar num produto, a tela fica em branco com um spinner enquanto faz a query ao banco. Para parecer "quase instantâneo":
 
----
+### Correções
 
-## Resumo das Alterações
+1. **Substituir tela de loading por skeleton** -- ao invés de uma tela branca com spinner, mostrar um layout esqueleto (skeleton) que já tem o formato da página de produto (galeria + info). Isso dá percepção de velocidade.
 
-### Banco de Dados
-- Adicionar coluna `allows_embroidery` na tabela products
+2. **Preload da imagem principal** -- após buscar o produto do banco, usar `<link rel="preload">` para a primeira imagem antes de renderizar.
 
-### Novos Arquivos
-- `src/app/caixa/page.tsx` - Dashboard do caixa
-
-### Arquivos Modificados
-- `src/App.tsx` - Rota /caixa + scroll restoration manual
-- `src/components/ScrollToTop.tsx` - Restauração mais robusta
-- `src/components/ProductPage.tsx` - UI de bordado
-- `src/contexts/CartContext.tsx` - Campos de bordado
-- `src/components/admin/ProductFormModal.tsx` - Toggle de bordado
-- `src/app/carrinho/page.tsx` - Exibir bordado
-- `supabase/functions/admin-auth/index.ts` - Suporte senha caixa
+**Arquivo:** `src/app/escolas/colegio-militar/produto/[id]/page.tsx`
 
 ---
 
-## Resultado Esperado
+## Resumo de Alterações
 
-### Performance
-- Imagens carregam mais rápido com lazy loading
-- Scroll restaura corretamente ao voltar
+| Arquivo | O que muda |
+|---------|-----------|
+| `src/app/escolas/colegio-militar/produto/[id]/page.tsx` | Converter objetos de variação para strings no `sizes`; trocar spinner por skeleton layout |
 
-### Bordado
-- Cliente pode adicionar nome para bordar
-- Aviso claro sobre Bolsa Uniforme não cobrir
-- Pop-up de confirmação antes de finalizar
-- Admin controla quais produtos permitem bordado
+### Detalhes Técnicos
 
-### Dashboard Caixa
-- Acesso separado com senha 140904gm
-- Apenas abas relevantes para o caixa
-- Mesma experiência visual do admin
+O skeleton layout terá:
+- Um retangulo cinza animado no lugar da galeria (aspect-ratio 3/4)
+- Barras cinzas animadas no lugar do nome, preco e descricao
+- Botoes cinzas no lugar dos tamanhos
+
+Isso faz o usuario perceber que a pagina ja carregou e so os dados estao chegando, em vez de ver uma tela vazia.
