@@ -240,12 +240,19 @@ export default function ProductPage({
                   }
                 }}
               >
-                {images.map((img, i) => (
+                {images.map((img, i) => {
+                  const isNear = i === activeIndex || i === activeIndex - 1 || i === activeIndex + 1 ||
+                    (activeIndex === 0 && i === images.length - 1) ||
+                    (activeIndex === images.length - 1 && i === 0);
+                  if (!isNear) return <div key={img + i} className="absolute inset-0" />;
+                  return (
                   <img
                     key={img + i}
                     src={getOptimizedImageUrl(img, 800)}
                     alt={`${productName} - ${i + 1}`}
-                    loading="lazy"
+                    loading={i === 0 ? "eager" : "lazy"}
+                    fetchPriority={i === 0 ? "high" : "low"}
+                    decoding={i === 0 ? "sync" : "async"}
                     className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${
                       i === activeIndex
                         ? "translate-x-0 opacity-100"
@@ -255,7 +262,8 @@ export default function ProductPage({
                     }`}
                     draggable={false}
                   />
-                ))}
+                  );
+                })}
               </div>
               
               {/* Mobile indicators - minimalist lines */}
@@ -289,6 +297,8 @@ export default function ProductPage({
                   src={getOptimizedImageUrl(images[activeIndex], 800)}
                   alt="Imagem principal do produto"
                   className="w-full h-full object-cover"
+                  fetchPriority="high"
+                  decoding="sync"
                 />
               </div>
               <div className="grid grid-cols-3 gap-3 mt-4">

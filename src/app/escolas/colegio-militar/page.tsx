@@ -459,12 +459,19 @@ export default function LojaEstiloOsklen() {
                     // wheel (trackpad)
                     onWheel={(e) => handleWheel(e, p.id, p.images.length)}
                   >
-                    {p.images.map((src, i) => (
+                    {p.images.map((src, i) => {
+                      // Only render active image and adjacent ones for performance
+                      const isNear = i === idx || i === idx - 1 || i === idx + 1 || 
+                        (idx === 0 && i === p.images.length - 1) || 
+                        (idx === p.images.length - 1 && i === 0);
+                      if (!isNear) return <div key={src + i} className="absolute inset-0" />;
+                      return (
                       <img
                         key={src + i}
                         src={getOptimizedImageUrl(src, 400)}
                         alt={`${p.name} - ${i + 1}`}
-                        loading="lazy"
+                        loading={i === 0 ? "eager" : "lazy"}
+                        decoding={i === 0 ? "sync" : "async"}
                         onClick={(e) => handleImageClick(e, p)}
                         className={`w-full h-full object-contain absolute inset-0 transition-all duration-300 ${
                           i === idx
@@ -476,7 +483,8 @@ export default function LojaEstiloOsklen() {
                         draggable={false}
                         style={{ cursor: "pointer" }}
                       />
-                    ))}
+                      );
+                    })}
 
                     {/* indicadores - linhas finas (sem setas, apenas swipe) */}
                     {p.images.length > 1 && (
