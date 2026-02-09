@@ -19,11 +19,16 @@ export function getOptimizedImageUrl(url: string, width: number, height?: number
   
   // Check if it's a Supabase Storage URL
   if (url.includes('supabase.co/storage') || url.includes('supabase.in/storage')) {
-    const separator = url.includes('?') ? '&' : '?';
+    // Strip existing query params (width, height, resize) to avoid duplicates
+    let cleanUrl = url.split('?')[0];
+    
+    // Convert /object/public/ to /render/image/public/ for server-side resizing
+    cleanUrl = cleanUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+    
     const params = [`width=${width}`];
     if (height) params.push(`height=${height}`);
     params.push('resize=contain');
-    return `${url}${separator}${params.join('&')}`;
+    return `${cleanUrl}?${params.join('&')}`;
   }
   
   return url;

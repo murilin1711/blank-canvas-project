@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ProductPage from "@/components/ProductPage";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getOptimizedImageUrl } from "@/lib/utils";
 
 export default function DynamicProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,20 @@ export default function DynamicProductPage() {
 
     fetchProduct();
   }, [id]);
+
+  // Preload first image once product is loaded
+  useEffect(() => {
+    if (!product) return;
+    const firstImage = product.images?.[0] || product.image_url;
+    if (!firstImage) return;
+    const optimizedUrl = getOptimizedImageUrl(firstImage, 500);
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = optimizedUrl;
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, [product]);
 
   if (loading) {
     return (

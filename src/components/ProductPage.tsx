@@ -248,7 +248,7 @@ export default function ProductPage({
                   return (
                   <img
                     key={img + i}
-                    src={getOptimizedImageUrl(img, 800)}
+                    src={getOptimizedImageUrl(img, 500)}
                     alt={`${productName} - ${i + 1}`}
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
@@ -295,6 +295,7 @@ export default function ProductPage({
               >
                 <img
                   src={getOptimizedImageUrl(images[activeIndex], 800)}
+
                   alt="Imagem principal do produto"
                   className="w-full h-full object-cover"
                   fetchPriority="high"
@@ -315,7 +316,7 @@ export default function ProductPage({
                     aria-label={`Mostrar imagem ${i + 1}`}
                   >
                     <img
-                      src={getOptimizedImageUrl(img, 300)}
+                      src={getOptimizedImageUrl(img, 200)}
                       alt={`Imagem ${i + 1}`}
                       loading="lazy"
                       className="w-full h-full object-cover"
