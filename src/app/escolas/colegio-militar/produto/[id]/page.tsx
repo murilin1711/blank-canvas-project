@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import ProductPage from "@/components/ProductPage";
-import { RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DynamicProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -40,10 +40,21 @@ export default function DynamicProductPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Carregando produto...</p>
+      <div className="min-h-screen bg-background">
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Skeleton className="aspect-[3/4] w-full rounded-lg" />
+            <div className="space-y-4 py-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-6 w-1/3" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <div className="flex gap-2 pt-4">
+                {[1,2,3,4].map(i => <Skeleton key={i} className="h-10 w-14 rounded-md" />)}
+              </div>
+              <Skeleton className="h-12 w-full mt-6 rounded-lg" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -82,7 +93,9 @@ export default function DynamicProductPage() {
       (v: any) => v.name?.toLowerCase() === "tamanho" || v.name?.toLowerCase() === "tamanhos"
     );
     if (sizeVariation && Array.isArray(sizeVariation.options)) {
-      productSizes = sizeVariation.options;
+      productSizes = sizeVariation.options.map((opt: any) =>
+        typeof opt === 'string' ? opt : opt.value
+      );
     }
   }
 
