@@ -1,8 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, User, Heart, ShoppingCart, Menu, X, Package, LogOut } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { getOptimizedImageUrl } from '@/lib/utils';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -16,7 +18,49 @@ const Header = () => {
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const mobileAccountRef = useRef<HTMLDivElement>(null);
+  const searchSuggestionsRef = useRef<HTMLDivElement>(null);
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Debounced search for suggestions
+  const fetchSuggestions = useCallback((query: string) => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (query.trim().length < 2) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('id, name, price, images, image_url, school_slug')
+        .ilike('name', `%${query.trim()}%`)
+        .eq('is_active', true)
+        .limit(5);
+      if (data && data.length > 0) {
+        setSearchSuggestions(data);
+        setShowSuggestions(true);
+      } else {
+        setSearchSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+  }, []);
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    fetchSuggestions(val);
+  };
+
+  const handleSuggestionClick = (product: any) => {
+    setShowSuggestions(false);
+    setSearchQuery('');
+    setSearchOpen(false);
+    navigate(`/escolas/${product.school_slug}/produto/${product.id}`);
+  };
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -44,11 +88,25 @@ const Header = () => {
   // Close account menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isOutsideDesktop = !accountMenuRef.current || !accountMenuRef.current.contains(target);
+      const isOutsideMobile = !mobileAccountRef.current || !mobileAccountRef.current.contains(target);
+      if (isOutsideDesktop && isOutsideMobile) {
         setAccountMenuOpen(false);
       }
     };
 
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Close search suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchSuggestionsRef.current && !searchSuggestionsRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -123,12 +181,38 @@ const Header = () => {
                         placeholder="Buscar produtos..."
                         autoFocus
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchInputChange}
                         className="flex-1 bg-transparent border-none outline-none text-[13px] font-suisse text-black placeholder:text-gray-500"
                         onBlur={() => {
                           if (!searchQuery) setSearchOpen(false);
+                          setTimeout(() => setShowSuggestions(false), 200);
                         }}
+                        onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }}
                       />
+                      {/* Desktop Search Suggestions */}
+                      {showSuggestions && searchSuggestions.length > 0 && (
+                        <div ref={searchSuggestionsRef} className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-[70] max-h-[300px] overflow-y-auto">
+                          {searchSuggestions.map((product) => {
+                            const imgUrl = product.images?.[0] || product.image_url || '';
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                onMouseDown={(e) => { e.preventDefault(); handleSuggestionClick(product); }}
+                                className="flex items-center gap-3 px-3 py-2 w-full hover:bg-gray-50 transition-colors text-left"
+                              >
+                                {imgUrl && (
+                                  <img src={getOptimizedImageUrl(imgUrl, 40, 40)} alt={product.name} className="w-10 h-10 object-cover rounded-lg flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                                  <p className="text-xs text-gray-500">R$ {Number(product.price).toFixed(2).replace('.', ',')}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                       <button 
                         type="submit" 
                         className="p-1 hover:bg-white/50 rounded transition-colors"
@@ -247,7 +331,7 @@ const Header = () => {
                 {itemCount}
               </div>
             </Link>
-            <div className="relative">
+            <div className="relative" ref={mobileAccountRef}>
               <button onClick={handleAccountClick} aria-label="Perfil" className="relative w-[48px] h-[48px] flex items-center justify-center bg-white/50 backdrop-blur-md rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
                 <User size={20} className={user ? 'text-[#2e3091]' : ''} />
                 {user && (
@@ -307,7 +391,8 @@ const Header = () => {
                   placeholder="Buscar produtos..."
                   autoFocus
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleSearchInputChange}
+                  onFocus={() => { if (searchSuggestions.length > 0) setShowSuggestions(true); }}
                   className="flex-1 bg-gray-100 border-none outline-none text-[16px] font-suisse text-black placeholder:text-gray-500 px-4 py-3 rounded-xl"
                 />
                 <button 
@@ -317,6 +402,30 @@ const Header = () => {
                   <Search className="w-5 h-5" />
                 </button>
               </form>
+              {/* Mobile Search Suggestions */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="mt-3 bg-white rounded-xl shadow-lg border border-gray-100 py-2 max-h-[250px] overflow-y-auto">
+                  {searchSuggestions.map((product) => {
+                    const imgUrl = product.images?.[0] || product.image_url || '';
+                    return (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => handleSuggestionClick(product)}
+                        className="flex items-center gap-3 px-4 py-3 w-full hover:bg-gray-50 transition-colors text-left"
+                      >
+                        {imgUrl && (
+                          <img src={getOptimizedImageUrl(imgUrl, 48, 48)} alt={product.name} className="w-12 h-12 object-cover rounded-lg flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                          <p className="text-xs text-gray-500">R$ {Number(product.price).toFixed(2).replace('.', ',')}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
