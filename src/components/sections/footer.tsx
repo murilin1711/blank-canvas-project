@@ -26,7 +26,7 @@ const Footer = () => {
         { label: "Formas de pagamento", href: "#" },
         { label: "Termos e condições", href: "#" },
         { label: "Privacidade & Segurança", href: "#" },
-        { label: "Ética e Sustentabilidade", href: "#" },
+        
       ],
     },
     {
@@ -40,7 +40,7 @@ const Footer = () => {
     {
       title: "Fale conosco",
       links: [
-        { label: "Central de atendimento", href: "#" },
+        
         { label: "Fale conosco", href: "#" },
       ],
     },
@@ -59,10 +59,6 @@ const Footer = () => {
   return (
     <footer className="bg-[#e8e8e8] font-suisse">
       <div className="max-w-7xl mx-auto px-6 lg:px-10 py-14 lg:py-20">
-        {/* Logo - aumentada */}
-        <div className="mb-14">
-          <img src={goiasMinasLogo} alt="Goiás Minas Uniformes" className="h-32 md:h-40 lg:h-44 w-auto" />
-        </div>
 
         {/* Grid de seções - 2 colunas no topo, 2 embaixo como na referência */}
         <div className="space-y-12">
