@@ -1,47 +1,48 @@
 
 
-# Plano: Imagens Carregando Instantaneamente
+# Plano: Corrigir Navegacao + Qualidade de Imagem + Velocidade
 
-## Problema Raiz Identificado
+## 1. Links quebrados no menu mobile (e desktop)
 
-A funcao `getOptimizedImageUrl` nao esta funcionando. As URLs dos produtos usam o caminho `/object/public/` (arquivo original, sem transformacao). A funcao apenas adiciona `?width=400` nesse caminho, mas o Supabase **ignora esses parametros** em URLs `/object/`. Para que a transformacao funcione, a URL precisa usar `/render/image/public/`.
+No arquivo `src/components/sections/header.tsx`, os itens "Uniformes Empresariais" e "Camisetas Personalizadas" no menu mobile (linha 356-362) caem num `else` generico que renderiza um `<button>` que apenas fecha o menu sem navegar. No desktop (linhas 431-436), o submenu mostra texto placeholder ("Conteudo do submenu para...") em vez de links.
 
-Resultado atual: o navegador baixa a imagem **original em tamanho cheio** (varios MB) em vez de uma versao redimensionada (poucos KB). Por isso demora e as fotos "carregam pela metade".
+### Correcao
 
-## Correcao
+**Mobile** (linhas 356-362): Trocar o `<button>` generico por `<Link>` com navegacao correta:
+- "Uniformes Empresariais" → `/empresarial`
+- "Camisetas Personalizadas" → `/personalizacao`
+- "Perguntas Frequentes (FAQ)" → scroll para secao FAQ na home (ou link para `/sobre`)
 
-### 1. Corrigir `getOptimizedImageUrl` (src/lib/utils.ts)
+**Desktop** (linhas 431-436): No submenu overlay, trocar o placeholder por links reais para as paginas corretas.
 
-Converter URLs de `/object/public/` para `/render/image/public/` antes de adicionar os parametros de redimensionamento. Isso faz o Supabase servir a imagem ja redimensionada no servidor.
+---
 
-```text
-Antes:  .../storage/v1/object/public/product-images/foto.png?width=400
-Depois: .../storage/v1/render/image/public/product-images/foto.png?width=400&resize=contain
-```
+## 2. Qualidade das imagens no celular
 
-Tambem limpar parametros duplicados caso a URL ja tenha `width`/`height`/`resize`.
+Atualmente as imagens de produto no mobile sao servidas com `width=500`. Em telas de alta resolucao (2x, 3x), isso resulta em imagens borradas pois 500px cobre apenas ~167px reais numa tela 3x.
 
-### 2. Reduzir tamanho das imagens no mobile
+### Correcao
 
-- Grade de produtos (listing): 400px de largura (ja esta)
-- Pagina do produto no mobile: reduzir de 800px para 500px (suficiente para telas de celular)
-- Thumbnails no desktop: usar 200px em vez de 800px
+No `src/components/ProductPage.tsx`, aumentar a largura das imagens no mobile de 500px para **750px**. Isso garante boa qualidade em telas ate 2x (375px logicos) sem pesar demais (~150-300KB por imagem em vez de ~50-100KB).
 
-### 3. Preload da primeira imagem na pagina de produto
+---
 
-Apos buscar o produto do banco, injetar um `<link rel="preload">` no `<head>` para a primeira imagem ja com a URL otimizada, fazendo o browser comecar o download antes mesmo do React renderizar o componente.
+## 3. Velocidade das paginas Empresarial e Personalizacao
+
+As imagens dessas paginas (`src/assets/linhas/...`) sao importadas localmente e servidas sem otimizacao -- o navegador baixa os arquivos originais (potencialmente varios MB cada). Como sao imagens estaticas locais (nao do Supabase Storage), o `getOptimizedImageUrl` nao se aplica.
+
+### Correcao
+
+Adicionar `loading="lazy"` e `decoding="async"` nas imagens dos cards dessas duas paginas para que o navegador nao tente baixar todas simultaneamente. Tambem reduzir o tamanho visual com `fetchPriority` adequado.
+
+---
 
 ## Resumo de Alteracoes
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/lib/utils.ts` | Corrigir `getOptimizedImageUrl` para usar `/render/image/` em vez de `/object/`; limpar params duplicados |
-| `src/components/ProductPage.tsx` | Reduzir imagem mobile para 500px; thumbnails para 200px |
-| `src/app/escolas/colegio-militar/produto/[id]/page.tsx` | Preload da primeira imagem no head |
-
-## Impacto Esperado
-
-- Imagens na grade: de ~2-5MB cada para ~30-80KB cada (reducao de 95%+)
-- Imagens no produto: de ~2-5MB para ~100-200KB
-- Carregamento percebido: praticamente instantaneo
+| `src/components/sections/header.tsx` | Mobile: trocar `<button>` por `<Link>` para Empresarial e Personalizacao. Desktop: trocar placeholder do submenu por links reais |
+| `src/components/ProductPage.tsx` | Aumentar imagem mobile de 500px para 750px |
+| `src/app/empresarial/page.tsx` | Adicionar `loading="lazy"` e `decoding="async"` nas imagens |
+| `src/app/personalizacao/page.tsx` | Adicionar `loading="lazy"` e `decoding="async"` nas imagens |
 
