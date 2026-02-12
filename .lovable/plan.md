@@ -1,27 +1,48 @@
 
-# Plano: Corrigir Pagamentos + Restauracao de Scroll
+# Plano: Corrigir Restauracao de Scroll
 
-## 1. Pagamentos (Pix e Cartao) -- RESOLVIDO
+## Problema
 
-As funcoes de backend para pagamento (create-payment-intent e create-mercadopago-pix) nao estavam implantadas no servidor. Eu ja fiz o deploy durante a investigacao e confirmei que o pagamento por cartao esta retornando resposta correta (status 200).
+A abordagem atual usa timeouts fixos (ate 1500ms) para tentar restaurar o scroll, mas isso nao funciona porque:
+- A pagina de produtos carrega dados do banco de forma assincrona
+- Enquanto `loading` e `true`, a pagina mostra um loader/skeleton sem altura suficiente
+- O carregamento pode demorar mais que 1500ms dependendo da conexao
+- Mesmo dentro de 1500ms, o scroll e aplicado mas a pagina "encolhe" de volta quando o conteudo muda de skeleton para produtos reais
 
-Nenhuma alteracao de codigo e necessaria -- o problema era apenas que as funcoes precisavam ser implantadas. Vou apenas garantir que todas as funcoes relacionadas a pagamento continuem implantadas apos qualquer alteracao.
+## Solucao
+
+Substituir os timeouts fixos por um sistema mais robusto que observa mudancas no DOM. O componente vai usar um `MutationObserver` + `requestAnimationFrame` para monitorar quando a pagina atinge a altura necessaria e so entao restaurar o scroll. Isso garante que funcione independente do tempo de carregamento.
+
+### Logica:
+
+1. Ao detectar navegacao POP (voltar), em vez de disparar timeouts cegos, iniciar um observador que monitora a altura do documento
+2. Quando `document.body.scrollHeight >= savedPosition + window.innerHeight` (ou seja, a pagina tem altura suficiente para scrollar ate a posicao salva), restaurar o scroll
+3. Timeout maximo de 5 segundos como fallback, para nao ficar observando infinitamente
+4. Cancelar o observador assim que o scroll for restaurado com sucesso
 
 ---
 
-## 2. Restauracao de scroll ao voltar para pagina de produtos
+## Detalhes Tecnicos
 
-O sistema de restauracao de scroll ja existe (`ScrollToTop.tsx`), mas nao funciona bem quando a pagina carrega dados do banco de forma assincrona. O problema: ao voltar, a pagina tenta restaurar a posicao de scroll, mas os produtos ainda nao foram carregados do banco, entao a pagina nao tem altura suficiente. Os tempos de espera atuais (maximo 500ms) nao sao suficientes.
+### Arquivo: `src/components/ScrollToTop.tsx`
 
-### Correcao
+Reescrever o trecho de restauracao de scroll para usar:
 
-Aumentar os tempos de tentativa de restauracao de scroll no `ScrollToTop.tsx`, adicionando tentativas mais tardias (750ms, 1000ms, 1500ms) para garantir que o conteudo assincrono ja tenha sido carregado antes de restaurar a posicao.
+```text
+// Ao detectar POP com posicao salva:
+1. Tentar scrollar imediatamente (caso conteudo ja esteja pronto)
+2. Criar MutationObserver no document.body com { childList: true, subtree: true }
+3. A cada mutacao, verificar se document.body.scrollHeight > savedPosition
+4. Se sim, fazer window.scrollTo e desconectar o observer
+5. Timeout de 5s como fallback para desconectar
+```
+
+Isso resolve o problema porque o observer dispara toda vez que o React renderiza novos elementos (ex: quando os produtos carregam e substituem o skeleton), garantindo que o scroll so e restaurado quando ha conteudo suficiente na pagina.
 
 ---
 
-## Resumo de Alteracoes
+## Resumo
 
 | Arquivo | O que muda |
 |---------|-----------|
-| Funcoes de backend | Ja foram implantadas (create-payment-intent, create-mercadopago-pix, check-pix-payment, stripe-webhook, mercadopago-webhook) |
-| `src/components/ScrollToTop.tsx` | Aumentar tempos de tentativa de restauracao de scroll para suportar carregamento assincrono |
+| `src/components/ScrollToTop.tsx` | Substituir timeouts fixos por MutationObserver que aguarda o conteudo carregar antes de restaurar scroll |
