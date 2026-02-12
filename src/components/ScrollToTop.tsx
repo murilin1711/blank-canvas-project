@@ -30,14 +30,39 @@ export function ScrollToTop() {
     if (navigationType === 'POP') {
       const savedPosition = scrollPositions.current.get(key);
       if (savedPosition !== undefined) {
-        // Multiple attempts with increasing delays to ensure content is loaded
-        const attempts = [0, 50, 100, 200, 350, 500, 750, 1000, 1500];
-        attempts.forEach((delay) => {
-          setTimeout(() => {
-            window.scrollTo({ top: savedPosition, behavior: 'instant' });
-          }, delay);
+        const tryScroll = () => {
+          window.scrollTo({ top: savedPosition, behavior: 'instant' });
+        };
+
+        // Try immediately
+        tryScroll();
+
+        // If page already has enough height, we're done
+        if (document.body.scrollHeight >= savedPosition + window.innerHeight) {
+          return;
+        }
+
+        // Otherwise, observe DOM mutations until page is tall enough
+        const observer = new MutationObserver(() => {
+          if (document.body.scrollHeight >= savedPosition + window.innerHeight) {
+            tryScroll();
+            observer.disconnect();
+            clearTimeout(fallbackTimeout);
+          }
         });
-        return;
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // Fallback: stop observing after 5s
+        const fallbackTimeout = setTimeout(() => {
+          tryScroll();
+          observer.disconnect();
+        }, 5000);
+
+        return () => {
+          observer.disconnect();
+          clearTimeout(fallbackTimeout);
+        };
       }
     }
 
