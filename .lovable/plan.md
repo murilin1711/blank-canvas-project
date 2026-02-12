@@ -1,39 +1,71 @@
 
 
-# Plano: Corrigir Navegacao + Qualidade de Imagem + Velocidade
+# Plano: 5 Correcoes (Zoom, Rodape, Pesquisa, Favoritos, Pedidos)
 
-## 1. Links quebrados no menu mobile (e desktop)
+## 1. Zoom no celular ao clicar em campos do checkout
 
-No arquivo `src/components/sections/header.tsx`, os itens "Uniformes Empresariais" e "Camisetas Personalizadas" no menu mobile (linha 356-362) caem num `else` generico que renderiza um `<button>` que apenas fecha o menu sem navegar. No desktop (linhas 431-436), o submenu mostra texto placeholder ("Conteudo do submenu para...") em vez de links.
+O problema e que em iOS/Safari, quando um input tem `font-size` menor que 16px, o navegador faz zoom automatico. A correcao e adicionar uma meta tag no `index.html`:
 
-### Correcao
+```text
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+```
 
-**Mobile** (linhas 356-362): Trocar o `<button>` generico por `<Link>` com navegacao correta:
-- "Uniformes Empresariais" → `/empresarial`
-- "Camisetas Personalizadas" → `/personalizacao`
-- "Perguntas Frequentes (FAQ)" → scroll para secao FAQ na home (ou link para `/sobre`)
+Tambem garantir que os inputs do checkout tenham `font-size: 16px` minimo (o `text-body-sm` pode ser menor que 16px).
 
-**Desktop** (linhas 431-436): No submenu overlay, trocar o placeholder por links reais para as paginas corretas.
-
----
-
-## 2. Qualidade das imagens no celular
-
-Atualmente as imagens de produto no mobile sao servidas com `width=500`. Em telas de alta resolucao (2x, 3x), isso resulta em imagens borradas pois 500px cobre apenas ~167px reais numa tela 3x.
-
-### Correcao
-
-No `src/components/ProductPage.tsx`, aumentar a largura das imagens no mobile de 500px para **750px**. Isso garante boa qualidade em telas ate 2x (375px logicos) sem pesar demais (~150-300KB por imagem em vez de ~50-100KB).
+**Arquivo:** `index.html` (linha 7)
 
 ---
 
-## 3. Velocidade das paginas Empresarial e Personalizacao
+## 2. Remover itens do rodape
 
-As imagens dessas paginas (`src/assets/linhas/...`) sao importadas localmente e servidas sem otimizacao -- o navegador baixa os arquivos originais (potencialmente varios MB cada). Como sao imagens estaticas locais (nao do Supabase Storage), o `getOptimizedImageUrl` nao se aplica.
+Remover do `src/components/sections/footer.tsx`:
+- "Etica e Sustentabilidade" (da secao Politicas)
+- "Central de atendimento" (da secao Fale conosco)
+- Logo da Goias Minas (a imagem grande no topo do rodape)
+
+**Arquivo:** `src/components/sections/footer.tsx`
+
+---
+
+## 3. Pesquisa de produtos - mostrar resultados com nomes
+
+Atualmente o `handleSearch` no header redireciona direto para `/escolas/colegio-militar?search=...`, mas a pagina do colegio militar nao le o parametro `search` da URL.
+
+A correcao e dupla:
+1. No header (`handleSearch`), sempre navegar para `/escolas/colegio-militar?search=TERMO`
+2. Na pagina do colegio militar, ler o parametro `search` da URL e preencher o campo de busca local para que o filtro ja funcione automaticamente
+
+Assim quando o usuario pesquisar "camiseta", a pagina abre ja filtrando os produtos que contem "camiseta" no nome ou categoria.
+
+**Arquivos:** `src/components/sections/header.tsx`, `src/app/escolas/colegio-militar/page.tsx`
+
+---
+
+## 4. Favoritos nao aparecem na pagina
+
+O problema esta claro no codigo: a pagina de favoritos (`src/app/favoritos/page.tsx`) usa um `productsData` hardcoded com IDs de 1 a 6. Porem os produtos reais no banco tem IDs como 17, 18, 16, 15, 22, etc. Quando o usuario adiciona o produto ID 17 aos favoritos, a pagina tenta buscar `productsData[17]` que retorna `undefined`, e o `if (!product) return null` esconde o item.
 
 ### Correcao
 
-Adicionar `loading="lazy"` e `decoding="async"` nas imagens dos cards dessas duas paginas para que o navegador nao tente baixar todas simultaneamente. Tambem reduzir o tamanho visual com `fetchPriority` adequado.
+Reescrever a pagina de favoritos para buscar os dados dos produtos do banco de dados usando os IDs salvos nos favoritos, em vez de usar dados hardcoded.
+
+Tambem adicionar o link "Meus Favoritos" no dropdown do icone de pessoa (tanto mobile quanto desktop), junto com "Meus Pedidos".
+
+**Arquivos:** `src/app/favoritos/page.tsx`, `src/components/sections/header.tsx`
+
+---
+
+## 5. Meus Pedidos nao funciona
+
+O link para `/meus-pedidos` ja existe no dropdown do usuario. O problema pode ser que as policies RLS usam `RESTRICTIVE` (nao `PERMISSIVE`). Vou verificar se as RLS estao corretas.
+
+Olhando o codigo da pagina, ha um bug: o `useEffect` esta posicionado DEPOIS de um `return` condicional (quando `!user`). Em React, hooks nao podem ser chamados condicionalmente. Isso pode causar erro silencioso.
+
+### Correcao
+
+Mover o `useEffect` para ANTES do return condicional, e adicionar a verificacao `if (!user) return` dentro do useEffect.
+
+**Arquivo:** `src/app/meus-pedidos/page.tsx`
 
 ---
 
@@ -41,8 +73,10 @@ Adicionar `loading="lazy"` e `decoding="async"` nas imagens dos cards dessas dua
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/components/sections/header.tsx` | Mobile: trocar `<button>` por `<Link>` para Empresarial e Personalizacao. Desktop: trocar placeholder do submenu por links reais |
-| `src/components/ProductPage.tsx` | Aumentar imagem mobile de 500px para 750px |
-| `src/app/empresarial/page.tsx` | Adicionar `loading="lazy"` e `decoding="async"` nas imagens |
-| `src/app/personalizacao/page.tsx` | Adicionar `loading="lazy"` e `decoding="async"` nas imagens |
+| `index.html` | Adicionar `maximum-scale=1.0` na meta viewport |
+| `src/components/sections/footer.tsx` | Remover "Etica e Sustentabilidade", "Central de atendimento" e logo |
+| `src/components/sections/header.tsx` | Melhorar busca para redirecionar com parametro; adicionar "Meus Favoritos" no dropdown do usuario |
+| `src/app/escolas/colegio-militar/page.tsx` | Ler parametro `search` da URL para filtrar produtos |
+| `src/app/favoritos/page.tsx` | Buscar dados dos produtos do banco em vez de usar dados hardcoded |
+| `src/app/meus-pedidos/page.tsx` | Corrigir posicao do useEffect (hook condicional) |
 
