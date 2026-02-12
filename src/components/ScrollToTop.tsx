@@ -1,11 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigationType } from 'react-router-dom';
 
 export function ScrollToTop() {
   const { pathname, key } = useLocation();
   const navigationType = useNavigationType();
   const scrollPositions = useRef<Map<string, number>>(new Map());
-  const prevKey = useRef<string>('');
+  const currentKey = useRef<string>('');
+  const lastScrollY = useRef<number>(0);
 
   // Disable browser's automatic scroll restoration
   useEffect(() => {
@@ -19,17 +20,30 @@ export function ScrollToTop() {
     };
   }, []);
 
-  useEffect(() => {
-    // Save current scroll position before navigating
-    if (prevKey.current) {
-      scrollPositions.current.set(prevKey.current, window.scrollY);
+  // Continuously track scroll position so we always have the latest value
+  const handleScroll = useCallback(() => {
+    lastScrollY.current = window.scrollY;
+    if (currentKey.current) {
+      scrollPositions.current.set(currentKey.current, window.scrollY);
     }
-    prevKey.current = key;
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  useEffect(() => {
+    // Save the scroll position of the PREVIOUS page using the continuously tracked value
+    if (currentKey.current && currentKey.current !== key) {
+      scrollPositions.current.set(currentKey.current, lastScrollY.current);
+    }
+    currentKey.current = key;
 
     // POP = Back/Forward browser navigation
     if (navigationType === 'POP') {
       const savedPosition = scrollPositions.current.get(key);
-      if (savedPosition !== undefined) {
+      if (savedPosition !== undefined && savedPosition > 0) {
         const tryScroll = () => {
           window.scrollTo({ top: savedPosition, behavior: 'instant' });
         };
