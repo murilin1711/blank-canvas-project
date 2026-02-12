@@ -248,7 +248,7 @@ export default function ProductPage({
                   return (
                   <img
                     key={img + i}
-                    src={getOptimizedImageUrl(img, 500)}
+                    src={getOptimizedImageUrl(img, 750)}
                     alt={`${productName} - ${i + 1}`}
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
