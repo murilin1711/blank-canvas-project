@@ -1,56 +1,21 @@
 
+# Plano: Corrigir Pagamentos + Restauracao de Scroll
 
-# Plano: Corrigir Favoritos/Pedidos + Pesquisa com Sugestoes
+## 1. Pagamentos (Pix e Cartao) -- RESOLVIDO
 
-## 1. Favoritos e Meus Pedidos nao navegam ao clicar
+As funcoes de backend para pagamento (create-payment-intent e create-mercadopago-pix) nao estavam implantadas no servidor. Eu ja fiz o deploy durante a investigacao e confirmei que o pagamento por cartao esta retornando resposta correta (status 200).
 
-### Causa raiz
-
-O `accountMenuRef` (linha 149 do header) so envolve o container do dropdown no **desktop**. No mobile (linhas 250-295), o dropdown esta dentro de um `<div>` separado SEM essa ref.
-
-O `handleClickOutside` usa `mousedown` (que dispara ANTES do `click`). Quando o usuario clica em "Meus Favoritos" ou "Meus Pedidos" no dropdown mobile, o handler detecta que o clique esta "fora" do `accountMenuRef` (que so cobre o desktop), fecha o dropdown, e o Link desaparece do DOM antes do click ser processado. Resultado: nada acontece.
-
-### Correcao
-
-Criar uma segunda ref para o container mobile do dropdown, e alterar o `handleClickOutside` para verificar ambas as refs:
-
-```text
-const mobileAccountRef = useRef<HTMLDivElement>(null);
-
-// No handleClickOutside:
-if (
-  accountMenuRef.current && !accountMenuRef.current.contains(event.target) &&
-  mobileAccountRef.current && !mobileAccountRef.current.contains(event.target)
-) {
-  setAccountMenuOpen(false);
-}
-```
-
-Adicionar `ref={mobileAccountRef}` no `<div className="relative">` que envolve o botao de perfil e dropdown mobile (linha 250).
-
-**Arquivo:** `src/components/sections/header.tsx`
+Nenhuma alteracao de codigo e necessaria -- o problema era apenas que as funcoes precisavam ser implantadas. Vou apenas garantir que todas as funcoes relacionadas a pagamento continuem implantadas apos qualquer alteracao.
 
 ---
 
-## 2. Pesquisa com sugestoes em tempo real
+## 2. Restauracao de scroll ao voltar para pagina de produtos
 
-O usuario quer que, ao digitar no campo de busca, aparecam sugestoes de produtos que correspondem ao texto digitado. Ao pressionar Enter, os resultados sao mostrados na pagina.
+O sistema de restauracao de scroll ja existe (`ScrollToTop.tsx`), mas nao funciona bem quando a pagina carrega dados do banco de forma assincrona. O problema: ao voltar, a pagina tenta restaurar a posicao de scroll, mas os produtos ainda nao foram carregados do banco, entao a pagina nao tem altura suficiente. Os tempos de espera atuais (maximo 500ms) nao sao suficientes.
 
-### Implementacao
+### Correcao
 
-No header, ao digitar no campo de busca:
-- Buscar produtos do banco que contem as letras digitadas no nome (minimo 2 caracteres)
-- Mostrar um dropdown abaixo do campo com ate 5 sugestoes de produtos (nome + imagem + preco)
-- Ao clicar numa sugestao, navegar direto para a pagina do produto
-- Ao pressionar Enter, navegar para `/escolas/colegio-militar?search=TERMO` como ja funciona
-
-Detalhes tecnicos:
-- Usar `useState` para armazenar as sugestoes
-- Usar debounce de 300ms para nao fazer muitas requisicoes ao banco
-- Buscar com `supabase.from("products").select("id, name, price, images, image_url, school_slug").ilike("name", `%${query}%`).limit(5)`
-- Mostrar dropdown de sugestoes tanto no mobile quanto no desktop
-
-**Arquivo:** `src/components/sections/header.tsx`
+Aumentar os tempos de tentativa de restauracao de scroll no `ScrollToTop.tsx`, adicionando tentativas mais tardias (750ms, 1000ms, 1500ms) para garantir que o conteudo assincrono ja tenha sido carregado antes de restaurar a posicao.
 
 ---
 
@@ -58,5 +23,5 @@ Detalhes tecnicos:
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/components/sections/header.tsx` | Corrigir ref do dropdown mobile para que links de Favoritos/Pedidos funcionem; Adicionar busca em tempo real com sugestoes de produtos |
-
+| Funcoes de backend | Ja foram implantadas (create-payment-intent, create-mercadopago-pix, check-pix-payment, stripe-webhook, mercadopago-webhook) |
+| `src/components/ScrollToTop.tsx` | Aumentar tempos de tentativa de restauracao de scroll para suportar carregamento assincrono |
