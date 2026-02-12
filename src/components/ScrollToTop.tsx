@@ -31,7 +31,7 @@ export function ScrollToTop() {
       const savedPosition = scrollPositions.current.get(key);
       if (savedPosition !== undefined) {
         // Multiple attempts with increasing delays to ensure content is loaded
-        const attempts = [0, 50, 100, 200, 350, 500];
+        const attempts = [0, 50, 100, 200, 350, 500, 750, 1000, 1500];
         attempts.forEach((delay) => {
           setTimeout(() => {
             window.scrollTo({ top: savedPosition, behavior: 'instant' });
