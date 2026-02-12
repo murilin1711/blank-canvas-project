@@ -9,7 +9,7 @@ import type {
   TouchEvent,
   WheelEvent,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronDown,
   X,
@@ -42,6 +42,7 @@ type Product = {
 /* -------------------- Componente -------------------- */
 export default function LojaEstiloOsklen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -92,7 +93,7 @@ export default function LojaEstiloOsklen() {
   const [selectedCategory, setSelectedCategory] = useState<string>("Todos");
   const [sortBy, setSortBy] = useState<SortOption>("default");
   const [showFiltersModal, setShowFiltersModal] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
 
   const [columnsDesktop, setColumnsDesktop] = useState<number>(4);
   const [columnsMobile, setColumnsMobile] = useState<number>(2);

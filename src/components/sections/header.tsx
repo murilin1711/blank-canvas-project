@@ -21,13 +21,8 @@ const Header = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       // Navigate to escola or search results
-      const query = searchQuery.toLowerCase().trim();
-      if (query.includes('militar') || query.includes('colegio')) {
-        navigate('/escolas/colegio-militar');
-      } else {
-        // For now, navigate to schools page with search term
-        navigate(`/escolas/colegio-militar?search=${encodeURIComponent(query)}`);
-      }
+      const query = searchQuery.trim();
+      navigate(`/escolas/colegio-militar?search=${encodeURIComponent(query)}`);
       setSearchOpen(false);
       setSearchQuery('');
     }
@@ -177,6 +172,14 @@ const Header = () => {
                       <Package className="w-4 h-4" />
                       Meus Pedidos
                     </Link>
+                    <Link
+                      to="/favoritos"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Heart className="w-4 h-4" />
+                      Meus Favoritos
+                    </Link>
                     <button
                       onClick={() => {
                         signOut();
@@ -263,6 +266,16 @@ const Header = () => {
                     <div className="flex items-center gap-3">
                       <Package className="w-4 h-4" />
                       Meus Pedidos
+                    </div>
+                  </Link>
+                  <Link
+                    to="/favoritos"
+                    onClick={() => setAccountMenuOpen(false)}
+                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Heart className="w-4 h-4" />
+                      Meus Favoritos
                     </div>
                   </Link>
                   <button
