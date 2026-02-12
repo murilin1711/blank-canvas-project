@@ -353,6 +353,30 @@ const Header = () => {
                             </ul>
                           )}
                         </>
+                      ) : item === "Uniformes Empresariais" ? (
+                        <Link
+                          to="/empresarial"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors duration-300 hover:scale-105 hover:shadow-sm w-full text-left"
+                        >
+                          {item}
+                        </Link>
+                      ) : item === "Camisetas Personalizadas" ? (
+                        <Link
+                          to="/personalizacao"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors duration-300 hover:scale-105 hover:shadow-sm w-full text-left"
+                        >
+                          {item}
+                        </Link>
+                      ) : item === "Perguntas Frequentes (FAQ)" ? (
+                        <Link
+                          to="/sobre"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="block font-suisse text-[16px] font-medium text-black py-3 px-4 rounded-lg hover:bg-white/80 transition-colors duration-300 hover:scale-105 hover:shadow-sm w-full text-left"
+                        >
+                          {item}
+                        </Link>
                       ) : (
                         <button
                           onClick={() => setMobileMenuOpen(false)}
@@ -426,6 +450,33 @@ const Header = () => {
                       className="text-[#2e3091] font-bold text-lg hover:underline"
                     >
                       Colégio Militar
+                    </Link>
+                  </div>
+                ) : item === "Uniformes Empresariais" ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <Link
+                      to="/empresarial"
+                      className="text-[#2e3091] font-bold text-lg hover:underline"
+                    >
+                      Ver todas as linhas empresariais
+                    </Link>
+                  </div>
+                ) : item === "Camisetas Personalizadas" ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <Link
+                      to="/personalizacao"
+                      className="text-[#2e3091] font-bold text-lg hover:underline"
+                    >
+                      Ver todas as linhas de personalização
+                    </Link>
+                  </div>
+                ) : item === "FAQ" ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <Link
+                      to="/sobre"
+                      className="text-[#2e3091] font-bold text-lg hover:underline"
+                    >
+                      Perguntas Frequentes
                     </Link>
                   </div>
                 ) : (
