@@ -31,6 +31,7 @@ export function getOptimizedImageUrl(url: string, width: number, height?: number
     const params = [`width=${width}`];
     if (height) params.push(`height=${height}`);
     params.push('resize=contain');
+    params.push('quality=90');
     return `${cleanUrl}?${params.join('&')}`;
   }
   
