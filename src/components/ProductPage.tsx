@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Heart } from "lucide-react";
+import { ArrowLeft, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/sections/footer";
 import { useCart } from "@/contexts/CartContext";
@@ -203,6 +203,45 @@ export default function ProductPage({
 
   const recommended = computeRecommendedSize();
   const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
+  const prevImage = () => setActiveIndex((s) => (s - 1 + images.length) % images.length);
+
+  // Touch swipe refs
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchDirection = useRef<'horizontal' | 'vertical' | null>(null);
+  const swipeDirection = useRef<'left' | 'right'>('left');
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDirection.current = null;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchDirection.current === 'vertical') return;
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (touchDirection.current === null && (dx > 10 || dy > 10)) {
+      touchDirection.current = dx > dy ? 'horizontal' : 'vertical';
+    }
+    if (touchDirection.current === 'horizontal') {
+      e.preventDefault();
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchDirection.current !== 'horizontal') return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) {
+      if (diff > 0) {
+        swipeDirection.current = 'left';
+        setActiveIndex((prev) => (prev + 1) % images.length);
+      } else {
+        swipeDirection.current = 'right';
+        setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+      }
+    }
+  }, [images.length]);
 
   return (
     <main className="min-h-screen bg-white">
@@ -223,28 +262,28 @@ export default function ProductPage({
             <div className="md:hidden relative w-full aspect-[3/4] bg-white overflow-hidden">
               <div
                 className="w-full h-full relative touch-pan-x"
-                onTouchStart={(e) => {
-                  const touch = e.touches[0];
-                  (e.currentTarget as any)._touchStartX = touch.clientX;
-                }}
-                onTouchEnd={(e) => {
-                  const startX = (e.currentTarget as any)._touchStartX || 0;
-                  const endX = e.changedTouches[0].clientX;
-                  const diff = startX - endX;
-                  if (Math.abs(diff) > 50) {
-                    if (diff > 0) {
-                      setActiveIndex((prev) => (prev + 1) % images.length);
-                    } else {
-                      setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
-                    }
-                  }
-                }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
               >
                 {images.map((img, i) => {
                   const isNear = i === activeIndex || i === activeIndex - 1 || i === activeIndex + 1 ||
                     (activeIndex === 0 && i === images.length - 1) ||
                     (activeIndex === images.length - 1 && i === 0);
                   if (!isNear) return <div key={img + i} className="absolute inset-0" />;
+                  
+                  let translateClass = "translate-x-0 opacity-100";
+                  if (i !== activeIndex) {
+                    // Determine position based on swipe direction for smooth animation
+                    const isNext = (i === (activeIndex + 1) % images.length) || 
+                                   (activeIndex === images.length - 1 && i === 0);
+                    const isPrev = (i === (activeIndex - 1 + images.length) % images.length) ||
+                                   (activeIndex === 0 && i === images.length - 1);
+                    if (isNext) translateClass = "translate-x-full opacity-0";
+                    else if (isPrev) translateClass = "-translate-x-full opacity-0";
+                    else translateClass = swipeDirection.current === 'left' ? "translate-x-full opacity-0" : "-translate-x-full opacity-0";
+                  }
+                  
                   return (
                   <img
                     key={img + i}
@@ -253,13 +292,7 @@ export default function ProductPage({
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
                     decoding={i === 0 ? "sync" : "async"}
-                    className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${
-                      i === activeIndex
-                        ? "translate-x-0 opacity-100"
-                        : i < activeIndex
-                        ? "-translate-x-full opacity-0"
-                        : "translate-x-full opacity-0"
-                    }`}
+                    className={`w-full h-full object-cover absolute inset-0 transition-all duration-300 ${translateClass}`}
                     draggable={false}
                   />
                   );
@@ -288,19 +321,33 @@ export default function ProductPage({
             {/* Desktop Gallery - with thumbnails */}
             <div className="hidden md:block">
               <div
-                className="relative w-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden cursor-pointer border border-gray-100"
-                onClick={nextImage}
-                role="button"
-                aria-label="Avançar imagem"
+                className="relative w-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden group border border-gray-100"
               >
                 <img
                   src={getOptimizedImageUrl(images[activeIndex], 800)}
-
                   alt="Imagem principal do produto"
                   className="w-full h-full object-cover"
                   fetchPriority="high"
                   decoding="sync"
                 />
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevImage}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-md"
+                      aria-label="Imagem anterior"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-700" />
+                    </button>
+                    <button
+                      onClick={nextImage}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-md"
+                      aria-label="Próxima imagem"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-700" />
+                    </button>
+                  </>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-3 mt-4">
                 {images.map((img, i) => (
