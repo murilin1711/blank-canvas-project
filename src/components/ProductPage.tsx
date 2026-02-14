@@ -210,15 +210,17 @@ export default function ProductPage({
   const touchStartY = useRef(0);
   const touchDirection = useRef<'horizontal' | 'vertical' | null>(null);
   const swipeDirection = useRef<'left' | 'right'>('left');
+  const swiped = useRef(false);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
     touchDirection.current = null;
+    swiped.current = false;
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (touchDirection.current === 'vertical') return;
+    if (touchDirection.current === 'vertical' || swiped.current) return;
     const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
     const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
     if (touchDirection.current === null && (dx > 10 || dy > 10)) {
@@ -230,9 +232,10 @@ export default function ProductPage({
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchDirection.current !== 'horizontal') return;
+    if (touchDirection.current !== 'horizontal' || swiped.current) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 60) {
+      swiped.current = true;
       if (diff > 0) {
         swipeDirection.current = 'left';
         setActiveIndex((prev) => (prev + 1) % images.length);
@@ -261,7 +264,8 @@ export default function ProductPage({
             {/* Mobile Gallery - infinite scroll style, no borders */}
             <div className="md:hidden relative w-full aspect-[3/4] bg-white overflow-hidden">
               <div
-                className="w-full h-full relative touch-pan-x"
+                className="w-full h-full relative"
+                style={{ touchAction: 'pan-y' }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
