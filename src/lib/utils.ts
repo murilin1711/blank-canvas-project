@@ -17,6 +17,9 @@ export function cn(...inputs: ClassValue[]) {
 export function getOptimizedImageUrl(url: string, width: number, height?: number): string {
   if (!url) return url;
   
+  // AVIF images: serve directly without server-side transformation
+  if (url.toLowerCase().endsWith('.avif')) return url;
+  
   // Check if it's a Supabase Storage URL
   if (url.includes('supabase.co/storage') || url.includes('supabase.in/storage')) {
     // Strip existing query params (width, height, resize) to avoid duplicates
