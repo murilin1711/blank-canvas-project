@@ -1,94 +1,81 @@
 
+# Corrigir Swipe da Galeria de Fotos (Bug de Pular Foto)
 
-# Plano: Corrigir Galeria de Fotos e Melhorar Qualidade
+## Causa Raiz
 
-## 1. Bug do Deslizar no Celular (Fotos Pulando)
+O problema e que o React registra os eventos `onTouchMove` como **passive listeners** por padrao. Isso significa que `e.preventDefault()` dentro do `handleTouchMove` **nao funciona** -- o navegador ignora a chamada. O resultado e que o browser continua processando o toque nativamente ao mesmo tempo que o codigo JavaScript tambem processa, causando **dois avancos** por gesto (o nativo + o do codigo).
 
-**Problema**: O sistema de swipe atual usa `onTouchStart`/`onTouchEnd` com uma abordagem simplificada que causa conflitos. A logica de transicao CSS compara indices de forma direta (`i < activeIndex` / `i > activeIndex`), o que nao trata bem a navegacao circular. Alem disso, o threshold de 50px e sensivel demais, e nao ha prevencao de scroll vertical durante o swipe horizontal.
+## Solucao
 
-**Solucao**: Reescrever o handler de toque para:
-- Rastrear `touchStartX` e `touchStartY` usando `useRef` em vez de propriedades no DOM
-- Adicionar deteccao de direcao: se o movimento for mais vertical que horizontal, ignorar o swipe
-- Aumentar threshold para 60px para evitar swipes acidentais
-- Usar `e.preventDefault()` apenas quando detectar swipe horizontal
-- Rastrear a direcao da animacao (esquerda/direita) para que a transicao CSS deslize corretamente sem "pular"
-
-## 2. Setas de Navegacao no Desktop
-
-**Problema**: No desktop, a unica forma de navegar e clicar na imagem (avanca) ou nas thumbnails. Nao ha setas visiveis.
-
-**Solucao**: Adicionar botoes de seta esquerda/direita sobre a imagem principal no desktop:
-- Setas com icones `ChevronLeft` e `ChevronRight` do Lucide
-- Posicionadas nos lados esquerdo e direito da imagem
-- Aparecem com hover na imagem (semi-transparentes, ficam opacas no hover)
-- Estilo minimalista: fundo branco/80 com backdrop-blur, arredondado
-- So aparecem se houver mais de 1 imagem
-
-## 3. Reduzir Compressao das Fotos (Melhor Qualidade)
-
-**Problema**: O servico de redimensionamento do Supabase aplica compressao padrao que pode degradar a qualidade. A funcao `getOptimizedImageUrl` nao especifica um parametro de qualidade.
-
-**Solucao**: Adicionar o parametro `quality=90` nas URLs de transformacao do Supabase. Isso mantém o carregamento rapido (imagem ainda e redimensionada) mas com qualidade visivelmente melhor. O padrao do Supabase e `quality=80`, entao subir para 90 melhora a nitidez sem impacto significativo no tamanho.
-
----
+Usar `useEffect` + `addEventListener` com `{ passive: false }` no container da galeria mobile. Isso garante que `preventDefault()` realmente bloqueia o comportamento nativo do browser durante swipes horizontais.
 
 ## Detalhes Tecnicos
 
 ### Arquivo: `src/components/ProductPage.tsx`
 
-**Galeria Mobile (linhas 222-286)**:
+1. Adicionar um `ref` para o container da galeria mobile (`galleryRef`)
 
-Substituir o handler de toque inline por refs e logica melhorada:
+2. Mover os handlers `touchmove` e `touchstart` para um `useEffect` que registra os eventos diretamente no DOM com `{ passive: false }`:
 
-```text
-// Adicionar refs no componente:
-const touchStartX = useRef(0);
-const touchStartY = useRef(0);
-const touchDirection = useRef<'horizontal' | 'vertical' | null>(null);
-const swipeDirection = useRef<'left' | 'right'>('left');
+```typescript
+const galleryRef = useRef<HTMLDivElement>(null);
 
-// onTouchStart: salvar posicao inicial e resetar direcao
-// onTouchMove: detectar se e horizontal ou vertical (lock de direcao)
-// onTouchEnd: se horizontal e diff > 60px, navegar e definir swipeDirection
+useEffect(() => {
+  const el = galleryRef.current;
+  if (!el) return;
 
-// Transicao CSS: usar swipeDirection para animar corretamente
-// em vez de comparar i < activeIndex
+  const onTouchStart = (e: TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDirection.current = null;
+    swiped.current = false;
+  };
+
+  const onTouchMove = (e: TouchEvent) => {
+    if (touchDirection.current === 'vertical' || swiped.current) return;
+    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (!touchDirection.current && (dx > 10 || dy > 10)) {
+      touchDirection.current = dx > dy ? 'horizontal' : 'vertical';
+    }
+    if (touchDirection.current === 'horizontal') {
+      e.preventDefault(); // Agora funciona porque passive: false
+    }
+  };
+
+  const onTouchEnd = (e: TouchEvent) => {
+    if (touchDirection.current !== 'horizontal' || swiped.current) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) {
+      swiped.current = true;
+      if (diff > 0) {
+        setActiveIndex(prev => (prev + 1) % images.length);
+      } else {
+        setActiveIndex(prev => (prev - 1 + images.length) % images.length);
+      }
+    }
+  };
+
+  el.addEventListener('touchstart', onTouchStart, { passive: true });
+  el.addEventListener('touchmove', onTouchMove, { passive: false });
+  el.addEventListener('touchend', onTouchEnd, { passive: true });
+
+  return () => {
+    el.removeEventListener('touchstart', onTouchStart);
+    el.removeEventListener('touchmove', onTouchMove);
+    el.removeEventListener('touchend', onTouchEnd);
+  };
+}, [images.length]);
 ```
 
-**Galeria Desktop (linhas 289-327)**:
+3. Remover os handlers `onTouchStart`, `onTouchMove`, `onTouchEnd` inline do JSX e os `useCallback` correspondentes
 
-Adicionar setas de navegacao sobre a imagem principal:
+4. Adicionar `ref={galleryRef}` no container da galeria mobile
 
-```text
-// Dentro do container da imagem desktop, adicionar:
-// Seta esquerda (visivel no hover do container)
-<button onClick={prevImage} className="absolute left-3 top-1/2 ...">
-  <ChevronLeft />
-</button>
-
-// Seta direita
-<button onClick={nextImage} className="absolute right-3 top-1/2 ...">
-  <ChevronRight />
-</button>
-```
-
-### Arquivo: `src/lib/utils.ts`
-
-Adicionar parametro `quality=90` nas URLs otimizadas:
-
-```text
-// Na funcao getOptimizedImageUrl, ao montar os params:
-const params = [`width=${width}`];
-if (height) params.push(`height=${height}`);
-params.push('resize=contain');
-params.push('quality=90');  // Nova linha
-```
-
----
+5. Manter `style={{ touchAction: 'pan-y' }}` no container
 
 ## Resumo
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/components/ProductPage.tsx` | Corrigir swipe mobile com refs e deteccao de direcao; adicionar setas no desktop |
-| `src/lib/utils.ts` | Adicionar `quality=90` para melhorar qualidade das fotos mantendo performance |
+| `src/components/ProductPage.tsx` | Trocar event listeners React (passive) por addEventListener nativo com `passive: false` para que `preventDefault()` funcione no touchmove |
