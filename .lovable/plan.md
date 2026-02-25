@@ -1,67 +1,76 @@
 
 
-# Corrigir Swipe Mobile (de vez) + Setas Desktop nos Cards de Produto
+# Imagem por Variacao -- Ao clicar numa opcao, a foto muda
 
-## Problema 1: Swipe Pulando Foto
+## O que vai mudar
 
-Mesmo com `passive: false` e a flag `swiped`, o swipe continua pulando uma foto. A causa mais provavel e que o browser ainda dispara um segundo evento (pointer ou gesture) que acaba chamando `setActiveIndex` uma segunda vez antes do proximo render. A solucao definitiva e adicionar um **lock com timeout** alem da flag `swiped` -- isso garante que nenhum evento consiga avancar a foto por pelo menos 400ms apos um swipe.
-
-## Problema 2: Setas no Desktop (Cards da Listagem)
-
-Na pagina do Colegio Militar (`/escolas/colegio-militar`), os cards de produto nao tem setas para navegar entre as fotos no desktop. Precisa adicionar botoes ChevronLeft/ChevronRight que aparecem no hover, igual ao que ja existe na pagina de detalhe do produto.
+Quando o administrador cadastrar uma variacao (ex: Tamanho P, M, G), ele podera opcionalmente associar uma foto a cada opcao. Na pagina do produto, ao clicar numa opcao que tem foto associada, a galeria automaticamente mostra essa foto.
 
 ---
 
 ## Detalhes Tecnicos
 
-### Arquivo: `src/components/ProductPage.tsx`
+### 1. Atualizar a interface `VariationOption` (ambos arquivos)
 
-Adicionar um ref `swipeLocked` e um timeout de 400ms no handler `onTouchEnd` dentro do `useEffect`:
+Adicionar campo opcional `image` ao tipo `VariationOption`:
 
 ```typescript
-const swipeLocked = useRef(false);
+interface VariationOption {
+  value: string;
+  price: number | null;
+  image?: string | null; // URL da foto associada (opcional)
+}
+```
 
-// Dentro do useEffect, no onTouchEnd:
-const onTouchEnd = (e: TouchEvent) => {
-  if (touchDirection.current !== 'horizontal' || swiped.current || swipeLocked.current) return;
-  const diff = touchStartX.current - e.changedTouches[0].clientX;
-  if (Math.abs(diff) > 60) {
-    swiped.current = true;
-    swipeLocked.current = true;
-    setTimeout(() => { swipeLocked.current = false; }, 400);
-    if (diff > 0) {
-      setActiveIndex((prev) => (prev + 1) % images.length);
-    } else {
-      setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+**Arquivos:** `src/components/ProductPage.tsx` e `src/components/admin/ProductFormModal.tsx`
+
+### 2. Painel Admin -- Upload de imagem por opcao
+
+**Arquivo:** `src/components/admin/ProductFormModal.tsx`
+
+Na secao onde cada opcao de variacao e exibida (o chip com valor + preco + botao X), adicionar:
+- Uma miniatura da imagem se existir (`option.image`)
+- Um botao pequeno de upload (icone de camera/imagem) ao lado de cada opcao
+- Reutilizar a mesma logica de upload que ja existe para as fotos do produto (upload para Supabase Storage)
+- Um input file oculto por opcao, acionado pelo botao
+
+Quando o admin adicionar uma nova opcao, o campo `image` comeca como `null`. O admin pode clicar no icone para fazer upload de uma foto especifica para aquela opcao.
+
+Na area de adicionar opcao, incluir um botao de upload ao lado dos inputs de nome e preco.
+
+### 3. Pagina do Produto -- Trocar foto ao selecionar variacao
+
+**Arquivo:** `src/components/ProductPage.tsx`
+
+Quando o usuario clicar num tamanho/variacao:
+1. Verificar se a opcao selecionada tem campo `image` preenchido
+2. Se sim, procurar o indice dessa imagem no array `images` do produto
+3. Se a imagem nao estiver no array `images`, simplesmente exibir como imagem principal temporariamente
+4. Chamar `setActiveIndex()` para o indice correspondente ou usar um estado auxiliar para sobrescrever a imagem principal
+
+Logica simplificada:
+```typescript
+const handleSelectVariation = (option: VariationOption) => {
+  setSelectedSize(option.value);
+  if (option.image) {
+    // Procurar no array de imagens
+    const idx = images.findIndex(img => img === option.image);
+    if (idx >= 0) {
+      setActiveIndex(idx);
     }
+    // Se nao encontrar, a imagem da variacao nao esta no array principal
+    // entao definir como override temporario
   }
 };
 ```
 
-### Arquivo: `src/app/escolas/colegio-militar/page.tsx`
+### 4. Helper para extrair imagem da opcao
 
-Adicionar setas de navegacao nos cards de produto (dentro do container da imagem), visiveis apenas no hover no desktop:
-
+Adicionar helper `getOptionImage` em ambos os arquivos:
 ```typescript
-{/* Setas desktop - dentro do container da imagem, apos os indicadores */}
-{p.images.length > 1 && (
-  <>
-    <button
-      onClick={(ev) => { ev.stopPropagation(); prevImage(p.id, p.images.length); }}
-      className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-md"
-      aria-label="Foto anterior"
-    >
-      <ChevronLeft className="w-4 h-4 text-gray-700" />
-    </button>
-    <button
-      onClick={(ev) => { ev.stopPropagation(); nextImage(p.id, p.images.length); }}
-      className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-md"
-      aria-label="Proxima foto"
-    >
-      <ChevronRight className="w-4 h-4 text-gray-700" />
-    </button>
-  </>
-)}
+const getOptionImage = (option: string | VariationOption): string | null => {
+  return typeof option === 'string' ? null : (option.image || null);
+};
 ```
 
 ---
@@ -70,6 +79,12 @@ Adicionar setas de navegacao nos cards de produto (dentro do container da imagem
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/components/ProductPage.tsx` | Adicionar lock com timeout de 400ms para impedir duplo-avanco no swipe mobile |
-| `src/app/escolas/colegio-militar/page.tsx` | Adicionar setas ChevronLeft/ChevronRight nos cards de produto, visiveis no hover desktop |
+| `src/components/admin/ProductFormModal.tsx` | Adicionar campo `image` ao tipo, botao de upload por opcao de variacao, salvar URL da imagem |
+| `src/components/ProductPage.tsx` | Adicionar campo `image` ao tipo, ao clicar numa variacao com foto, mudar a galeria para mostrar essa foto |
+
+## Observacoes
+
+- O campo `image` e **opcional** -- se nao tiver foto, o comportamento e identico ao atual
+- A imagem da variacao deve ser uma das imagens ja cadastradas no produto (o admin seleciona qual imagem do array `images` corresponde a cada opcao, ou faz upload de uma nova)
+- Nao precisa de migracao no banco de dados, pois `variations` ja e JSONB e aceita qualquer estrutura
 
