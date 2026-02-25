@@ -122,6 +122,11 @@ export default function LojaEstiloOsklen() {
   // Track whether last interaction for a product was a drag/swipe (used to ignore accidental clicks)
   const lastInteractionWasDrag = useRef<Record<number, boolean>>({});
 
+  // Prevent touch+pointer double-fire and rapid successive swipes
+  const swipeLocked = useRef<Record<number, boolean>>({});
+  // Track that a touch sequence is active so pointer handlers skip
+  const touchActive = useRef<Record<number, boolean>>({});
+
   // Wheel (trackpad) throttle - tuned so only 1 image per deliberate swipe
   const lastWheelAt = useRef<Record<number, number>>({});
   const wheelAccum = useRef<Record<number, number>>({});
@@ -177,6 +182,7 @@ export default function LojaEstiloOsklen() {
 
   /* ---------- Touch handlers (mobile) ---------- */
   function handleTouchStart(e: TouchEvent, productId: number) {
+    touchActive.current[productId] = true;
     touchStartX.current[productId] = e.touches[0].clientX;
     touchCurrentX.current[productId] = e.touches[0].clientX;
     lastInteractionWasDrag.current[productId] = false;
@@ -188,6 +194,11 @@ export default function LojaEstiloOsklen() {
 
   function handleTouchEnd(product: Product) {
     const id = product.id;
+    touchActive.current[id] = false;
+    if (swipeLocked.current[id]) {
+      lastInteractionWasDrag.current[id] = false;
+      return;
+    }
     const start = touchStartX.current[id];
     const end = touchCurrentX.current[id];
     if (start === undefined || end === undefined) {
@@ -195,21 +206,24 @@ export default function LojaEstiloOsklen() {
       return;
     }
     const delta = end - start;
-    const threshold = 40;
+    const threshold = 50;
     if (Math.abs(delta) > threshold) {
+      swipeLocked.current[id] = true;
+      setTimeout(() => { swipeLocked.current[id] = false; }, 400);
       if (delta > 0) prevImage(id, product.images.length);
       else nextImage(id, product.images.length);
       lastInteractionWasDrag.current[id] = true;
     } else {
       lastInteractionWasDrag.current[id] = false;
     }
-    // reset (important to avoid chained events)
     touchStartX.current[id] = 0;
     touchCurrentX.current[id] = 0;
   }
 
-  /* ---------- Pointer handlers (mouse drag) ---------- */
+  /* ---------- Pointer handlers (mouse drag only) ---------- */
   function handlePointerStart(e: PointerEvent, productId: number) {
+    // Skip touch-originated pointer events to avoid double-fire
+    if ((e as any).pointerType === "touch") return;
     if ((e as any).pointerType === "mouse" && e.button !== 0) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
     pointerStartX.current[productId] = e.clientX;
@@ -218,12 +232,15 @@ export default function LojaEstiloOsklen() {
   }
 
   function handlePointerMove(e: PointerEvent, productId: number) {
+    if ((e as any).pointerType === "touch") return;
     if (pointerStartX.current[productId] === undefined) return;
     pointerCurrentX.current[productId] = e.clientX;
   }
 
   function handlePointerEnd(product: Product) {
     const id = product.id;
+    // If touch was active, skip pointer processing entirely
+    if (touchActive.current[id]) return;
     const start = pointerStartX.current[id];
     const end = pointerCurrentX.current[id];
     if (start === undefined || end === undefined) {
@@ -239,7 +256,6 @@ export default function LojaEstiloOsklen() {
     } else {
       lastInteractionWasDrag.current[id] = false;
     }
-    // reset to avoid chained moves
     pointerStartX.current[id] = 0;
     pointerCurrentX.current[id] = 0;
   }
