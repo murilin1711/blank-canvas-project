@@ -617,7 +617,6 @@ export default function ProductPage({
 
           </div>
         </div>
-      </div>
 
       {/* =========================
          FIT FINDER (PAINEL LATERAL)
