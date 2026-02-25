@@ -211,6 +211,7 @@ export default function ProductPage({
   const touchDirection = useRef<'horizontal' | 'vertical' | null>(null);
   const swipeDirection = useRef<'left' | 'right'>('left');
   const swiped = useRef(false);
+  const swipeLocked = useRef(false);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   // Native touch event listeners with passive: false so preventDefault() works
@@ -238,10 +239,12 @@ export default function ProductPage({
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (touchDirection.current !== 'horizontal' || swiped.current) return;
+      if (touchDirection.current !== 'horizontal' || swiped.current || swipeLocked.current) return;
       const diff = touchStartX.current - e.changedTouches[0].clientX;
       if (Math.abs(diff) > 60) {
         swiped.current = true;
+        swipeLocked.current = true;
+        setTimeout(() => { swipeLocked.current = false; }, 400);
         if (diff > 0) {
           swipeDirection.current = 'left';
           setActiveIndex((prev) => (prev + 1) % images.length);
