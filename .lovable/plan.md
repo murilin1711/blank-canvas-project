@@ -1,76 +1,135 @@
 
 
-# Imagem por Variacao -- Ao clicar numa opcao, a foto muda
+# Exibir Todas as Variacoes do Produto (nao so Tamanho)
 
-## O que vai mudar
+## Problema
 
-Quando o administrador cadastrar uma variacao (ex: Tamanho P, M, G), ele podera opcionalmente associar uma foto a cada opcao. Na pagina do produto, ao clicar numa opcao que tem foto associada, a galeria automaticamente mostra essa foto.
+O `ProductPage` so renderiza o prop `sizes` como botoes selecionaveis. Variacoes customizadas criadas no admin (como "Series", "Cor", etc.) sao passadas no prop `variations` mas **nunca sao renderizadas na tela**. So sao usadas internamente para calcular preco por tamanho.
+
+## Solucao
+
+Renderizar TODAS as variacoes do produto como grupos de botoes selecionaveis, alem do seletor de tamanho que ja existe.
 
 ---
 
 ## Detalhes Tecnicos
 
-### 1. Atualizar a interface `VariationOption` (ambos arquivos)
+### Arquivo: `src/components/ProductPage.tsx`
 
-Adicionar campo opcional `image` ao tipo `VariationOption`:
+**1. Novo estado para variacoes selecionadas**
+
+Trocar o estado simples `selectedSize` por um mapa de selecoes por variacao:
 
 ```typescript
-interface VariationOption {
-  value: string;
-  price: number | null;
-  image?: string | null; // URL da foto associada (opcional)
+// Estado: { "Tamanho": "M", "Series": "1a Serie", "Cor": "Azul" }
+const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
+```
+
+Manter `selectedSize` como um alias derivado para nao quebrar a logica existente de carrinho e Fit Finder:
+
+```typescript
+const selectedSize = selectedVariations["Tamanho"] || selectedVariations["Tamanhos"] || null;
+```
+
+**2. Separar variacoes: "Tamanho" vs outras**
+
+```typescript
+const sizeVariation = variations.find(v => 
+  v.name.toLowerCase() === 'tamanho' || v.name.toLowerCase() === 'tamanhos'
+);
+const otherVariations = variations.filter(v => 
+  v.name.toLowerCase() !== 'tamanho' && v.name.toLowerCase() !== 'tamanhos'
+);
+```
+
+**3. Renderizar variacoes extras ABAIXO do seletor de tamanho**
+
+Para cada variacao que nao e "Tamanho", renderizar um bloco com titulo e botoes:
+
+```tsx
+{otherVariations.map((variation) => (
+  <div key={variation.id} className="mt-4">
+    <span className="text-sm font-medium text-gray-900 mb-2 block">
+      {variation.name}
+    </span>
+    <div className="flex gap-2 flex-wrap">
+      {variation.options.map((opt) => {
+        const value = getOptionValue(opt);
+        const selected = selectedVariations[variation.name] === value;
+        const optionImg = getOptionImage(opt);
+        return (
+          <button
+            key={value}
+            onClick={() => {
+              setSelectedVariations(prev => ({...prev, [variation.name]: value}));
+              if (optionImg) {
+                const idx = images.findIndex(img => img === optionImg);
+                if (idx >= 0) setActiveIndex(idx);
+              }
+            }}
+            className={/* mesmo estilo dos botoes de tamanho */}
+          >
+            {value}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+))}
+```
+
+**4. Incluir variacoes selecionadas no carrinho**
+
+Atualizar o `size` enviado ao carrinho para incluir todas as selecoes. Por exemplo, se o usuario selecionou Tamanho M e Series 1a Serie, o campo `size` ficaria: `"M | Series: 1a Serie"`.
+
+```typescript
+const buildSizeLabel = (): string => {
+  const parts: string[] = [];
+  if (selectedSize) parts.push(selectedSize);
+  otherVariations.forEach(v => {
+    const sel = selectedVariations[v.name];
+    if (sel) parts.push(`${v.name}: ${sel}`);
+  });
+  return parts.join(" | ") || "";
+};
+```
+
+**5. Validacao antes de adicionar ao carrinho**
+
+Verificar que todas as variacoes obrigatorias foram selecionadas (nao apenas tamanho):
+
+```typescript
+if (!selectedSize) {
+  toast.error("Selecione um tamanho");
+  return;
+}
+// Verificar outras variacoes
+for (const v of otherVariations) {
+  if (!selectedVariations[v.name]) {
+    toast.error(`Selecione: ${v.name}`);
+    return;
+  }
 }
 ```
 
-**Arquivos:** `src/components/ProductPage.tsx` e `src/components/admin/ProductFormModal.tsx`
+**6. Calculo de preco efetivo**
 
-### 2. Painel Admin -- Upload de imagem por opcao
+Expandir o calculo de preco para considerar precos de qualquer variacao (nao so Tamanho):
 
-**Arquivo:** `src/components/admin/ProductFormModal.tsx`
-
-Na secao onde cada opcao de variacao e exibida (o chip com valor + preco + botao X), adicionar:
-- Uma miniatura da imagem se existir (`option.image`)
-- Um botao pequeno de upload (icone de camera/imagem) ao lado de cada opcao
-- Reutilizar a mesma logica de upload que ja existe para as fotos do produto (upload para Supabase Storage)
-- Um input file oculto por opcao, acionado pelo botao
-
-Quando o admin adicionar uma nova opcao, o campo `image` comeca como `null`. O admin pode clicar no icone para fazer upload de uma foto especifica para aquela opcao.
-
-Na area de adicionar opcao, incluir um botao de upload ao lado dos inputs de nome e preco.
-
-### 3. Pagina do Produto -- Trocar foto ao selecionar variacao
-
-**Arquivo:** `src/components/ProductPage.tsx`
-
-Quando o usuario clicar num tamanho/variacao:
-1. Verificar se a opcao selecionada tem campo `image` preenchido
-2. Se sim, procurar o indice dessa imagem no array `images` do produto
-3. Se a imagem nao estiver no array `images`, simplesmente exibir como imagem principal temporariamente
-4. Chamar `setActiveIndex()` para o indice correspondente ou usar um estado auxiliar para sobrescrever a imagem principal
-
-Logica simplificada:
 ```typescript
-const handleSelectVariation = (option: VariationOption) => {
-  setSelectedSize(option.value);
-  if (option.image) {
-    // Procurar no array de imagens
-    const idx = images.findIndex(img => img === option.image);
-    if (idx >= 0) {
-      setActiveIndex(idx);
+const effectivePrice = useMemo(() => {
+  let finalPrice = basePrice ?? parseFloat(...);
+  for (const variation of variations) {
+    const selectedVal = selectedVariations[variation.name];
+    if (!selectedVal) continue;
+    const opt = variation.options.find(o => getOptionValue(o) === selectedVal);
+    if (opt) {
+      const optPrice = getOptionPrice(opt);
+      if (optPrice !== null) finalPrice = optPrice;
     }
-    // Se nao encontrar, a imagem da variacao nao esta no array principal
-    // entao definir como override temporario
   }
-};
-```
-
-### 4. Helper para extrair imagem da opcao
-
-Adicionar helper `getOptionImage` em ambos os arquivos:
-```typescript
-const getOptionImage = (option: string | VariationOption): string | null => {
-  return typeof option === 'string' ? null : (option.image || null);
-};
+  return finalPrice;
+}, [selectedVariations, variations, price, basePrice]);
 ```
 
 ---
@@ -79,12 +138,12 @@ const getOptionImage = (option: string | VariationOption): string | null => {
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/components/admin/ProductFormModal.tsx` | Adicionar campo `image` ao tipo, botao de upload por opcao de variacao, salvar URL da imagem |
-| `src/components/ProductPage.tsx` | Adicionar campo `image` ao tipo, ao clicar numa variacao com foto, mudar a galeria para mostrar essa foto |
+| `src/components/ProductPage.tsx` | Novo estado `selectedVariations` (mapa), renderizar todas as variacoes como botoes, incluir selecoes no carrinho, validar todas antes de adicionar |
 
 ## Observacoes
 
-- O campo `image` e **opcional** -- se nao tiver foto, o comportamento e identico ao atual
-- A imagem da variacao deve ser uma das imagens ja cadastradas no produto (o admin seleciona qual imagem do array `images` corresponde a cada opcao, ou faz upload de uma nova)
-- Nao precisa de migracao no banco de dados, pois `variations` ja e JSONB e aceita qualquer estrutura
+- O seletor de "Tamanho" continua no mesmo lugar com Fit Finder
+- As variacoes extras aparecem logo abaixo do seletor de tamanho
+- Nenhuma mudanca no banco de dados ou no admin e necessaria
+- Se um produto nao tem variacoes extras, o comportamento e identico ao atual
 
