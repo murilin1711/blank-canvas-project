@@ -8,6 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface VariationOption {
   value: string;
   price: number | null; // null = usa preço base do produto
+  image?: string | null; // URL da foto associada (opcional)
 }
 
 interface Variation {
@@ -92,6 +93,11 @@ export default function ProductFormModal({
   // Helper para extrair preço de opção
   const getOptionPrice = (option: string | VariationOption): number | null => {
     return typeof option === 'string' ? null : option.price;
+  };
+
+  // Helper para extrair imagem de opção
+  const getOptionImage = (option: string | VariationOption): string | null => {
+    return typeof option === 'string' ? null : (option.image || null);
   };
 
   // Reset form when modal opens/closes or editingProduct changes
@@ -585,21 +591,58 @@ export default function ProductFormModal({
                     </button>
                   </div>
 
-                  {/* Options com preço */}
+                  {/* Options com preço e imagem */}
                   <div className="flex flex-wrap gap-2 mb-3">
                     {variation.options.map((option, optIndex) => {
                       const optValue = getOptionValue(option);
                       const optPrice = getOptionPrice(option);
+                      const optImage = getOptionImage(option);
                       return (
                         <span
                           key={optIndex}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm"
                         >
+                          {optImage && (
+                            <img src={optImage} alt={optValue} className="w-6 h-6 object-cover rounded" />
+                          )}
                           <span className="font-medium">{optValue}</span>
                           {optPrice !== null && (
                             <span className="text-green-600 text-xs">
                               R$ {optPrice.toFixed(2).replace('.', ',')}
                             </span>
+                          )}
+                          {/* Select image from product images */}
+                          {form.images.length > 0 && (
+                            <select
+                              value={optImage || ""}
+                              onChange={(e) => {
+                                const newImage = e.target.value || null;
+                                setForm(prev => ({
+                                  ...prev,
+                                  variations: prev.variations.map(v =>
+                                    v.id === variation.id
+                                      ? {
+                                          ...v,
+                                          options: v.options.map((o, i) =>
+                                            i === optIndex
+                                              ? { value: getOptionValue(o), price: getOptionPrice(o), image: newImage }
+                                              : o
+                                          ),
+                                        }
+                                      : v
+                                  ),
+                                }));
+                              }}
+                              className="text-xs border border-gray-200 rounded px-1 py-0.5 bg-white max-w-[80px]"
+                              title="Associar foto"
+                            >
+                              <option value="">📷 --</option>
+                              {form.images.map((img, imgIdx) => (
+                                <option key={imgIdx} value={img}>
+                                  Foto {imgIdx + 1}
+                                </option>
+                              ))}
+                            </select>
                           )}
                           <button
                             type="button"

@@ -17,6 +17,7 @@ import endomorphImg from "@/assets/body-types/endomorph.png";
 interface VariationOption {
   value: string;
   price: number | null;
+  image?: string | null; // URL da foto associada (opcional)
 }
 
 interface Variation {
@@ -84,6 +85,11 @@ export default function ProductPage({
   // Helper para extrair preço de opção
   const getOptionPrice = (option: string | VariationOption): number | null => {
     return typeof option === 'string' ? null : option.price;
+  };
+
+  // Helper para extrair imagem de opção
+  const getOptionImage = (option: string | VariationOption): string | null => {
+    return typeof option === 'string' ? null : (option.image || null);
   };
 
   // Calcular preço efetivo baseado na variação selecionada
@@ -428,10 +434,27 @@ export default function ProductPage({
               <div className="flex gap-2 flex-wrap">
                 {sizes.map((size) => {
                   const selected = selectedSize === size;
+                  
+                  // Find if this size option has an associated image
+                  const sizeVariation = variations.find(v => 
+                    v.name.toLowerCase() === 'tamanho' || v.name.toLowerCase() === 'tamanhos'
+                  );
+                  const sizeOption = sizeVariation?.options.find(opt => getOptionValue(opt) === size);
+                  const optionImg = sizeOption ? getOptionImage(sizeOption) : null;
+                  
                   return (
                     <button
                       key={size}
-                      onClick={() => setSelectedSize(size)}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        // If the option has an associated image, switch gallery to it
+                        if (optionImg) {
+                          const idx = images.findIndex(img => img === optionImg);
+                          if (idx >= 0) {
+                            setActiveIndex(idx);
+                          }
+                        }
+                      }}
                       className={`px-4 py-2 rounded-md text-sm transition-all ${
                         selected
                           ? "bg-[#2e3091] text-white font-semibold shadow-md"
