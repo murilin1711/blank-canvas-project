@@ -99,11 +99,11 @@ export default function DynamicProductPage() {
       ? [product.image_url] 
       : [];
 
-  // Get sizes from variations if available, otherwise use sizes column
-  let productSizes = product.sizes || ["P", "M", "G", "GG"];
-  
-  // Check if there's a "Tamanho" variation
-  if (product.variations && Array.isArray(product.variations)) {
+  // Get sizes: only show defaults if no variations defined at all
+  let productSizes: string[] = [];
+
+  if (product.variations && Array.isArray(product.variations) && product.variations.length > 0) {
+    // Has variations defined in admin — only show sizes if there's a "Tamanho" variation
     const sizeVariation = product.variations.find(
       (v: any) => v.name?.toLowerCase() === "tamanho" || v.name?.toLowerCase() === "tamanhos"
     );
@@ -112,6 +112,9 @@ export default function DynamicProductPage() {
         typeof opt === 'string' ? opt : opt.value
       );
     }
+  } else {
+    // No variations in admin — use sizes column or fallback
+    productSizes = product.sizes || ["P", "M", "G", "GG"];
   }
 
   // Get similar products from the product data

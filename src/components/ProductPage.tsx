@@ -156,7 +156,7 @@ export default function ProductPage({
   };
 
   const handleAddToCart = (goToCheckout: boolean = false) => {
-    if (!selectedSize) {
+    if (sizes && sizes.length > 0 && !selectedSize) {
       toast.error("Selecione um tamanho");
       return;
     }
@@ -447,6 +447,7 @@ export default function ProductPage({
             </p>
 
             {/* ===== TAMANHOS ===== */}
+            {sizes && sizes.length > 0 && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-900">
@@ -466,7 +467,6 @@ export default function ProductPage({
                 {sizes.map((size) => {
                   const selected = selectedSize === size;
                   
-                  // Find if this size option has an associated image
                   const sizeOption = sizeVariation?.options.find(opt => getOptionValue(opt) === size);
                   const optionImg = sizeOption ? getOptionImage(sizeOption) : null;
                   
@@ -492,6 +492,8 @@ export default function ProductPage({
                   );
                 })}
               </div>
+            </div>
+            )}
 
               {/* ===== OUTRAS VARIAÇÕES ===== */}
               {otherVariations.map((variation) => (
