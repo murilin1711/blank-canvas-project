@@ -59,8 +59,25 @@ export default function ProductPage({
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [activeIndex, setActiveIndex] = useState(0);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [openFitFinder, setOpenFitFinder] = useState(false);
+
+  // Derive selectedSize for backward compat (Fit Finder, etc.)
+  const selectedSize = selectedVariations["Tamanho"] || selectedVariations["Tamanhos"] || null;
+  const setSelectedSize = (size: string) => {
+    // Determine the key used for sizes
+    const sizeKey = variations.find(v => v.name.toLowerCase() === 'tamanhos') ? 'Tamanhos' 
+      : 'Tamanho';
+    setSelectedVariations(prev => ({ ...prev, [sizeKey]: size }));
+  };
+
+  // Separate size variation from other variations
+  const sizeVariation = variations.find(v => 
+    v.name.toLowerCase() === 'tamanho' || v.name.toLowerCase() === 'tamanhos'
+  );
+  const otherVariations = variations.filter(v => 
+    v.name.toLowerCase() !== 'tamanho' && v.name.toLowerCase() !== 'tamanhos'
+  );
   const [fitStep, setFitStep] = useState(1);
   const [altura, setAltura] = useState(175);
   const [peso, setPeso] = useState(74);
@@ -94,30 +111,22 @@ export default function ProductPage({
 
   // Calcular preço efetivo baseado na variação selecionada
   const effectivePrice = useMemo(() => {
-    // Parse do preço base (da prop price ou basePrice)
     const parsedBasePrice = basePrice ?? parseFloat(price.replace("R$ ", "").replace(".", "").replace(",", "."));
     
-    if (!selectedSize || variations.length === 0) {
-      return parsedBasePrice;
+    if (variations.length === 0) return parsedBasePrice;
+
+    let finalPrice = parsedBasePrice;
+    for (const variation of variations) {
+      const selectedVal = selectedVariations[variation.name];
+      if (!selectedVal) continue;
+      const opt = variation.options.find(o => getOptionValue(o) === selectedVal);
+      if (opt) {
+        const optPrice = getOptionPrice(opt);
+        if (optPrice !== null) finalPrice = optPrice;
+      }
     }
-
-    // Encontrar variação de tamanho
-    const sizeVariation = variations.find(v => 
-      v.name.toLowerCase() === 'tamanho' || v.name.toLowerCase() === 'tamanhos'
-    );
-
-    if (!sizeVariation) return parsedBasePrice;
-
-    // Encontrar a opção selecionada
-    const selectedOption = sizeVariation.options.find(opt => 
-      getOptionValue(opt) === selectedSize
-    );
-
-    if (!selectedOption) return parsedBasePrice;
-
-    const optionPrice = getOptionPrice(selectedOption);
-    return optionPrice !== null ? optionPrice : parsedBasePrice;
-  }, [selectedSize, variations, price, basePrice]);
+    return finalPrice;
+  }, [selectedVariations, variations, price, basePrice]);
 
   // Formatar preço para exibição
   const displayPrice = `R$ ${effectivePrice.toFixed(2).replace('.', ',')}`;
@@ -135,11 +144,31 @@ export default function ProductPage({
     return words.length <= 3 && words.length > 0;
   };
 
+  // Build composite size label for cart
+  const buildSizeLabel = (): string => {
+    const parts: string[] = [];
+    if (selectedSize) parts.push(selectedSize);
+    otherVariations.forEach(v => {
+      const sel = selectedVariations[v.name];
+      if (sel) parts.push(`${v.name}: ${sel}`);
+    });
+    return parts.join(" | ") || "";
+  };
+
   const handleAddToCart = (goToCheckout: boolean = false) => {
     if (!selectedSize) {
       toast.error("Selecione um tamanho");
       return;
     }
+    // Validate other variations
+    for (const v of otherVariations) {
+      if (!selectedVariations[v.name]) {
+        toast.error(`Selecione: ${v.name}`);
+        return;
+      }
+    }
+    
+    const sizeLabel = buildSizeLabel();
     
     // If embroidery is enabled and user wants it, validate and confirm
     if (allowsEmbroidery && wantsEmbroidery) {
@@ -162,7 +191,7 @@ export default function ProductPage({
       productName,
       productImage: images[0],
       price: effectivePrice,
-      size: selectedSize,
+      size: sizeLabel,
       quantity: 1,
       schoolSlug,
     });
@@ -175,12 +204,14 @@ export default function ProductPage({
   const confirmEmbroideryAndAdd = () => {
     if (!selectedSize) return;
     
+    const sizeLabel = buildSizeLabel();
+    
     addItem({
       productId,
       productName,
       productImage: images[0],
       price: effectivePrice,
-      size: selectedSize,
+      size: sizeLabel,
       quantity: 1,
       schoolSlug,
       embroideryName: embroideryName.trim(),
@@ -436,9 +467,6 @@ export default function ProductPage({
                   const selected = selectedSize === size;
                   
                   // Find if this size option has an associated image
-                  const sizeVariation = variations.find(v => 
-                    v.name.toLowerCase() === 'tamanho' || v.name.toLowerCase() === 'tamanhos'
-                  );
                   const sizeOption = sizeVariation?.options.find(opt => getOptionValue(opt) === size);
                   const optionImg = sizeOption ? getOptionImage(sizeOption) : null;
                   
@@ -447,12 +475,9 @@ export default function ProductPage({
                       key={size}
                       onClick={() => {
                         setSelectedSize(size);
-                        // If the option has an associated image, switch gallery to it
                         if (optionImg) {
                           const idx = images.findIndex(img => img === optionImg);
-                          if (idx >= 0) {
-                            setActiveIndex(idx);
-                          }
+                          if (idx >= 0) setActiveIndex(idx);
                         }
                       }}
                       className={`px-4 py-2 rounded-md text-sm transition-all ${
@@ -467,6 +492,42 @@ export default function ProductPage({
                   );
                 })}
               </div>
+
+              {/* ===== OUTRAS VARIAÇÕES ===== */}
+              {otherVariations.map((variation) => (
+                <div key={variation.id} className="mt-4">
+                  <span className="text-sm font-medium text-gray-900 mb-2 block">
+                    {variation.name}
+                  </span>
+                  <div className="flex gap-2 flex-wrap">
+                    {variation.options.map((opt) => {
+                      const value = getOptionValue(opt);
+                      const selected = selectedVariations[variation.name] === value;
+                      const optionImg = getOptionImage(opt);
+                      return (
+                        <button
+                          key={value}
+                          onClick={() => {
+                            setSelectedVariations(prev => ({ ...prev, [variation.name]: value }));
+                            if (optionImg) {
+                              const idx = images.findIndex(img => img === optionImg);
+                              if (idx >= 0) setActiveIndex(idx);
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-md text-sm transition-all ${
+                            selected
+                              ? "bg-[#2e3091] text-white font-semibold shadow-md"
+                              : "bg-white text-gray-800 border border-gray-200 hover:shadow-md hover:border-[#2e3091]"
+                          }`}
+                          aria-pressed={selected}
+                        >
+                          {value}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
               {/* Embroidery Section */}
               {allowsEmbroidery && (
