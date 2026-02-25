@@ -212,6 +212,8 @@ export default function ProductPage({
   const swipeDirection = useRef<'left' | 'right'>('left');
   const swiped = useRef(false);
   const galleryRef = useRef<HTMLDivElement>(null);
+  const isAnimating = useRef(false);
+  const lastTouchY = useRef(0);
 
   // Native touch event listeners with passive: false so preventDefault() works
   useEffect(() => {
@@ -221,12 +223,13 @@ export default function ProductPage({
     const onTouchStart = (e: TouchEvent) => {
       touchStartX.current = e.touches[0].clientX;
       touchStartY.current = e.touches[0].clientY;
+      lastTouchY.current = e.touches[0].clientY;
       touchDirection.current = null;
       swiped.current = false;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (touchDirection.current === 'vertical' || swiped.current) return;
+      if (swiped.current) return;
       const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
       const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
       if (!touchDirection.current && (dx > 10 || dy > 10)) {
@@ -234,14 +237,22 @@ export default function ProductPage({
       }
       if (touchDirection.current === 'horizontal') {
         e.preventDefault();
+      } else if (touchDirection.current === 'vertical') {
+        // Manual vertical scroll since touchAction is 'none'
+        const currentY = e.touches[0].clientY;
+        const deltaY = lastTouchY.current - currentY;
+        lastTouchY.current = currentY;
+        window.scrollBy(0, deltaY);
+        e.preventDefault();
       }
     };
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (touchDirection.current !== 'horizontal' || swiped.current) return;
+      if (touchDirection.current !== 'horizontal' || swiped.current || isAnimating.current) return;
       const diff = touchStartX.current - e.changedTouches[0].clientX;
       if (Math.abs(diff) > 60) {
         swiped.current = true;
+        isAnimating.current = true;
         if (diff > 0) {
           swipeDirection.current = 'left';
           setActiveIndex((prev) => (prev + 1) % images.length);
@@ -249,6 +260,7 @@ export default function ProductPage({
           swipeDirection.current = 'right';
           setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
         }
+        setTimeout(() => { isAnimating.current = false; }, 350);
       }
     };
 
@@ -283,7 +295,7 @@ export default function ProductPage({
               <div
                 ref={galleryRef}
                 className="w-full h-full relative"
-                style={{ touchAction: 'pan-y' }}
+                style={{ touchAction: 'none' }}
               >
                 {images.map((img, i) => {
                   const isNear = i === activeIndex || i === activeIndex - 1 || i === activeIndex + 1 ||
