@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -211,39 +211,56 @@ export default function ProductPage({
   const touchDirection = useRef<'horizontal' | 'vertical' | null>(null);
   const swipeDirection = useRef<'left' | 'right'>('left');
   const swiped = useRef(false);
+  const galleryRef = useRef<HTMLDivElement>(null);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    touchDirection.current = null;
-    swiped.current = false;
-  }, []);
+  // Native touch event listeners with passive: false so preventDefault() works
+  useEffect(() => {
+    const el = galleryRef.current;
+    if (!el) return;
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (touchDirection.current === 'vertical' || swiped.current) return;
-    const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
-    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
-    if (touchDirection.current === null && (dx > 10 || dy > 10)) {
-      touchDirection.current = dx > dy ? 'horizontal' : 'vertical';
-    }
-    if (touchDirection.current === 'horizontal') {
-      e.preventDefault();
-    }
-  }, []);
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      touchDirection.current = null;
+      swiped.current = false;
+    };
 
-  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchDirection.current !== 'horizontal' || swiped.current) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 60) {
-      swiped.current = true;
-      if (diff > 0) {
-        swipeDirection.current = 'left';
-        setActiveIndex((prev) => (prev + 1) % images.length);
-      } else {
-        swipeDirection.current = 'right';
-        setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+    const onTouchMove = (e: TouchEvent) => {
+      if (touchDirection.current === 'vertical' || swiped.current) return;
+      const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
+      const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+      if (!touchDirection.current && (dx > 10 || dy > 10)) {
+        touchDirection.current = dx > dy ? 'horizontal' : 'vertical';
       }
-    }
+      if (touchDirection.current === 'horizontal') {
+        e.preventDefault();
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (touchDirection.current !== 'horizontal' || swiped.current) return;
+      const diff = touchStartX.current - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 60) {
+        swiped.current = true;
+        if (diff > 0) {
+          swipeDirection.current = 'left';
+          setActiveIndex((prev) => (prev + 1) % images.length);
+        } else {
+          swipeDirection.current = 'right';
+          setActiveIndex((prev) => (prev - 1 + images.length) % images.length);
+        }
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
   }, [images.length]);
 
   return (
@@ -264,11 +281,9 @@ export default function ProductPage({
             {/* Mobile Gallery - infinite scroll style, no borders */}
             <div className="md:hidden relative w-full aspect-[3/4] bg-white overflow-hidden">
               <div
+                ref={galleryRef}
                 className="w-full h-full relative"
                 style={{ touchAction: 'pan-y' }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
               >
                 {images.map((img, i) => {
                   const isNear = i === activeIndex || i === activeIndex - 1 || i === activeIndex + 1 ||
