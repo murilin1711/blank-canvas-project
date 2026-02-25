@@ -487,7 +487,7 @@ export default function LojaEstiloOsklen() {
                       );
                     })}
 
-                    {/* indicadores - linhas finas */}
+                    {/* indicadores - linhas finas (sem setas, apenas swipe) */}
                     {p.images.length > 1 && (
                       <div className="absolute left-1/2 -translate-x-1/2 bottom-3 flex items-center gap-1.5 z-20">
                         {p.images.map((_, i) => (
@@ -506,26 +506,6 @@ export default function LojaEstiloOsklen() {
                           />
                         ))}
                       </div>
-                    )}
-
-                    {/* Setas de navegação - desktop hover */}
-                    {p.images.length > 1 && (
-                      <>
-                        <button
-                          onClick={(ev) => { ev.stopPropagation(); prevImage(p.id, p.images.length); }}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-sm hidden md:flex items-center justify-center"
-                          aria-label="Imagem anterior"
-                        >
-                          <ChevronLeft className="w-4 h-4 text-gray-700" />
-                        </button>
-                        <button
-                          onClick={(ev) => { ev.stopPropagation(); nextImage(p.id, p.images.length); }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-white/80 backdrop-blur-sm rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-sm hidden md:flex items-center justify-center"
-                          aria-label="Próxima imagem"
-                        >
-                          <ChevronRight className="w-4 h-4 text-gray-700" />
-                        </button>
-                      </>
                     )}
 
                     {/* Botão + central */}
