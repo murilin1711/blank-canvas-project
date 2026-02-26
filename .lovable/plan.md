@@ -1,51 +1,52 @@
 
+# Corrigir Deploy na Vercel
 
-# Remover Tamanhos Padrao Quando Nao Ha Variacao de Tamanho
+## Diagnostico
 
-## Problema
+O erro de JSX (`Expected corresponding JSX closing tag for <main>`) ja foi corrigido na ultima edicao. A estrutura do `ProductPage.tsx` esta balanceada.
 
-Quando um produto tem apenas variacoes customizadas (ex: "Series") mas nenhuma variacao de "Tamanho", o sistema ainda exibe os tamanhos padrao P, M, G, GG. Isso acontece porque:
+O problema do deploy na Vercel pode ter duas causas:
 
-1. Em `produto/[id]/page.tsx` linha 103: `product.sizes || ["P", "M", "G", "GG"]` sempre gera um fallback
-2. O `sizes` prop e sempre passado ao `ProductPage`, que renderiza os botoes de tamanho incondicionalmente
+1. **Build antigo**: A Vercel fez o build antes da correcao ser aplicada. Um redeploy resolve.
+2. **Deteccao errada de framework**: O `tsconfig.json` tem referencias a Next.js (`plugins: [{name: "next"}]`, `include: ["next-env.d.ts"]`) mas o projeto usa Vite. Isso pode confundir a Vercel.
 
-## Solucao
+## Plano
 
-Se o produto tem variacoes definidas no admin mas nenhuma delas e "Tamanho"/"Tamanhos", nao passar tamanhos padrao.
+### 1. Limpar tsconfig.json de referencias Next.js
 
----
+Remover o plugin Next.js e a referencia a `next-env.d.ts` do `tsconfig.json`, ja que este projeto usa Vite:
 
-## Detalhes Tecnicos
-
-### Arquivo: `src/app/escolas/colegio-militar/produto/[id]/page.tsx`
-
-Alterar a logica de calculo de `productSizes` (linhas 102-115):
-
-```typescript
-let productSizes: string[] = [];
-
-if (product.variations && Array.isArray(product.variations)) {
-  const sizeVariation = product.variations.find(
-    (v: any) => v.name?.toLowerCase() === "tamanho" || v.name?.toLowerCase() === "tamanhos"
-  );
-  if (sizeVariation && Array.isArray(sizeVariation.options)) {
-    productSizes = sizeVariation.options.map((opt: any) =>
-      typeof opt === 'string' ? opt : opt.value
-    );
-  }
-} else {
-  // Sem variacoes definidas no admin -> usar sizes do produto ou fallback
-  productSizes = product.sizes || ["P", "M", "G", "GG"];
+**Antes:**
+```json
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"]
 }
 ```
 
-Logica: se o produto tem variacoes no admin, so mostra tamanhos se existir uma variacao "Tamanho". Se nao tem variacoes nenhuma, usa o fallback padrao.
+**Depois:**
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "plugins": []
+  },
+  "include": ["src", "**/*.ts", "**/*.tsx", "**/*.mts"]
+}
+```
 
-### Arquivo: `src/components/ProductPage.tsx`
+Alteracoes:
+- Remover `"plugins": [{"name": "next"}]`
+- Remover `"next-env.d.ts"`, `".next/types/**/*.ts"`, `".next/dev/types/**/*.ts"` do include
+- Mudar `jsx` de `"preserve"` para `"react-jsx"` (compativel com Vite + SWC)
 
-Garantir que o bloco de selecao de tamanho so renderiza se `sizes` tiver itens (provavelmente ja funciona se `sizes` for array vazio, mas verificar).
+### 2. Verificar se nao ha outros erros de build
+
+O arquivo `ProductPage.tsx` ja esta com a estrutura JSX correta apos a ultima correcao.
 
 | Arquivo | O que muda |
 |---------|-----------|
-| `src/app/escolas/colegio-militar/produto/[id]/page.tsx` | Logica condicional para nao gerar tamanhos padrao quando ha variacoes sem "Tamanho" |
-| `src/components/ProductPage.tsx` | Condicionar renderizacao do seletor de tamanho a `sizes.length > 0` |
+| `tsconfig.json` | Remover referencias Next.js, ajustar jsx para react-jsx |
