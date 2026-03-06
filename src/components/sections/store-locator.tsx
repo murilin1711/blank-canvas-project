@@ -130,14 +130,13 @@ const StoreLocator = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-50/20 to-transparent z-10 pointer-events-none" />
               
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15315.143794758427!2d-48.97124885617734!3d-16.333877800151164!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x935ea473e20aa08d%3A0xd12ceb94de43fa2e!2sGM%20-%20Goi%C3%A1s%20Minas!5e0!3m2!1spt-BR!2sbr!4v1765249333479!5m2!1spt-BR!2sbr"
+                src="https://www.openstreetmap.org/export/embed.html?bbox=-48.971,-16.337,-48.964,-16.331&layer=mapnik&marker=-16.3339,-48.9676"
                 className={`w-full h-full transition-transform duration-700 ${
                 isHovered ? 'scale-105' : 'scale-100'}`
                 }
                 style={{ border: 0 }}
                 allowFullScreen
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
                 title="Localização da Goiás Minas Uniformes" />
             </div>
           </div>

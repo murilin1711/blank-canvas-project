@@ -68,7 +68,7 @@ const Footer = () => {
               <h3 className="text-foreground font-semibold text-base mb-4">
                 Políticas
               </h3>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {footerSections[0].links.map((link) => (
                   <a
                     key={link.label}
