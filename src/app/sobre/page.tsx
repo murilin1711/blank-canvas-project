@@ -37,8 +37,7 @@ export default function SobrePage() {
       <section className="relative py-16 md:py-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#2e3091]/5 via-transparent to-[#2e3091]/10" />
         <div className="max-w-6xl mx-auto px-6 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
+          <div className="max-w-2xl mx-auto text-center">
               <span className="inline-block text-[#2e3091] text-caption font-medium tracking-wider uppercase mb-4">
                 Nossa História
               </span>
@@ -58,19 +57,6 @@ export default function SobrePage() {
                 Conheça nossos produtos
                 <ArrowRight className="w-4 h-4" />
               </Link>
-            </div>
-            <div className="relative">
-              <div className="absolute -top-6 -left-6 w-24 h-24 bg-[#2e3091]/10 rounded-full blur-2xl" />
-              <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-[#2e3091]/10 rounded-full blur-3xl" />
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-600880292089-90a7e086ee0c?q=80&w=1600&auto=format&fit=crop"
-                  alt="Goiás Minas Uniformes - Equipe"
-                  className="w-full h-[400px] md:h-[500px] object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -211,18 +197,18 @@ export default function SobrePage() {
               Entre em contato conosco e descubra como podemos criar uniformes 
               que representem a excelência da sua escola ou empresa.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col gap-4 items-center">
               <a
-                href="https://wa.me/5562999999999"
+                href="https://wa.me/5562991121586"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-white text-[#2e3091] px-8 py-4 rounded-full text-btn font-medium hover:bg-white/90 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white text-[#2e3091] px-8 py-4 rounded-full text-btn font-medium hover:bg-white/90 transition-colors w-full max-w-sm"
               >
                 Falar com um consultor
               </a>
               <Link
                 to="/escolas/colegio-militar"
-                className="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full text-btn font-medium hover:bg-white/20 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full text-btn font-medium hover:bg-white/20 transition-colors w-full max-w-sm"
               >
                 Ver produtos
               </Link>

@@ -382,58 +382,6 @@ export default function LojaEstiloOsklen() {
             })}
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  setSortBy(e.target.value as SortOption)
-                }
-                className="appearance-none border border-neutral-200 px-4 py-2 rounded text-sm focus:outline-none"
-              >
-                <option value="default">Ordenar</option>
-                <option value="price-low">Menor preço</option>
-                <option value="price-high">Maior preço</option>
-              </select>
-              <ChevronDown className="w-4 h-4 text-neutral-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Desktop columns selector */}
-            <div className="hidden md:flex items-center gap-2">
-              <label className="text-sm text-neutral-600">Itens por linha</label>
-              <select
-                value={columnsDesktop}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  setColumnsDesktop(Number(e.target.value))
-                }
-                className="border border-neutral-200 px-3 py-2 rounded text-sm"
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
-              </select>
-            </div>
-
-            {/* Mobile columns selector */}
-            <div className="flex md:hidden items-center gap-2">
-              <label className="text-sm text-neutral-600">Colunas</label>
-              <select
-                value={columnsMobile}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                  setColumnsMobile(Number(e.target.value))
-                }
-                className="border border-neutral-200 px-3 py-2 rounded text-sm"
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </select>
-            </div>
-
-            <div className="text-sm text-neutral-500">
-              {queryProducts.length} resultados
-            </div>
-          </div>
         </div>
       </div>
 
