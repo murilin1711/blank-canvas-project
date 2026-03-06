@@ -1,52 +1,72 @@
 
-# Corrigir Deploy na Vercel
 
-## Diagnostico
+# Melhorias e Mudancas no Site
 
-O erro de JSX (`Expected corresponding JSX closing tag for <main>`) ja foi corrigido na ultima edicao. A estrutura do `ProductPage.tsx` esta balanceada.
+## Resumo das alteracoes
 
-O problema do deploy na Vercel pode ter duas causas:
+6 mudancas em 5 arquivos diferentes.
 
-1. **Build antigo**: A Vercel fez o build antes da correcao ser aplicada. Um redeploy resolve.
-2. **Deteccao errada de framework**: O `tsconfig.json` tem referencias a Next.js (`plugins: [{name: "next"}]`, `include: ["next-env.d.ts"]`) mas o projeto usa Vite. Isso pode confundir a Vercel.
+---
 
-## Plano
+## 1. Remover FAQ do menu superior
 
-### 1. Limpar tsconfig.json de referencias Next.js
+**Arquivo:** `src/components/sections/header.tsx`
 
-Remover o plugin Next.js e a referencia a `next-env.d.ts` do `tsconfig.json`, ja que este projeto usa Vite:
+- Linha 75: remover `"FAQ"` do array `navItems`
+- Linha 76: remover `"Perguntas Frequentes (FAQ)"` do array `navItemsMobile`
 
-**Antes:**
-```json
-{
-  "compilerOptions": {
-    "jsx": "preserve",
-    "plugins": [{ "name": "next" }]
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"]
-}
-```
+---
 
-**Depois:**
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "plugins": []
-  },
-  "include": ["src", "**/*.ts", "**/*.tsx", "**/*.mts"]
-}
-```
+## 2. Remover foto do hero da pagina Sobre Nos
 
-Alteracoes:
-- Remover `"plugins": [{"name": "next"}]`
-- Remover `"next-env.d.ts"`, `".next/types/**/*.ts"`, `".next/dev/types/**/*.ts"` do include
-- Mudar `jsx` de `"preserve"` para `"react-jsx"` (compativel com Vite + SWC)
+**Arquivo:** `src/app/sobre/page.tsx`
 
-### 2. Verificar se nao ha outros erros de build
+- Remover o bloco da coluna direita do hero (linhas 62-73) que contem a imagem Unsplash e os blur decorativos
+- Mudar o grid de `lg:grid-cols-2` para coluna unica, centralizando o texto
 
-O arquivo `ProductPage.tsx` ja esta com a estrutura JSX correta apos a ultima correcao.
+---
 
-| Arquivo | O que muda |
-|---------|-----------|
-| `tsconfig.json` | Remover referencias Next.js, ajustar jsx para react-jsx |
+## 3. Arrumar CTA "Falar com um consultor" no desktop (igual mobile) + link WhatsApp correto
+
+**Arquivo:** `src/app/sobre/page.tsx`
+
+- Trocar o layout `flex-col sm:flex-row` dos botoes para `flex-col` sempre (empilhados, igual mobile)
+- Atualizar o link de `https://wa.me/5562999999999` para `https://wa.me/5562991121586`
+
+---
+
+## 4. Rodape: alinhar botoes e remover Facebook
+
+**Arquivo:** `src/components/sections/footer.tsx`
+
+- Remover o item Facebook do array de links de "Redes sociais" (linha 51)
+- Mudar layout dos botoes de `flex-wrap` para `flex flex-col` em cada secao para ficarem alinhados verticalmente (ou `flex-col sm:flex-row` se preferir alinhamento mais limpo)
+
+---
+
+## 5. Remover barra de Ordenar / Itens por linha / Resultados
+
+**Arquivo:** `src/app/escolas/colegio-militar/page.tsx`
+
+- Remover o bloco inteiro das linhas 385-436 que contem: select de Ordenar, select de Itens por linha (desktop), select de Colunas (mobile), e o texto "X resultados"
+
+---
+
+## 6. Atualizar todos os links wa.me com numero falso
+
+**Arquivo:** `src/app/checkout/sucesso/page.tsx`
+
+- Trocar `tel:+5562999999999` e `(62) 99999-9999` para o WhatsApp correto: `https://wa.me/5562991121586` com texto `(62) 99112-1586`
+
+---
+
+## Resumo de arquivos
+
+| Arquivo | Mudanca |
+|---------|---------|
+| `src/components/sections/header.tsx` | Remover FAQ dos menus |
+| `src/app/sobre/page.tsx` | Remover foto hero, arrumar CTA empilhado, link WhatsApp correto |
+| `src/components/sections/footer.tsx` | Remover Facebook, alinhar botoes |
+| `src/app/escolas/colegio-militar/page.tsx` | Remover toolbar de ordenacao/colunas/resultados |
+| `src/app/checkout/sucesso/page.tsx` | Corrigir numero WhatsApp |
+
