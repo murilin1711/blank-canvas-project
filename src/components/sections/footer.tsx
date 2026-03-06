@@ -48,7 +48,6 @@ const Footer = () => {
       title: "Redes sociais",
       links: [
         { label: "Instagram", href: "https://www.instagram.com/goiasminas/", isExternal: true },
-        { label: "Facebook", href: "https://www.facebook.com/p/Goiás-Minas-Uniformes-100075856991982/", isExternal: true },
         { label: "Email", href: "mailto:suporte@goiasminas.com", isExternal: true },
       ],
     },

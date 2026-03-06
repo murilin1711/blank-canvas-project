@@ -121,8 +121,8 @@ export default function CheckoutSucessoPage() {
           <div className="mt-6 text-center">
             <p className="text-caption text-text-muted">
               Dúvidas sobre seu pedido? Entre em contato pelo WhatsApp:{" "}
-              <a href="tel:+5562999999999" className="text-[#2e3091] hover:underline">
-                (62) 99999-9999
+              <a href="https://wa.me/5562991121586" target="_blank" rel="noopener noreferrer" className="text-[#2e3091] hover:underline">
+                (62) 99112-1586
               </a>
             </p>
           </div>

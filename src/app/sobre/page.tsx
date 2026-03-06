@@ -197,18 +197,18 @@ export default function SobrePage() {
               Entre em contato conosco e descubra como podemos criar uniformes 
               que representem a excelência da sua escola ou empresa.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col gap-4 items-center">
               <a
-                href="https://wa.me/5562999999999"
+                href="https://wa.me/5562991121586"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-white text-[#2e3091] px-8 py-4 rounded-full text-btn font-medium hover:bg-white/90 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white text-[#2e3091] px-8 py-4 rounded-full text-btn font-medium hover:bg-white/90 transition-colors w-full max-w-sm"
               >
                 Falar com um consultor
               </a>
               <Link
                 to="/escolas/colegio-militar"
-                className="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full text-btn font-medium hover:bg-white/20 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white/10 text-white border border-white/20 px-8 py-4 rounded-full text-btn font-medium hover:bg-white/20 transition-colors w-full max-w-sm"
               >
                 Ver produtos
               </Link>

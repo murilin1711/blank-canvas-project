@@ -72,8 +72,8 @@ const Header = () => {
     }
   };
 
-  const navItems = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós", "FAQ"];
-  const navItemsMobile = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós", "Perguntas Frequentes (FAQ)"];
+  const navItems = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós"];
+  const navItemsMobile = ["Escolas", "Uniformes Empresariais", "Camisetas Personalizadas", "Sobre Nós"];
 
   useEffect(() => {
     const handleScroll = () => {
