@@ -188,10 +188,10 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted, isMobile]);
 
   return (
-    <section className="relative w-full pt-[80px] md:pt-[100px] min-h-[100svh] flex items-center justify-center overflow-hidden">
+    <section className="relative w-full min-h-[100svh] overflow-hidden">
       
       {/* Background Videos - SEMPRE sem áudio */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center">
+      <div className="absolute inset-0 z-0">
         {slides.map((slide, index) =>
         slide.type === 'video' ?
         <div
@@ -221,12 +221,12 @@ const HeroBanner = () => {
       {/* Slides Container */}
       <div
         id="hero-banner"
-        className="relative z-10 flex items-center justify-center w-full h-full px-4 py-8 md:px-6 md:py-10 lg:px-8 lg:py-12"
+        className="relative z-10 w-full h-full min-h-[100svh]"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}>
 
-        <div className="relative w-full max-w-[95%] md:max-w-[80%] lg:max-w-[65%] xl:max-w-[55%] overflow-hidden rounded-xl lg:rounded-3xl shadow-lg lg:shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-300 aspect-video">
+        <div className="relative w-full h-full min-h-[100svh]">
           
           {slides.map((slide, index) =>
           <div
@@ -238,7 +238,7 @@ const HeroBanner = () => {
               {slide.type === 'video' ?
             <video
               ref={(el) => {videoRefs.current[index] = el;}}
-              className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+              className="h-full w-full object-cover"
               autoPlay
               loop
               muted={isMuted}
@@ -251,12 +251,12 @@ const HeroBanner = () => {
 
             <img
               src={slide.url}
-              className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+              className="h-full w-full object-cover"
               alt="Banner slide" />
 
             }
 
-              <div className="absolute inset-0 z-10 bg-white/10 rounded-xl lg:rounded-3xl" />
+              <div className="absolute inset-0 z-10 bg-black/5" />
 
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
                 <div className="flex flex-col items-center gap-4">
