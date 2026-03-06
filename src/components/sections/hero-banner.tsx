@@ -238,7 +238,7 @@ const HeroBanner = () => {
               {slide.type === 'video' ?
             <video
               ref={(el) => {videoRefs.current[index] = el;}}
-              className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+              className="h-full w-full object-cover"
               autoPlay
               loop
               muted={isMuted}
@@ -251,12 +251,12 @@ const HeroBanner = () => {
 
             <img
               src={slide.url}
-              className="h-full w-full object-cover rounded-xl lg:rounded-3xl"
+              className="h-full w-full object-cover"
               alt="Banner slide" />
 
             }
 
-              <div className="absolute inset-0 z-10 bg-white/10 rounded-xl lg:rounded-3xl" />
+              <div className="absolute inset-0 z-10 bg-black/5" />
 
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center">
                 <div className="flex flex-col items-center gap-4">
