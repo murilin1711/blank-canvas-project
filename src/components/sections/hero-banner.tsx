@@ -2,11 +2,18 @@
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import bannerBolsaUniforme from '@/assets/banner-bolsa-uniforme.webp';
 
 const slides = [
 {
   type: 'video' as const,
   url: '/videos/hero-video.mp4',
+  title: "",
+  link: ""
+},
+{
+  type: 'image' as const,
+  url: bannerBolsaUniforme,
   title: "",
   link: ""
 },
