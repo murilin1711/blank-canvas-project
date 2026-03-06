@@ -1,42 +1,52 @@
 
+# Corrigir Deploy na Vercel
 
-# Ajustes no Rodape e Mapa
+## Diagnostico
 
-## 1. Rodape - Layout de Politicas em 2 colunas alinhadas
+O erro de JSX (`Expected corresponding JSX closing tag for <main>`) ja foi corrigido na ultima edicao. A estrutura do `ProductPage.tsx` esta balanceada.
 
-**Arquivo:** `src/components/sections/footer.tsx`
+O problema do deploy na Vercel pode ter duas causas:
 
-Substituir o `flex-wrap` da secao Politicas por um grid de 2 colunas:
+1. **Build antigo**: A Vercel fez o build antes da correcao ser aplicada. Um redeploy resolve.
+2. **Deteccao errada de framework**: O `tsconfig.json` tem referencias a Next.js (`plugins: [{name: "next"}]`, `include: ["next-env.d.ts"]`) mas o projeto usa Vite. Isso pode confundir a Vercel.
 
-```
-Coluna 1                    Coluna 2
-Prazo de entrega            Trocas & Devoluções
-Formas de pagamento         Termos e condições
-Privacidade & Segurança
-```
+## Plano
 
-Usar `grid grid-cols-2 gap-2` em vez de `flex flex-wrap gap-2`. Cada botao pill ocupa uma celula do grid, ficando alinhados verticalmente.
+### 1. Limpar tsconfig.json de referencias Next.js
 
----
+Remover o plugin Next.js e a referencia a `next-env.d.ts` do `tsconfig.json`, ja que este projeto usa Vite:
 
-## 2. Mapa - Trocar Google Maps embed por OpenStreetMap
-
-**Arquivo:** `src/components/sections/store-locator.tsx`
-
-Substituir o iframe do Google Maps (linha 132-141) por um iframe do OpenStreetMap que nao mostra avaliacoes:
-
-```
-https://www.openstreetmap.org/export/embed.html?bbox=-48.97,-16.34,-48.96,-16.33&layer=mapnik&marker=-16.3339,-48.9676
+**Antes:**
+```json
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"]
+}
 ```
 
-Coordenadas da loja: lat `-16.3339`, lon `-48.9676` (R. Guimaraes Natal, 51, Anapolis-GO).
+**Depois:**
+```json
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "plugins": []
+  },
+  "include": ["src", "**/*.ts", "**/*.tsx", "**/*.mts"]
+}
+```
 
----
+Alteracoes:
+- Remover `"plugins": [{"name": "next"}]`
+- Remover `"next-env.d.ts"`, `".next/types/**/*.ts"`, `".next/dev/types/**/*.ts"` do include
+- Mudar `jsx` de `"preserve"` para `"react-jsx"` (compativel com Vite + SWC)
 
-## Resumo
+### 2. Verificar se nao ha outros erros de build
 
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/components/sections/footer.tsx` | Grid 2 colunas para Politicas |
-| `src/components/sections/store-locator.tsx` | Trocar Google Maps embed por OpenStreetMap |
+O arquivo `ProductPage.tsx` ja esta com a estrutura JSX correta apos a ultima correcao.
 
+| Arquivo | O que muda |
+|---------|-----------|
+| `tsconfig.json` | Remover referencias Next.js, ajustar jsx para react-jsx |
