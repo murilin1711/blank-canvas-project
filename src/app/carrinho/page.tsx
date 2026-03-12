@@ -61,12 +61,19 @@ export default function CarrinhoPage() {
         return;
       }
 
-      const isLocalCity = viaCepData.localidade?.toLowerCase() === "anápolis" && viaCepData.uf === "GO";
+      const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const jumaRegionCities = [
+        "anapolis", "neropolis", "abadiania", "campo limpo de goias",
+        "pirenopolis", "silvania", "goianapolis", "terezopolis de goias",
+        "ouro verde de goias", "damolandia", "petrolina de goias"
+      ];
+      const cityNormalized = normalize(viaCepData.localidade || "");
+      const isJumaRegion = viaCepData.uf === "GO" && jumaRegionCities.includes(cityNormalized);
+      const isLocalCity = cityNormalized === "anapolis" && viaCepData.uf === "GO";
 
       let jumaOption = null;
 
-      // Try Juma for same city/region
-      if (isLocalCity || viaCepData.uf === "GO") {
+      if (isJumaRegion) {
         try {
           const { data, error } = await supabase.functions.invoke("juma-quote", {
             body: {
@@ -82,7 +89,7 @@ export default function CarrinhoPage() {
 
           if (!error && data?.success) {
             jumaOption = {
-              price: data.cost / 100, // Juma returns in cents
+              price: data.cost,
               duration: data.durationInfo || "~30 min",
               distance: data.distanceInfo || "",
             };
