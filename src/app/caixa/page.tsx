@@ -538,13 +538,15 @@ export default function CaixaPage() {
                         <p className="text-sm text-gray-500">#{order.id.slice(0, 8)}</p>
                         <p className="font-semibold text-lg">{formatCurrency(order.total)}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {order.status}
-                      </span>
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(order.status).color}`}
+                      >
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
                     </div>
                     <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                     
