@@ -661,25 +661,6 @@ export default function CaixaPage() {
                       </div>
                     )}
 
-                    {/* Actions */}
-                    {payment.status === 'pending' && (
-                      <div className="mt-4 flex gap-2">
-                        <button
-                          onClick={() => updatePaymentStatus(payment.id, 'approved')}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                          Aprovar
-                        </button>
-                        <button
-                          onClick={() => updatePaymentStatus(payment.id, 'rejected')}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Rejeitar
-                        </button>
-                      </div>
-                    )}
 
                     <p className="text-xs text-gray-400 mt-4">{formatDate(payment.created_at)}</p>
                   </div>
