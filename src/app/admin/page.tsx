@@ -1454,13 +1454,16 @@ export default function AdminPage() {
                               {formatTime(payment.created_at)}
                             </div>
                             
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              payment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                              payment.status === "approved" ? "bg-green-100 text-green-700" :
-                              "bg-red-100 text-red-700"
-                            }`}>
-                              {payment.status === "pending" ? "Pendente" : payment.status === "approved" ? "Aprovado" : "Rejeitado"}
-                            </span>
+                            <select
+                              value={payment.status}
+                              onChange={(e) => { e.stopPropagation(); updatePaymentStatus(payment.id, e.target.value); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(payment.status).color}`}
+                            >
+                              {ORDER_STATUSES.map(s => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                              ))}
+                            </select>
                             
                             <button
                               onClick={(e) => {
