@@ -8,7 +8,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const JUMA_API_URL = "https://api.dev.jumaentregas.com.br";
+const JUMA_API_URL = "https://api.jumaentregas.com.br";
 
 // Store address (origin) - R. Guimarães Natal, 51 - Centro, Anápolis - GO
 const STORE_ADDRESS = {
