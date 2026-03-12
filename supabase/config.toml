@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.check-pix-payment]
 verify_jwt = false
+
+[functions.juma-quote]
+verify_jwt = false
