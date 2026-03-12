@@ -17,14 +17,18 @@ export default function CarrinhoPage() {
   
   const [cep, setCep] = useState("");
   const [shippingOptions, setShippingOptions] = useState<{
+    juma: { price: number; duration: string; distance: string } | null;
     economico: { price: number; date: string } | null;
-    expresso: { price: number; date: string } | null;
   } | null>(null);
-  const [selectedShipping, setSelectedShipping] = useState<"economico" | "expresso" | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<"juma" | "economico" | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showProducts, setShowProducts] = useState(true);
 
-  const shipping = selectedShipping === "expresso" ? 26.90 : selectedShipping === "economico" ? 13.90 : 0;
+  const shipping = selectedShipping === "juma" 
+    ? (shippingOptions?.juma?.price || 0) 
+    : selectedShipping === "economico" 
+      ? (shippingOptions?.economico?.price || 0) 
+      : 0;
   const total = subtotal + shipping;
 
   const formatCEP = (value: string) => {
@@ -35,33 +39,77 @@ export default function CarrinhoPage() {
     return value;
   };
 
-  const calculateShipping = () => {
+  const calculateShipping = async () => {
     if (cep.replace(/\D/g, "").length !== 8) {
       toast.error("Digite um CEP válido");
       return;
     }
 
     setIsCalculating(true);
-    
-    setTimeout(() => {
+    setShippingOptions(null);
+    setSelectedShipping(null);
+
+    try {
+      // Fetch address from ViaCEP to get city/state
+      const cleanCep = cep.replace(/\D/g, "");
+      const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const viaCepData = await viaCepRes.json();
+
+      if (viaCepData.erro) {
+        toast.error("CEP não encontrado");
+        setIsCalculating(false);
+        return;
+      }
+
+      const isLocalCity = viaCepData.localidade?.toLowerCase() === "anápolis" && viaCepData.uf === "GO";
+
+      let jumaOption = null;
+
+      // Try Juma for same city/region
+      if (isLocalCity || viaCepData.uf === "GO") {
+        try {
+          const { data, error } = await supabase.functions.invoke("juma-quote", {
+            body: {
+              address: {
+                street: viaCepData.logradouro || "",
+                number: "S/N",
+                neighborhood: viaCepData.bairro || "",
+                city: viaCepData.localidade || "",
+                state: viaCepData.uf || "",
+              },
+            },
+          });
+
+          if (!error && data?.success) {
+            jumaOption = {
+              price: data.cost / 100, // Juma returns in cents
+              duration: data.durationInfo || "~30 min",
+              distance: data.distanceInfo || "",
+            };
+          }
+        } catch (e) {
+          console.error("Juma quote error:", e);
+        }
+      }
+
+      // Economico fallback (mock until Melhor Envio is configured)
       const today = new Date();
       const economicoDate = new Date(today);
-      economicoDate.setDate(today.getDate() + 10);
-      const expressoDate = new Date(today);
-      expressoDate.setDate(today.getDate() + 5);
-      
+      economicoDate.setDate(today.getDate() + (isLocalCity ? 5 : 10));
+
       setShippingOptions({
+        juma: jumaOption,
         economico: {
-          price: 13.90,
-          date: economicoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
+          price: isLocalCity ? 13.90 : 19.90,
+          date: economicoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }),
         },
-        expresso: {
-          price: 26.90,
-          date: expressoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
-        }
       });
+    } catch (error) {
+      console.error("Shipping calc error:", error);
+      toast.error("Erro ao calcular frete. Tente novamente.");
+    } finally {
       setIsCalculating(false);
-    }, 800);
+    }
   };
 
   const handleProceedToCheckout = () => {
