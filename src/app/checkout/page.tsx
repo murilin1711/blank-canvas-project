@@ -252,12 +252,37 @@ export default function CheckoutPage() {
     }
   };
 
-  const confirmAddress = () => {
+  const confirmAddress = async () => {
     if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
       toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
       return;
     }
     setAddressConfirmed(true);
+
+    // Try Juma quote for local delivery
+    const isLocal = address.city?.toLowerCase() === "anápolis" && address.state === "GO";
+    if (isLocal || address.state === "GO") {
+      try {
+        const { data, error } = await supabase.functions.invoke("juma-quote", {
+          body: {
+            address: {
+              street: address.street,
+              number: address.number,
+              neighborhood: address.neighborhood,
+              city: address.city,
+              state: address.state,
+            },
+          },
+        });
+        if (!error && data?.success) {
+          const jumaPrice = data.cost / 100;
+          setShippingPrices(prev => ({ ...prev, juma: jumaPrice }));
+          setJumaAvailable(true);
+        }
+      } catch (e) {
+        console.error("Juma quote error in checkout:", e);
+      }
+    }
   };
 
   const formatCPF = (value: string) => {
