@@ -328,6 +328,28 @@ export default function CarrinhoPage() {
                 {/* Shipping Options */}
                 {shippingOptions && (
                   <div className="space-y-3 pt-4 border-t border-border-light">
+                    {shippingOptions.juma && (
+                      <button
+                        onClick={() => setSelectedShipping("juma")}
+                        className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
+                          selectedShipping === "juma" 
+                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                            : "border-border-light hover:border-text-muted"
+                        }`}
+                      >
+                        <Zap className="w-5 h-5 text-amber-500" />
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-sm text-text-primary">ENTREGA RÁPIDA (Juma)</p>
+                          <p className="text-xs text-text-muted">
+                            {shippingOptions.juma.duration} • {shippingOptions.juma.distance}
+                          </p>
+                        </div>
+                        <span className="font-semibold text-sm text-text-primary">
+                          R$ {shippingOptions.juma.price.toFixed(2).replace(".", ",")}
+                        </span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setSelectedShipping("economico")}
                       className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
@@ -343,24 +365,6 @@ export default function CarrinhoPage() {
                       </div>
                       <span className="font-semibold text-sm text-text-primary">
                         R$ {shippingOptions.economico?.price.toFixed(2).replace(".", ",")}
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedShipping("expresso")}
-                      className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
-                        selectedShipping === "expresso" 
-                          ? "border-[#2e3091] bg-[#2e3091]/5" 
-                          : "border-border-light hover:border-text-muted"
-                      }`}
-                    >
-                      <Truck className="w-5 h-5 text-text-muted" />
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-text-primary">EXPRESSO</p>
-                        <p className="text-xs text-text-muted">Receba até {shippingOptions.expresso?.date}</p>
-                      </div>
-                      <span className="font-semibold text-sm text-text-primary">
-                        R$ {shippingOptions.expresso?.price.toFixed(2).replace(".", ",")}
                       </span>
                     </button>
                   </div>
