@@ -206,7 +206,7 @@ export default function CheckoutPage() {
   ];
 
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
-  const shipping = shippingMethod === "expresso" ? 26.90 : 13.90;
+  const shipping = shippingMethod === "juma" && shippingPrices.juma !== null ? shippingPrices.juma : shippingPrices.economico;
   const total = subtotal + shipping;
 
   const isStepCompleted = (step: CheckoutStep) => completedSteps.includes(step);
