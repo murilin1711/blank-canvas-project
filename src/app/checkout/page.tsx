@@ -755,21 +755,23 @@ export default function CheckoutPage() {
                               <span className="text-body-sm font-medium text-text-primary">R$ 13,90</span>
                             </label>
 
-                            <label className="flex items-center justify-between cursor-pointer">
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="radio"
-                                  checked={shippingMethod === "expresso"}
-                                  onChange={() => setShippingMethod("expresso")}
-                                  className="w-5 h-5 accent-[#2e3091]"
-                                />
-                                <div>
-                                  <p className="text-body-sm font-medium text-text-primary">Expresso</p>
-                                  <p className="text-caption text-text-muted">Receba até sexta-feira, 10 de janeiro</p>
+                            {jumaAvailable && shippingPrices.juma !== null && (
+                              <label className="flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="radio"
+                                    checked={shippingMethod === "juma"}
+                                    onChange={() => setShippingMethod("juma")}
+                                    className="w-5 h-5 accent-[#2e3091]"
+                                  />
+                                  <div>
+                                    <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
+                                    <p className="text-caption text-text-muted">Entrega expressa na região</p>
+                                  </div>
                                 </div>
-                              </div>
-                              <span className="text-body-sm font-medium text-text-primary">R$ 26,90</span>
-                            </label>
+                                <span className="text-body-sm font-medium text-text-primary">R$ {shippingPrices.juma.toFixed(2).replace(".", ",")}</span>
+                              </label>
+                            )}
                           </div>
                         </div>
                       </div>
