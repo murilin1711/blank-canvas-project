@@ -1524,24 +1524,6 @@ export default function AdminPage() {
                                       <MessageCircle className="w-3.5 h-3.5" />
                                       WhatsApp
                                     </a>
-                                    {payment.status === "pending" && (
-                                      <>
-                                        <button
-                                          onClick={() => updatePaymentStatus(payment.id, "approved")}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
-                                        >
-                                          <Check className="w-3.5 h-3.5" />
-                                          Aprovar
-                                        </button>
-                                        <button
-                                          onClick={() => updatePaymentStatus(payment.id, "rejected")}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                        >
-                                          <XCircle className="w-3.5 h-3.5" />
-                                          Reprovar
-                                        </button>
-                                      </>
-                                    )}
                                   </div>
                                 </div>
                               </motion.div>
