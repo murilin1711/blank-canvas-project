@@ -286,29 +286,54 @@ export default function CaixaPage() {
 
   const isLoading = loadingBolsa || loadingOrders || loadingFeedbacks || loadingCustomers;
 
-  const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
-    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+  const ORDER_STATUSES = [
+    { value: 'pending', label: 'Pagamento pendente', color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'paid', label: 'Pagamento aprovado', color: 'bg-green-100 text-green-700' },
+    { value: 'separating', label: 'Separando Pedido', color: 'bg-blue-100 text-blue-700' },
+    { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
+  ];
+
+  const getStatusInfo = (status: string) => ORDER_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
+
+  const updateOrderStatus = async (id: string, status: string) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     
     try {
       const token = getToken();
-      if (!token) {
-        handleLogout();
-        return;
-      }
+      if (!token) { handleLogout(); return; }
 
       const response = await supabase.functions.invoke('admin-data', {
-        body: { 
-          action: 'update_payment_status',
-          token,
-          data: { id, status }
-        }
+        body: { action: 'update_order_status', token, data: { id, status } }
       });
 
       if (response.error || response.data?.error) {
         throw new Error(response.error?.message || response.data?.error);
       }
       
-      toast.success(status === "approved" ? "Pagamento aprovado!" : "Pagamento rejeitado");
+      toast.success("Status atualizado!");
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast.error("Erro ao atualizar status");
+      reloadSection('orders');
+    }
+  };
+
+  const updatePaymentStatus = async (id: string, status: string) => {
+    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
+    
+    try {
+      const token = getToken();
+      if (!token) { handleLogout(); return; }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { action: 'update_payment_status', token, data: { id, status } }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+      
+      toast.success("Status atualizado!");
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Erro ao atualizar pagamento");
