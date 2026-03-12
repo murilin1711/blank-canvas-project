@@ -1,52 +1,26 @@
 
-# Corrigir Deploy na Vercel
 
-## Diagnostico
+## Diagnóstico
 
-O erro de JSX (`Expected corresponding JSX closing tag for <main>`) ja foi corrigido na ultima edicao. A estrutura do `ProductPage.tsx` esta balanceada.
+1. **Preço errado**: A API Juma retorna `cost: 145` que provavelmente já é em reais (R$ 145,00), mas o carrinho divide por 100 (`data.cost / 100 = R$ 1,45`). Precisa remover essa divisão.
 
-O problema do deploy na Vercel pode ter duas causas:
+2. **Restrição geográfica**: Atualmente o Juma aparece para todo o estado de GO. Precisa restringir para Anápolis e cidades da região metropolitana.
 
-1. **Build antigo**: A Vercel fez o build antes da correcao ser aplicada. Um redeploy resolve.
-2. **Deteccao errada de framework**: O `tsconfig.json` tem referencias a Next.js (`plugins: [{name: "next"}]`, `include: ["next-env.d.ts"]`) mas o projeto usa Vite. Isso pode confundir a Vercel.
+## Mudanças
 
-## Plano
+### 1. `src/app/carrinho/page.tsx` — Corrigir preço e restringir região
 
-### 1. Limpar tsconfig.json de referencias Next.js
+- Remover `/ 100` na linha que converte o custo Juma (linha ~79: `price: data.cost / 100` → `price: data.cost`)
+- Mudar a condição de exibição do Juma: ao invés de `isLocalCity || viaCepData.uf === "GO"`, restringir para Anápolis e região metropolitana (ex: Anápolis, Nerópolis, Abadiânia, Campo Limpo de Goiás, Pirenópolis, Silvânia, Goianápolis, Terezópolis de Goiás, etc.)
 
-Remover o plugin Next.js e a referencia a `next-env.d.ts` do `tsconfig.json`, ja que este projeto usa Vite:
+### 2. Lista de cidades da região
 
-**Antes:**
-```json
-{
-  "compilerOptions": {
-    "jsx": "preserve",
-    "plugins": [{ "name": "next" }]
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", ".next/dev/types/**/*.ts", "**/*.mts"]
-}
+Criar uma lista de cidades aceitas para entrega Juma:
+```
+"anápolis", "nerópolis", "abadiânia", "campo limpo de goiás", 
+"pirenópolis", "silvânia", "goianápolis", "terezópolis de goiás",
+"ouro verde de goiás", "damolândia", "petrolina de goiás"
 ```
 
-**Depois:**
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "plugins": []
-  },
-  "include": ["src", "**/*.ts", "**/*.tsx", "**/*.mts"]
-}
-```
+O código vai normalizar o nome da cidade (lowercase, sem acentos) e verificar se está na lista antes de chamar a API Juma.
 
-Alteracoes:
-- Remover `"plugins": [{"name": "next"}]`
-- Remover `"next-env.d.ts"`, `".next/types/**/*.ts"`, `".next/dev/types/**/*.ts"` do include
-- Mudar `jsx` de `"preserve"` para `"react-jsx"` (compativel com Vite + SWC)
-
-### 2. Verificar se nao ha outros erros de build
-
-O arquivo `ProductPage.tsx` ja esta com a estrutura JSX correta apos a ultima correcao.
-
-| Arquivo | O que muda |
-|---------|-----------|
-| `tsconfig.json` | Remover referencias Next.js, ajustar jsx para react-jsx |
