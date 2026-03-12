@@ -457,34 +457,58 @@ export default function AdminPage() {
 
   const isLoading = loadingBolsa || loadingOrders || loadingProducts || loadingFeedbacks || loadingCustomers;
 
-  const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
-    // Optimistic update
-    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+  const ORDER_STATUSES = [
+    { value: 'pending', label: 'Pagamento pendente', color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'paid', label: 'Pagamento aprovado', color: 'bg-green-100 text-green-700' },
+    { value: 'separating', label: 'Separando Pedido', color: 'bg-blue-100 text-blue-700' },
+    { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
+  ];
+
+  const getStatusInfo = (status: string) => ORDER_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
+
+  const updateOrderStatus = async (id: string, status: string) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     
     try {
       const token = getAdminToken();
-      if (!token) {
-        handleLogout();
-        return;
-      }
+      if (!token) { handleLogout(); return; }
 
       const response = await supabase.functions.invoke('admin-data', {
-        body: { 
-          action: 'update_payment_status',
-          token,
-          data: { id, status }
-        }
+        body: { action: 'update_order_status', token, data: { id, status } }
       });
 
       if (response.error || response.data?.error) {
         throw new Error(response.error?.message || response.data?.error);
       }
       
-      toast.success(status === "approved" ? "Pagamento aprovado!" : "Pagamento rejeitado");
+      toast.success("Status atualizado!");
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast.error("Erro ao atualizar status");
+      reloadSection('orders');
+    }
+  };
+
+  const updatePaymentStatus = async (id: string, status: string) => {
+    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
+    
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { action: 'update_payment_status', token, data: { id, status } }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+      
+      toast.success("Status atualizado!");
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Erro ao atualizar pagamento");
-      reloadSection('bolsa'); // Restore on error
+      reloadSection('bolsa');
     }
   };
 
@@ -1347,13 +1371,15 @@ export default function AdminPage() {
                             <td className="px-6 py-4 text-sm text-gray-500">{order.order_items?.length || 0} itens</td>
                             <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                order.status === "paid" ? "bg-green-100 text-green-700" :
-                                order.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                "bg-gray-100 text-gray-700"
-                              }`}>
-                                {order.status === "paid" ? "Pago" : order.status === "pending" ? "Pendente" : order.status}
-                              </span>
+                              <select
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(order.status).color}`}
+                              >
+                                {ORDER_STATUSES.map(s => (
+                                  <option key={s.value} value={s.value}>{s.label}</option>
+                                ))}
+                              </select>
                             </td>
                           </tr>
                         ))}
@@ -1428,13 +1454,16 @@ export default function AdminPage() {
                               {formatTime(payment.created_at)}
                             </div>
                             
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              payment.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                              payment.status === "approved" ? "bg-green-100 text-green-700" :
-                              "bg-red-100 text-red-700"
-                            }`}>
-                              {payment.status === "pending" ? "Pendente" : payment.status === "approved" ? "Aprovado" : "Rejeitado"}
-                            </span>
+                            <select
+                              value={payment.status}
+                              onChange={(e) => { e.stopPropagation(); updatePaymentStatus(payment.id, e.target.value); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(payment.status).color}`}
+                            >
+                              {ORDER_STATUSES.map(s => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                              ))}
+                            </select>
                             
                             <button
                               onClick={(e) => {
@@ -1495,24 +1524,6 @@ export default function AdminPage() {
                                       <MessageCircle className="w-3.5 h-3.5" />
                                       WhatsApp
                                     </a>
-                                    {payment.status === "pending" && (
-                                      <>
-                                        <button
-                                          onClick={() => updatePaymentStatus(payment.id, "approved")}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
-                                        >
-                                          <Check className="w-3.5 h-3.5" />
-                                          Aprovar
-                                        </button>
-                                        <button
-                                          onClick={() => updatePaymentStatus(payment.id, "rejected")}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                                        >
-                                          <XCircle className="w-3.5 h-3.5" />
-                                          Reprovar
-                                        </button>
-                                      </>
-                                    )}
                                   </div>
                                 </div>
                               </motion.div>

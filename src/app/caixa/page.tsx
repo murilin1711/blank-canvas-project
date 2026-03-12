@@ -286,29 +286,54 @@ export default function CaixaPage() {
 
   const isLoading = loadingBolsa || loadingOrders || loadingFeedbacks || loadingCustomers;
 
-  const updatePaymentStatus = async (id: string, status: "approved" | "rejected") => {
-    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+  const ORDER_STATUSES = [
+    { value: 'pending', label: 'Pagamento pendente', color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'paid', label: 'Pagamento aprovado', color: 'bg-green-100 text-green-700' },
+    { value: 'separating', label: 'Separando Pedido', color: 'bg-blue-100 text-blue-700' },
+    { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
+  ];
+
+  const getStatusInfo = (status: string) => ORDER_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
+
+  const updateOrderStatus = async (id: string, status: string) => {
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
     
     try {
       const token = getToken();
-      if (!token) {
-        handleLogout();
-        return;
-      }
+      if (!token) { handleLogout(); return; }
 
       const response = await supabase.functions.invoke('admin-data', {
-        body: { 
-          action: 'update_payment_status',
-          token,
-          data: { id, status }
-        }
+        body: { action: 'update_order_status', token, data: { id, status } }
       });
 
       if (response.error || response.data?.error) {
         throw new Error(response.error?.message || response.data?.error);
       }
       
-      toast.success(status === "approved" ? "Pagamento aprovado!" : "Pagamento rejeitado");
+      toast.success("Status atualizado!");
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast.error("Erro ao atualizar status");
+      reloadSection('orders');
+    }
+  };
+
+  const updatePaymentStatus = async (id: string, status: string) => {
+    setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
+    
+    try {
+      const token = getToken();
+      if (!token) { handleLogout(); return; }
+
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { action: 'update_payment_status', token, data: { id, status } }
+      });
+
+      if (response.error || response.data?.error) {
+        throw new Error(response.error?.message || response.data?.error);
+      }
+      
+      toast.success("Status atualizado!");
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Erro ao atualizar pagamento");
@@ -513,13 +538,15 @@ export default function CaixaPage() {
                         <p className="text-sm text-gray-500">#{order.id.slice(0, 8)}</p>
                         <p className="font-semibold text-lg">{formatCurrency(order.total)}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {order.status}
-                      </span>
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(order.status).color}`}
+                      >
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
                     </div>
                     <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                     
@@ -563,14 +590,15 @@ export default function CaixaPage() {
                         <p className="text-sm text-gray-500">{payment.customer_phone}</p>
                         <p className="font-bold text-[#2e3091] mt-2">{formatCurrency(payment.total_amount)}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        payment.status === 'approved' ? 'bg-green-100 text-green-700' :
-                        payment.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {payment.status === 'approved' ? 'Aprovado' : 
-                         payment.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
-                      </span>
+                      <select
+                        value={payment.status}
+                        onChange={(e) => updatePaymentStatus(payment.id, e.target.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(payment.status).color}`}
+                      >
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Detalhes */}
@@ -633,25 +661,6 @@ export default function CaixaPage() {
                       </div>
                     )}
 
-                    {/* Actions */}
-                    {payment.status === 'pending' && (
-                      <div className="mt-4 flex gap-2">
-                        <button
-                          onClick={() => updatePaymentStatus(payment.id, 'approved')}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                          <Check className="w-4 h-4" />
-                          Aprovar
-                        </button>
-                        <button
-                          onClick={() => updatePaymentStatus(payment.id, 'rejected')}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          Rejeitar
-                        </button>
-                      </div>
-                    )}
 
                     <p className="text-xs text-gray-400 mt-4">{formatDate(payment.created_at)}</p>
                   </div>

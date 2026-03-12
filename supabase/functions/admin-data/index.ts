@@ -84,6 +84,9 @@ Deno.serve(async (req: Request) => {
     } else if (action === 'update_payment_status') {
       await supabase.from("bolsa_uniforme_payments").update({ status: data.status, processed_at: new Date().toISOString() }).eq("id", data.id);
       result = { success: true };
+    } else if (action === 'update_order_status') {
+      await supabase.from("orders").update({ status: data.status, updated_at: new Date().toISOString() }).eq("id", data.id);
+      result = { success: true };
     } else if (action === 'toggle_feedback_visibility') {
       await supabase.from("feedbacks").update({ is_visible: data.is_visible }).eq("id", data.id);
       result = { success: true };
