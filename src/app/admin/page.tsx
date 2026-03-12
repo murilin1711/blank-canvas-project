@@ -1371,13 +1371,15 @@ export default function AdminPage() {
                             <td className="px-6 py-4 text-sm text-gray-500">{order.order_items?.length || 0} itens</td>
                             <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                order.status === "paid" ? "bg-green-100 text-green-700" :
-                                order.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                                "bg-gray-100 text-gray-700"
-                              }`}>
-                                {order.status === "paid" ? "Pago" : order.status === "pending" ? "Pendente" : order.status}
-                              </span>
+                              <select
+                                value={order.status}
+                                onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(order.status).color}`}
+                              >
+                                {ORDER_STATUSES.map(s => (
+                                  <option key={s.value} value={s.value}>{s.label}</option>
+                                ))}
+                              </select>
                             </td>
                           </tr>
                         ))}
