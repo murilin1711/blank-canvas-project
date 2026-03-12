@@ -590,14 +590,15 @@ export default function CaixaPage() {
                         <p className="text-sm text-gray-500">{payment.customer_phone}</p>
                         <p className="font-bold text-[#2e3091] mt-2">{formatCurrency(payment.total_amount)}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        payment.status === 'approved' ? 'bg-green-100 text-green-700' :
-                        payment.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {payment.status === 'approved' ? 'Aprovado' : 
-                         payment.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
-                      </span>
+                      <select
+                        value={payment.status}
+                        onChange={(e) => updatePaymentStatus(payment.id, e.target.value)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(payment.status).color}`}
+                      >
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Detalhes */}
