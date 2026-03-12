@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import CheckoutFooter from "@/components/sections/checkout-footer";
@@ -16,14 +17,18 @@ export default function CarrinhoPage() {
   
   const [cep, setCep] = useState("");
   const [shippingOptions, setShippingOptions] = useState<{
+    juma: { price: number; duration: string; distance: string } | null;
     economico: { price: number; date: string } | null;
-    expresso: { price: number; date: string } | null;
   } | null>(null);
-  const [selectedShipping, setSelectedShipping] = useState<"economico" | "expresso" | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<"juma" | "economico" | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showProducts, setShowProducts] = useState(true);
 
-  const shipping = selectedShipping === "expresso" ? 26.90 : selectedShipping === "economico" ? 13.90 : 0;
+  const shipping = selectedShipping === "juma" 
+    ? (shippingOptions?.juma?.price || 0) 
+    : selectedShipping === "economico" 
+      ? (shippingOptions?.economico?.price || 0) 
+      : 0;
   const total = subtotal + shipping;
 
   const formatCEP = (value: string) => {
@@ -34,33 +39,77 @@ export default function CarrinhoPage() {
     return value;
   };
 
-  const calculateShipping = () => {
+  const calculateShipping = async () => {
     if (cep.replace(/\D/g, "").length !== 8) {
       toast.error("Digite um CEP válido");
       return;
     }
 
     setIsCalculating(true);
-    
-    setTimeout(() => {
+    setShippingOptions(null);
+    setSelectedShipping(null);
+
+    try {
+      // Fetch address from ViaCEP to get city/state
+      const cleanCep = cep.replace(/\D/g, "");
+      const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const viaCepData = await viaCepRes.json();
+
+      if (viaCepData.erro) {
+        toast.error("CEP não encontrado");
+        setIsCalculating(false);
+        return;
+      }
+
+      const isLocalCity = viaCepData.localidade?.toLowerCase() === "anápolis" && viaCepData.uf === "GO";
+
+      let jumaOption = null;
+
+      // Try Juma for same city/region
+      if (isLocalCity || viaCepData.uf === "GO") {
+        try {
+          const { data, error } = await supabase.functions.invoke("juma-quote", {
+            body: {
+              address: {
+                street: viaCepData.logradouro || "",
+                number: "S/N",
+                neighborhood: viaCepData.bairro || "",
+                city: viaCepData.localidade || "",
+                state: viaCepData.uf || "",
+              },
+            },
+          });
+
+          if (!error && data?.success) {
+            jumaOption = {
+              price: data.cost / 100, // Juma returns in cents
+              duration: data.durationInfo || "~30 min",
+              distance: data.distanceInfo || "",
+            };
+          }
+        } catch (e) {
+          console.error("Juma quote error:", e);
+        }
+      }
+
+      // Economico fallback (mock until Melhor Envio is configured)
       const today = new Date();
       const economicoDate = new Date(today);
-      economicoDate.setDate(today.getDate() + 10);
-      const expressoDate = new Date(today);
-      expressoDate.setDate(today.getDate() + 5);
-      
+      economicoDate.setDate(today.getDate() + (isLocalCity ? 5 : 10));
+
       setShippingOptions({
+        juma: jumaOption,
         economico: {
-          price: 13.90,
-          date: economicoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
+          price: isLocalCity ? 13.90 : 19.90,
+          date: economicoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }),
         },
-        expresso: {
-          price: 26.90,
-          date: expressoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })
-        }
       });
+    } catch (error) {
+      console.error("Shipping calc error:", error);
+      toast.error("Erro ao calcular frete. Tente novamente.");
+    } finally {
       setIsCalculating(false);
-    }, 800);
+    }
   };
 
   const handleProceedToCheckout = () => {
@@ -279,6 +328,28 @@ export default function CarrinhoPage() {
                 {/* Shipping Options */}
                 {shippingOptions && (
                   <div className="space-y-3 pt-4 border-t border-border-light">
+                    {shippingOptions.juma && (
+                      <button
+                        onClick={() => setSelectedShipping("juma")}
+                        className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
+                          selectedShipping === "juma" 
+                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                            : "border-border-light hover:border-text-muted"
+                        }`}
+                      >
+                        <Zap className="w-5 h-5 text-amber-500" />
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-sm text-text-primary">ENTREGA RÁPIDA (Juma)</p>
+                          <p className="text-xs text-text-muted">
+                            {shippingOptions.juma.duration} • {shippingOptions.juma.distance}
+                          </p>
+                        </div>
+                        <span className="font-semibold text-sm text-text-primary">
+                          R$ {shippingOptions.juma.price.toFixed(2).replace(".", ",")}
+                        </span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setSelectedShipping("economico")}
                       className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
@@ -294,24 +365,6 @@ export default function CarrinhoPage() {
                       </div>
                       <span className="font-semibold text-sm text-text-primary">
                         R$ {shippingOptions.economico?.price.toFixed(2).replace(".", ",")}
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedShipping("expresso")}
-                      className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
-                        selectedShipping === "expresso" 
-                          ? "border-[#2e3091] bg-[#2e3091]/5" 
-                          : "border-border-light hover:border-text-muted"
-                      }`}
-                    >
-                      <Truck className="w-5 h-5 text-text-muted" />
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-text-primary">EXPRESSO</p>
-                        <p className="text-xs text-text-muted">Receba até {shippingOptions.expresso?.date}</p>
-                      </div>
-                      <span className="font-semibold text-sm text-text-primary">
-                        R$ {shippingOptions.expresso?.price.toFixed(2).replace(".", ",")}
                       </span>
                     </button>
                   </div>

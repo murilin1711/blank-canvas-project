@@ -158,9 +158,11 @@ export default function CheckoutPage() {
     })
   );
 
-  const [shippingMethod, setShippingMethod] = useState<"economico" | "expresso">(() => 
+  const [shippingMethod, setShippingMethod] = useState<"economico" | "juma">(() => 
     loadSavedData("checkout_shipping", "economico")
   );
+  const [shippingPrices, setShippingPrices] = useState<{ economico: number; juma: number | null }>({ economico: 13.90, juma: null });
+  const [jumaAvailable, setJumaAvailable] = useState(false);
   
   // Always start with address not confirmed - user must confirm each time
   const [addressConfirmed, setAddressConfirmed] = useState(false);
@@ -204,7 +206,7 @@ export default function CheckoutPage() {
   ];
 
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
-  const shipping = shippingMethod === "expresso" ? 26.90 : 13.90;
+  const shipping = shippingMethod === "juma" && shippingPrices.juma !== null ? shippingPrices.juma : shippingPrices.economico;
   const total = subtotal + shipping;
 
   const isStepCompleted = (step: CheckoutStep) => completedSteps.includes(step);
@@ -250,12 +252,37 @@ export default function CheckoutPage() {
     }
   };
 
-  const confirmAddress = () => {
+  const confirmAddress = async () => {
     if (!address.cep || !address.street || !address.number || !address.city || !address.state) {
       toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
       return;
     }
     setAddressConfirmed(true);
+
+    // Try Juma quote for local delivery
+    const isLocal = address.city?.toLowerCase() === "anápolis" && address.state === "GO";
+    if (isLocal || address.state === "GO") {
+      try {
+        const { data, error } = await supabase.functions.invoke("juma-quote", {
+          body: {
+            address: {
+              street: address.street,
+              number: address.number,
+              neighborhood: address.neighborhood,
+              city: address.city,
+              state: address.state,
+            },
+          },
+        });
+        if (!error && data?.success) {
+          const jumaPrice = data.cost / 100;
+          setShippingPrices(prev => ({ ...prev, juma: jumaPrice }));
+          setJumaAvailable(true);
+        }
+      } catch (e) {
+        console.error("Juma quote error in checkout:", e);
+      }
+    }
   };
 
   const formatCPF = (value: string) => {
@@ -476,7 +503,7 @@ export default function CheckoutPage() {
                   <CompletedStepCard
                     step="entrega"
                     title="Forma de entrega"
-                    content={`${shippingMethod === "economico" ? "Econômico" : "Expresso"} - R$ ${shipping.toFixed(2).replace(".", ",")}`}
+                    content={`${shippingMethod === "economico" ? "Econômico" : "Entrega Rápida (Juma)"} - R$ ${shipping.toFixed(2).replace(".", ",")}`}
                     onEdit={() => {
                       setCompletedSteps(completedSteps.filter(s => s !== "entrega"));
                       setCurrentStep("entrega");
@@ -753,21 +780,23 @@ export default function CheckoutPage() {
                               <span className="text-body-sm font-medium text-text-primary">R$ 13,90</span>
                             </label>
 
-                            <label className="flex items-center justify-between cursor-pointer">
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="radio"
-                                  checked={shippingMethod === "expresso"}
-                                  onChange={() => setShippingMethod("expresso")}
-                                  className="w-5 h-5 accent-[#2e3091]"
-                                />
-                                <div>
-                                  <p className="text-body-sm font-medium text-text-primary">Expresso</p>
-                                  <p className="text-caption text-text-muted">Receba até sexta-feira, 10 de janeiro</p>
+                            {jumaAvailable && shippingPrices.juma !== null && (
+                              <label className="flex items-center justify-between cursor-pointer">
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="radio"
+                                    checked={shippingMethod === "juma"}
+                                    onChange={() => setShippingMethod("juma")}
+                                    className="w-5 h-5 accent-[#2e3091]"
+                                  />
+                                  <div>
+                                    <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
+                                    <p className="text-caption text-text-muted">Entrega expressa na região</p>
+                                  </div>
                                 </div>
-                              </div>
-                              <span className="text-body-sm font-medium text-text-primary">R$ 26,90</span>
-                            </label>
+                                <span className="text-body-sm font-medium text-text-primary">R$ {shippingPrices.juma.toFixed(2).replace(".", ",")}</span>
+                              </label>
+                            )}
                           </div>
                         </div>
                       </div>
