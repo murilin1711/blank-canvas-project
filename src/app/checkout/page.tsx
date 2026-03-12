@@ -158,9 +158,11 @@ export default function CheckoutPage() {
     })
   );
 
-  const [shippingMethod, setShippingMethod] = useState<"economico" | "expresso">(() => 
+  const [shippingMethod, setShippingMethod] = useState<"economico" | "juma">(() => 
     loadSavedData("checkout_shipping", "economico")
   );
+  const [shippingPrices, setShippingPrices] = useState<{ economico: number; juma: number | null }>({ economico: 13.90, juma: null });
+  const [jumaAvailable, setJumaAvailable] = useState(false);
   
   // Always start with address not confirmed - user must confirm each time
   const [addressConfirmed, setAddressConfirmed] = useState(false);
