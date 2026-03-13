@@ -230,7 +230,21 @@ export default function CheckoutPage() {
   ];
 
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
-  const shipping = shippingMethod === "juma" && shippingPrices.juma !== null ? shippingPrices.juma : shippingPrices.economico;
+  
+  const getShippingPrice = () => {
+    if (cartShippingData && cartShippingOptions) {
+      if (shippingMethod === "juma" && cartShippingOptions.juma) {
+        return cartShippingOptions.juma.price;
+      }
+      if (shippingMethod.startsWith("me-")) {
+        const meOption = cartShippingOptions.melhorEnvio?.find((o: any) => `me-${o.id}` === shippingMethod);
+        if (meOption) return meOption.price;
+      }
+    }
+    if (shippingMethod === "juma" && shippingPrices.juma !== null) return shippingPrices.juma;
+    return shippingPrices.economico;
+  };
+  const shipping = getShippingPrice();
   const total = subtotal + shipping;
 
   const isStepCompleted = (step: CheckoutStep) => completedSteps.includes(step);
