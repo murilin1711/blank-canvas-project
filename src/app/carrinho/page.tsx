@@ -97,65 +97,40 @@ export default function CarrinhoPage() {
         }
       }
 
-      // Melhor Envio - call directly from browser (avoids WAF blocking EU server IPs)
+      // Melhor Envio via backend
+      let melhorEnvioBlocked = false;
+      let melhorEnvioFailed = false;
       try {
-        // Get token from edge function
-        const { data: tokenData } = await supabase.functions.invoke("melhor-envio-quote", {
-          body: { action: "get-token" },
+        const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
+          body: {
+            destCep: cleanCep,
+            items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
+          },
         });
 
-        if (tokenData?.token) {
-          const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0) || 1;
-          const weight = Math.max(0.3 * totalQuantity, 0.3);
-          const height = Math.min(5 + (totalQuantity - 1) * 2, 50);
-          const width = 30;
-          const length = 25;
-          const totalValue = items.reduce((sum, i) => sum + i.price * i.quantity, 0) || 50;
-
-          const meResponse = await fetch("https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate", {
-            method: "POST",
-            headers: {
-              "Accept": "application/json",
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${tokenData.token}`,
-            },
-            body: JSON.stringify({
-              from: { postal_code: "75020020" },
-              to: { postal_code: cleanCep },
-              products: [{
-                id: "uniforms",
-                width, height, length, weight,
-                insurance_value: totalValue,
-                quantity: 1,
-              }],
-            }),
-          });
-
-          if (meResponse.ok) {
-            const meData = await meResponse.json();
-            melhorEnvioOptions = meData
-              .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
-              .map((s: any) => ({
-                id: s.id,
-                name: s.name,
-                company: s.company?.name || "",
-                companyLogo: s.company?.picture || "",
-                price: Number(s.price),
-                discount: Number(s.discount || 0),
-                deliveryDays: s.delivery_time,
-                deliveryRange: s.delivery_range ? { min: s.delivery_range.min, max: s.delivery_range.max } : null,
-              }))
-              .sort((a: any, b: any) => a.price - b.price);
+        if (meError) {
+          const message = String(meError.message || "");
+          if (message.includes("MELHOR_ENVIO_WAF_BLOCKED")) {
+            melhorEnvioBlocked = true;
           } else {
-            console.error("Melhor Envio error:", meResponse.status, await meResponse.text());
+            melhorEnvioFailed = true;
           }
+        } else if (meData?.success && meData.options?.length > 0) {
+          melhorEnvioOptions = meData.options;
         }
       } catch (e) {
         console.error("Melhor Envio quote error:", e);
+        melhorEnvioFailed = true;
       }
 
       if (!jumaOption && melhorEnvioOptions.length === 0) {
-        toast.error("Nenhuma opção de frete disponível para este CEP");
+        if (melhorEnvioBlocked) {
+          toast.error("Frete nacional indisponível no momento (bloqueio regional do provedor)");
+        } else if (melhorEnvioFailed) {
+          toast.error("Não foi possível consultar o frete nacional agora");
+        } else {
+          toast.error("Nenhuma opção de frete disponível para este CEP");
+        }
       }
 
       setShippingOptions({

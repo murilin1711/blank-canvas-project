@@ -90,23 +90,8 @@ serve(async (req) => {
       console.warn("Could not get token:", e.message);
     }
 
-    const body = await req.json();
-
-    // Action: get-token — return the token for client-side API calls
-    if (body.action === "get-token") {
-      if (!token) {
-        return new Response(
-          JSON.stringify({ error: "Nenhum token disponível" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      return new Response(
-        JSON.stringify({ success: true, token }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { destCep, items } = body;
+    const payload = await req.json();
+    const { destCep, items } = payload;
 
     if (!destCep) {
       return new Response(
@@ -154,11 +139,15 @@ serve(async (req) => {
         body: JSON.stringify(calcBody),
       });
 
-      // If WAF blocked (403) or unauthenticated (401), try public endpoint
-      if (response.status === 403 || response.status === 401) {
-        console.warn("Authenticated endpoint blocked, trying public calculator...");
-        const bodyText = await response.text(); // consume body
-        console.warn("Blocked response:", response.status, bodyText.substring(0, 200));
+      // If auth endpoint fails, try public calculator endpoint
+      if (!response.ok) {
+        const authErrText = await response.text();
+        console.warn("Auth endpoint failed:", response.status, authErrText.substring(0, 200));
+
+        if (response.status === 403 && authErrText.includes("E-WAF-0003")) {
+          throw new Error("MELHOR_ENVIO_WAF_BLOCKED");
+        }
+
         usedPublic = true;
       }
     } else {
@@ -166,7 +155,6 @@ serve(async (req) => {
     }
 
     if (usedPublic) {
-      // Public calculator endpoint - different payload format
       const publicBody = {
         from: { postal_code: STORE_CEP },
         to: { postal_code: destCep.replace(/\D/g, "") },
@@ -192,13 +180,18 @@ serve(async (req) => {
       });
     }
 
-    if (!response!.ok) {
-      const errText = await response!.text();
-      console.error("Melhor Envio API error:", response!.status, errText.substring(0, 500));
-      throw new Error(`Erro ao calcular frete. Tente novamente.`);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Melhor Envio API error:", response.status, errText.substring(0, 500));
+
+      if (response.status === 403 && errText.includes("E-WAF-0003")) {
+        throw new Error("MELHOR_ENVIO_WAF_BLOCKED");
+      }
+
+      throw new Error("MELHOR_ENVIO_QUOTE_FAILED");
     }
 
-    const data = await response!.json();
+    const data = await response.json();
 
     const options = data
       .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
