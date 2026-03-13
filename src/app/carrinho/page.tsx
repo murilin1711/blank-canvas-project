@@ -97,52 +97,58 @@ export default function CarrinhoPage() {
         }
       }
 
-      // Melhor Envio - call directly from browser to avoid WAF blocking EU server IPs
+      // Melhor Envio - call directly from browser (avoids WAF blocking EU server IPs)
       try {
-        const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0) || 1;
-        const weight = Math.max(0.3 * totalQuantity, 0.3);
-        const height = Math.min(5 + (totalQuantity - 1) * 2, 50);
-        const width = 30;
-        const length = 25;
-        const totalValue = items.reduce((sum, i) => sum + i.price * i.quantity, 0) || 50;
-
-        const meResponse = await fetch("https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate", {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_MELHOR_ENVIO_TOKEN || ""}`,
-            "User-Agent": "GenesisPoint contato@genesispoint.com.br",
-          },
-          body: JSON.stringify({
-            from: { postal_code: "75020020" },
-            to: { postal_code: cleanCep },
-            products: [{
-              id: "uniforms",
-              width, height, length, weight,
-              insurance_value: totalValue,
-              quantity: 1,
-            }],
-          }),
+        // Get token from edge function
+        const { data: tokenData } = await supabase.functions.invoke("melhor-envio-quote", {
+          body: { action: "get-token" },
         });
 
-        if (meResponse.ok) {
-          const meData = await meResponse.json();
-          melhorEnvioOptions = meData
-            .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
-            .map((s: any) => ({
-              id: s.id,
-              name: s.name,
-              company: s.company?.name || "",
-              companyLogo: s.company?.picture || "",
-              price: Number(s.price),
-              discount: Number(s.discount || 0),
-              deliveryDays: s.delivery_time,
-              deliveryRange: s.delivery_range ? { min: s.delivery_range.min, max: s.delivery_range.max } : null,
-            }))
-            .sort((a: any, b: any) => a.price - b.price);
-        } else {
-          console.error("Melhor Envio error:", meResponse.status);
+        if (tokenData?.token) {
+          const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0) || 1;
+          const weight = Math.max(0.3 * totalQuantity, 0.3);
+          const height = Math.min(5 + (totalQuantity - 1) * 2, 50);
+          const width = 30;
+          const length = 25;
+          const totalValue = items.reduce((sum, i) => sum + i.price * i.quantity, 0) || 50;
+
+          const meResponse = await fetch("https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate", {
+            method: "POST",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${tokenData.token}`,
+            },
+            body: JSON.stringify({
+              from: { postal_code: "75020020" },
+              to: { postal_code: cleanCep },
+              products: [{
+                id: "uniforms",
+                width, height, length, weight,
+                insurance_value: totalValue,
+                quantity: 1,
+              }],
+            }),
+          });
+
+          if (meResponse.ok) {
+            const meData = await meResponse.json();
+            melhorEnvioOptions = meData
+              .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
+              .map((s: any) => ({
+                id: s.id,
+                name: s.name,
+                company: s.company?.name || "",
+                companyLogo: s.company?.picture || "",
+                price: Number(s.price),
+                discount: Number(s.discount || 0),
+                deliveryDays: s.delivery_time,
+                deliveryRange: s.delivery_range ? { min: s.delivery_range.min, max: s.delivery_range.max } : null,
+              }))
+              .sort((a: any, b: any) => a.price - b.price);
+          } else {
+            console.error("Melhor Envio error:", meResponse.status, await meResponse.text());
+          }
         }
       } catch (e) {
         console.error("Melhor Envio quote error:", e);
