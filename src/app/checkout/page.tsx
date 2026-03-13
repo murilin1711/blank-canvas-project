@@ -158,11 +158,35 @@ export default function CheckoutPage() {
     })
   );
 
-  const [shippingMethod, setShippingMethod] = useState<"economico" | "juma">(() => 
+  // Load shipping from cart page selection
+  const [cartShippingData, setCartShippingData] = useState<any>(null);
+  const [shippingMethod, setShippingMethod] = useState<string>(() => 
     loadSavedData("checkout_shipping", "economico")
   );
   const [shippingPrices, setShippingPrices] = useState<{ economico: number; juma: number | null }>({ economico: 13.90, juma: null });
   const [jumaAvailable, setJumaAvailable] = useState(false);
+  const [cartShippingOptions, setCartShippingOptions] = useState<any>(null);
+
+  // Load shipping selection from cart page
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("checkout_shipping_selection");
+      if (saved) {
+        const data = JSON.parse(saved);
+        setCartShippingData(data);
+        setShippingMethod(data.selectedId);
+        if (data.allOptions) {
+          setCartShippingOptions(data.allOptions);
+          if (data.allOptions.juma) {
+            setJumaAvailable(true);
+            setShippingPrices(prev => ({ ...prev, juma: data.allOptions.juma.price }));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error loading cart shipping:", e);
+    }
+  }, []);
   
   // Always start with address not confirmed - user must confirm each time
   const [addressConfirmed, setAddressConfirmed] = useState(false);
