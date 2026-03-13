@@ -573,7 +573,7 @@ export default function CheckoutPage() {
                   <CompletedStepCard
                     step="entrega"
                     title="Forma de entrega"
-                    content={`${shippingMethod === "economico" ? "Econômico" : "Entrega Rápida (Juma)"} - R$ ${shipping.toFixed(2).replace(".", ",")}`}
+                    content={`${getShippingLabel()} - R$ ${shipping.toFixed(2).replace(".", ",")}`}
                     onEdit={() => {
                       setCompletedSteps(completedSteps.filter(s => s !== "entrega"));
                       setCurrentStep("entrega");
