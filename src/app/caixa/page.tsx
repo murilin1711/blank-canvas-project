@@ -587,6 +587,18 @@ export default function CaixaPage() {
                         ))}
                       </select>
                     </div>
+                    
+                    {/* Juma dispatch button */}
+                    {order.status === "separating" && order.shipping_address && (
+                      <button
+                        onClick={() => handleJumaDispatch(order)}
+                        className="mt-3 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                      >
+                        <Bike className="w-3.5 h-3.5" />
+                        Chamar Motoboy Juma
+                      </button>
+                    )}
+
                     <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                     
                     {order.order_items && order.order_items.length > 0 && (
