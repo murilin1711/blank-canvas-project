@@ -122,21 +122,64 @@ serve(async (req) => {
       ],
     };
 
-    const response = await fetch(`${MELHOR_ENVIO_API}/me/shipment/calculate`, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "User-Agent": "GenesisPoint contato@genesispoint.com.br",
-      },
-      body: JSON.stringify(body),
-    });
+    // Try authenticated endpoint first, fallback to public if WAF blocks
+    let response: Response;
+    let usedPublic = false;
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Melhor Envio API error:", response.status, errText);
-      throw new Error(`Melhor Envio API error [${response.status}]: ${errText}`);
+    if (token) {
+      response = await fetch(`${MELHOR_ENVIO_API}/me/shipment/calculate`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+        },
+        body: JSON.stringify(body),
+      });
+
+      // If WAF blocked (403) or unauthenticated (401), try public endpoint
+      if (response.status === 403 || response.status === 401) {
+        console.warn("Authenticated endpoint blocked, trying public calculator...");
+        const bodyText = await response.text(); // consume body
+        console.warn("Blocked response:", response.status, bodyText.substring(0, 200));
+        usedPublic = true;
+      }
+    } else {
+      usedPublic = true;
+    }
+
+    if (usedPublic) {
+      // Public calculator endpoint - different payload format
+      const publicBody = {
+        from: { postal_code: STORE_CEP },
+        to: { postal_code: destCep.replace(/\D/g, "") },
+        packages: [
+          {
+            width,
+            height,
+            length,
+            weight,
+            insurance_value: totalValue,
+          },
+        ],
+      };
+
+      response = await fetch(`${MELHOR_ENVIO_API}/calculator/calculate`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+        },
+        body: JSON.stringify(publicBody),
+      });
+    }
+
+    if (!response!.ok) {
+      const errText = await response!.text();
+      console.error("Melhor Envio API error:", response!.status, errText.substring(0, 500));
+      throw new Error(`Erro ao calcular frete. Tente novamente.`);
     }
 
     const data = await response.json();
