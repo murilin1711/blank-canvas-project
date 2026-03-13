@@ -146,6 +146,36 @@ export default function CarrinhoPage() {
   };
 
   const handleProceedToCheckout = () => {
+    // Persist shipping selection to localStorage for checkout
+    if (selectedShipping && shippingOptions) {
+      const shippingData: any = {
+        selectedId: selectedShipping,
+        price: getSelectedShippingPrice(),
+        cep: cep.replace(/\D/g, ""),
+      };
+      if (selectedShipping === "juma" && shippingOptions.juma) {
+        shippingData.label = "Entrega Rápida (Juma)";
+        shippingData.description = `${shippingOptions.juma.duration} • ${shippingOptions.juma.distance}`;
+        shippingData.type = "juma";
+      } else {
+        const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
+        if (meOption) {
+          shippingData.label = `${meOption.company} - ${meOption.name}`;
+          shippingData.description = meOption.deliveryRange 
+            ? `${meOption.deliveryRange.min}-${meOption.deliveryRange.max} dias úteis`
+            : `${meOption.deliveryDays} dias úteis`;
+          shippingData.type = "melhor_envio";
+          shippingData.companyLogo = meOption.companyLogo;
+        }
+      }
+      // Save all options too so user can change in checkout
+      shippingData.allOptions = {
+        juma: shippingOptions.juma,
+        melhorEnvio: shippingOptions.melhorEnvio,
+      };
+      localStorage.setItem("checkout_shipping_selection", JSON.stringify(shippingData));
+    }
+
     if (user) {
       navigate("/checkout");
     } else {
