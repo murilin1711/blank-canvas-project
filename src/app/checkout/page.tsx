@@ -247,6 +247,18 @@ export default function CheckoutPage() {
   const shipping = getShippingPrice();
   const total = subtotal + shipping;
 
+  const getShippingLabel = () => {
+    if (cartShippingOptions) {
+      if (shippingMethod === "juma" && cartShippingOptions.juma) return "Entrega Rápida (Juma)";
+      if (shippingMethod.startsWith("me-")) {
+        const meOption = cartShippingOptions.melhorEnvio?.find((o: any) => `me-${o.id}` === shippingMethod);
+        if (meOption) return `${meOption.company} - ${meOption.name}`;
+      }
+    }
+    if (shippingMethod === "juma") return "Entrega Rápida (Juma)";
+    return "Econômico";
+  };
+
   const isStepCompleted = (step: CheckoutStep) => completedSteps.includes(step);
 
   // Ref for step content to scroll to
