@@ -834,38 +834,103 @@ export default function CheckoutPage() {
                           </div>
 
                           <div className="space-y-3 ml-7">
-                            <label className="flex items-center justify-between cursor-pointer">
-                              <div className="flex items-center gap-3">
-                                <input
-                                  type="radio"
-                                  checked={shippingMethod === "economico"}
-                                  onChange={() => setShippingMethod("economico")}
-                                  className="w-5 h-5 accent-[#2e3091]"
-                                />
-                                <div>
-                                  <p className="text-body-sm font-medium text-text-primary">Econômico</p>
-                                  <p className="text-caption text-text-muted">Receba até terça-feira, 14 de janeiro</p>
-                                </div>
-                              </div>
-                              <span className="text-body-sm font-medium text-text-primary">R$ 13,90</span>
-                            </label>
+                            {/* Show cart shipping options if available */}
+                            {cartShippingOptions ? (
+                              <>
+                                {cartShippingOptions.juma && (
+                                  <label className="flex items-center justify-between cursor-pointer">
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type="radio"
+                                        checked={shippingMethod === "juma"}
+                                        onChange={() => setShippingMethod("juma")}
+                                        className="w-5 h-5 accent-[#2e3091]"
+                                      />
+                                      <div className="flex items-center gap-2">
+                                        <Zap className="w-4 h-4 text-amber-500" />
+                                        <div>
+                                          <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
+                                          <p className="text-caption text-text-muted">
+                                            {cartShippingOptions.juma.duration} • {cartShippingOptions.juma.distance}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className="text-body-sm font-medium text-text-primary">
+                                      R$ {cartShippingOptions.juma.price.toFixed(2).replace(".", ",")}
+                                    </span>
+                                  </label>
+                                )}
 
-                            {jumaAvailable && shippingPrices.juma !== null && (
-                              <label className="flex items-center justify-between cursor-pointer">
-                                <div className="flex items-center gap-3">
-                                  <input
-                                    type="radio"
-                                    checked={shippingMethod === "juma"}
-                                    onChange={() => setShippingMethod("juma")}
-                                    className="w-5 h-5 accent-[#2e3091]"
-                                  />
-                                  <div>
-                                    <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
-                                    <p className="text-caption text-text-muted">Entrega expressa na região</p>
+                                {cartShippingOptions.melhorEnvio?.map((option: any) => (
+                                  <label key={option.id} className="flex items-center justify-between cursor-pointer">
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type="radio"
+                                        checked={shippingMethod === `me-${option.id}`}
+                                        onChange={() => setShippingMethod(`me-${option.id}`)}
+                                        className="w-5 h-5 accent-[#2e3091]"
+                                      />
+                                      <div className="flex items-center gap-2">
+                                        {option.companyLogo ? (
+                                          <img src={option.companyLogo} alt={option.company} className="w-6 h-6 object-contain rounded" />
+                                        ) : (
+                                          <Truck className="w-4 h-4 text-text-muted" />
+                                        )}
+                                        <div>
+                                          <p className="text-body-sm font-medium text-text-primary">{option.company} - {option.name}</p>
+                                          <p className="text-caption text-text-muted">
+                                            {option.deliveryRange 
+                                              ? `${option.deliveryRange.min}-${option.deliveryRange.max} dias úteis`
+                                              : `${option.deliveryDays} dias úteis`
+                                            }
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <span className="text-body-sm font-medium text-text-primary">
+                                      R$ {option.price.toFixed(2).replace(".", ",")}
+                                    </span>
+                                  </label>
+                                ))}
+                              </>
+                            ) : (
+                              <>
+                                {/* Fallback: hardcoded economico + juma from checkout address */}
+                                <label className="flex items-center justify-between cursor-pointer">
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="radio"
+                                      checked={shippingMethod === "economico"}
+                                      onChange={() => setShippingMethod("economico")}
+                                      className="w-5 h-5 accent-[#2e3091]"
+                                    />
+                                    <div>
+                                      <p className="text-body-sm font-medium text-text-primary">Econômico</p>
+                                      <p className="text-caption text-text-muted">Entrega padrão</p>
+                                    </div>
                                   </div>
-                                </div>
-                                <span className="text-body-sm font-medium text-text-primary">R$ {shippingPrices.juma.toFixed(2).replace(".", ",")}</span>
-                              </label>
+                                  <span className="text-body-sm font-medium text-text-primary">R$ 13,90</span>
+                                </label>
+
+                                {jumaAvailable && shippingPrices.juma !== null && (
+                                  <label className="flex items-center justify-between cursor-pointer">
+                                    <div className="flex items-center gap-3">
+                                      <input
+                                        type="radio"
+                                        checked={shippingMethod === "juma"}
+                                        onChange={() => setShippingMethod("juma")}
+                                        className="w-5 h-5 accent-[#2e3091]"
+                                      />
+                                      <div>
+                                        <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
+                                        <p className="text-caption text-text-muted">Entrega expressa na região</p>
+                                      </div>
+                                    </div>
+                                    <span className="text-body-sm font-medium text-text-primary">R$ {shippingPrices.juma.toFixed(2).replace(".", ",")}</span>
+                                  </label>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
