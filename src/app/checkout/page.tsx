@@ -4,7 +4,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutFooter from "@/components/sections/checkout-footer";
-import { Check, Home, ChevronDown, CreditCard, Wallet, X } from "lucide-react";
+import { Check, Home, ChevronDown, CreditCard, Wallet, X, Truck, Zap } from "lucide-react";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
 import { StripeCustomPayment } from "@/components/StripeCustomPayment";
 import { MercadoPagoPixPayment } from "@/components/MercadoPagoPixPayment";
