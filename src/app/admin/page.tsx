@@ -1361,6 +1361,7 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -1380,6 +1381,17 @@ export default function AdminPage() {
                                   <option key={s.value} value={s.value}>{s.label}</option>
                                 ))}
                               </select>
+                            </td>
+                            <td className="px-6 py-4">
+                              {order.status === "separating" && order.shipping_address && (
+                                <button
+                                  onClick={() => handleJumaDispatch(order)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                                >
+                                  <Bike className="w-3.5 h-3.5" />
+                                  Chamar Juma
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
