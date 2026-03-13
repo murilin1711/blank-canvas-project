@@ -90,23 +90,8 @@ serve(async (req) => {
       console.warn("Could not get token:", e.message);
     }
 
-    const body = await req.json();
-
-    // Action: get-token — return the token for client-side API calls
-    if (body.action === "get-token") {
-      if (!token) {
-        return new Response(
-          JSON.stringify({ error: "Nenhum token disponível" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      return new Response(
-        JSON.stringify({ success: true, token }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const { destCep, items } = body;
+    const payload = await req.json();
+    const { destCep, items } = payload;
 
     if (!destCep) {
       return new Response(
