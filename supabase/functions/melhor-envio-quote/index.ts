@@ -122,7 +122,7 @@ serve(async (req) => {
     const length = 25;
     const totalValue = (items || []).reduce((sum: number, i: any) => sum + (i.price || 50) * (i.quantity || 1), 0) || 50;
 
-    const body = {
+    const calcBody = {
       from: { postal_code: STORE_CEP },
       to: { postal_code: destCep.replace(/\D/g, "") },
       products: [
