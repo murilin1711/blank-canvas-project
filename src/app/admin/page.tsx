@@ -30,7 +30,8 @@ import {
   Activity,
   Clock,
   Image,
-  GripVertical
+  GripVertical,
+  Bike
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
