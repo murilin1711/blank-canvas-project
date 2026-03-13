@@ -151,7 +151,7 @@ serve(async (req) => {
           Authorization: `Bearer ${token}`,
           "User-Agent": "GenesisPoint contato@genesispoint.com.br",
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(calcBody),
       });
 
       // If WAF blocked (403) or unauthenticated (401), try public endpoint
