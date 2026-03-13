@@ -13,7 +13,6 @@ const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br/api/v2";
 const STORE_CEP = "75020020";
 
 async function getValidToken(supabase: any): Promise<string> {
-  // 1. Try to get token from database
   const { data: tokenRow } = await supabase
     .from("melhor_envio_tokens")
     .select("*")
@@ -22,10 +21,9 @@ async function getValidToken(supabase: any): Promise<string> {
     .single();
 
   if (!tokenRow) {
-    throw new Error("Nenhum token do Melhor Envio encontrado. Autorize o app primeiro no painel admin.");
+    throw new Error("Nenhum token do Melhor Envio encontrado.");
   }
 
-  // 2. Check if token is expired (with 5 min buffer)
   const expiresAt = new Date(tokenRow.expires_at);
   const now = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -33,13 +31,12 @@ async function getValidToken(supabase: any): Promise<string> {
     return tokenRow.access_token;
   }
 
-  // 3. Token is expired, try refresh
-  console.log("Token expired, attempting refresh...");
+  // Token expired, try refresh
   const clientId = Deno.env.get("MELHOR_ENVIO_CLIENT_ID");
   const clientSecret = Deno.env.get("MELHOR_ENVIO_CLIENT_SECRET");
 
   if (!clientId || !clientSecret) {
-    throw new Error("MELHOR_ENVIO_CLIENT_ID ou MELHOR_ENVIO_CLIENT_SECRET não configurado");
+    throw new Error("Credenciais do Melhor Envio não configuradas");
   }
 
   const refreshResponse = await fetch("https://sandbox.melhorenvio.com.br/oauth/token", {
@@ -60,7 +57,7 @@ async function getValidToken(supabase: any): Promise<string> {
   if (!refreshResponse.ok) {
     const errText = await refreshResponse.text();
     console.error("Token refresh failed:", errText);
-    throw new Error("Token expirado e não foi possível renovar. Re-autorize o app.");
+    throw new Error("Token expirado e não foi possível renovar.");
   }
 
   const refreshData = await refreshResponse.json();
@@ -73,7 +70,6 @@ async function getValidToken(supabase: any): Promise<string> {
     updated_at: new Date().toISOString(),
   }).eq("id", tokenRow.id);
 
-  console.log("Token refreshed successfully");
   return refreshData.access_token;
 }
 
@@ -87,7 +83,12 @@ serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    const token = await getValidToken(supabase);
+    let token: string | null = null;
+    try {
+      token = await getValidToken(supabase);
+    } catch (e) {
+      console.warn("Could not get token, will try public endpoint:", e.message);
+    }
 
     const { destCep, items } = await req.json();
 
