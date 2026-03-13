@@ -17,6 +17,7 @@ import {
   Lock,
   ChevronDown,
   ChevronUp,
+  Bike,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
