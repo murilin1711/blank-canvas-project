@@ -182,7 +182,7 @@ serve(async (req) => {
       throw new Error(`Erro ao calcular frete. Tente novamente.`);
     }
 
-    const data = await response.json();
+    const data = await response!.json();
 
     const options = data
       .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
