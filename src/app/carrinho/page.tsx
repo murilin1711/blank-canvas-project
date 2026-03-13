@@ -64,18 +64,14 @@ export default function CarrinhoPage() {
       }
 
       const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const jumaRegionCities = [
-        "anapolis", "neropolis", "abadiania", "campo limpo de goias",
-        "pirenopolis", "silvania", "goianapolis", "terezopolis de goias",
-        "ouro verde de goias", "damolandia", "petrolina de goias"
-      ];
       const cityNormalized = normalize(viaCepData.localidade || "");
-      const isJumaRegion = viaCepData.uf === "GO" && jumaRegionCities.includes(cityNormalized);
-      const isLocalCity = cityNormalized === "anapolis" && viaCepData.uf === "GO";
+      const isAnapolis = cityNormalized === "anapolis" && viaCepData.uf === "GO";
 
       let jumaOption = null;
+      let melhorEnvioOptions: any[] = [];
 
-      if (isJumaRegion) {
+      // Juma only for Anápolis
+      if (isAnapolis) {
         try {
           const { data, error } = await supabase.functions.invoke("juma-quote", {
             body: {
@@ -101,17 +97,29 @@ export default function CarrinhoPage() {
         }
       }
 
-      // Economico fallback (mock until Melhor Envio is configured)
-      const today = new Date();
-      const economicoDate = new Date(today);
-      economicoDate.setDate(today.getDate() + (isLocalCity ? 5 : 10));
+      // Melhor Envio for all addresses (including Anápolis as fallback)
+      try {
+        const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
+          body: {
+            destCep: cleanCep,
+            items: items.map(i => ({ price: i.price, quantity: i.quantity })),
+          },
+        });
+
+        if (!meError && meData?.success && meData.options?.length > 0) {
+          melhorEnvioOptions = meData.options;
+        }
+      } catch (e) {
+        console.error("Melhor Envio quote error:", e);
+      }
+
+      if (!jumaOption && melhorEnvioOptions.length === 0) {
+        toast.error("Nenhuma opção de frete disponível para este CEP");
+      }
 
       setShippingOptions({
         juma: jumaOption,
-        economico: {
-          price: isLocalCity ? 13.90 : 19.90,
-          date: economicoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }),
-        },
+        melhorEnvio: melhorEnvioOptions,
       });
     } catch (error) {
       console.error("Shipping calc error:", error);
