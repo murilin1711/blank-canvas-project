@@ -220,10 +220,42 @@ export default function CheckoutPage() {
     }, 100);
   };
 
+  const isValidCPF = (cpf: string): boolean => {
+    const stripped = cpf.replace(/\D/g, "");
+    if (stripped.length !== 11) return false;
+    // Reject all same digits
+    if (/^(\d)\1{10}$/.test(stripped)) return false;
+    // Validate check digits
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += parseInt(stripped[i]) * (10 - i);
+    let remainder = (sum * 10) % 11;
+    if (remainder === 10) remainder = 0;
+    if (remainder !== parseInt(stripped[9])) return false;
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += parseInt(stripped[i]) * (11 - i);
+    remainder = (sum * 10) % 11;
+    if (remainder === 10) remainder = 0;
+    if (remainder !== parseInt(stripped[10])) return false;
+    return true;
+  };
+
+  const isValidPhone = (phone: string): boolean => {
+    const stripped = phone.replace(/\D/g, "");
+    return stripped.length === 10 || stripped.length === 11;
+  };
+
   const completeCurrentStep = () => {
     if (currentStep === "login") {
       if (!personal.cpf || !personal.phone) {
         toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
+        return;
+      }
+      if (!isValidCPF(personal.cpf)) {
+        toast.error("CPF inválido. Verifique o número informado.", { duration: 3000 });
+        return;
+      }
+      if (!isValidPhone(personal.phone)) {
+        toast.error("Telefone inválido. Informe DDD + número.", { duration: 3000 });
         return;
       }
       

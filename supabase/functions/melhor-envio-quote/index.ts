@@ -1,6 +1,7 @@
 // @ts-nocheck
 /// <reference lib="deno.ns" />
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,11 +9,73 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Melhor Envio Sandbox
 const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br/api/v2";
-
-// Store origin CEP (Anápolis-GO)
 const STORE_CEP = "75020020";
+
+async function getValidToken(supabase: any): Promise<string> {
+  // 1. Try to get token from database
+  const { data: tokenRow } = await supabase
+    .from("melhor_envio_tokens")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (!tokenRow) {
+    throw new Error("Nenhum token do Melhor Envio encontrado. Autorize o app primeiro no painel admin.");
+  }
+
+  // 2. Check if token is expired (with 5 min buffer)
+  const expiresAt = new Date(tokenRow.expires_at);
+  const now = new Date(Date.now() + 5 * 60 * 1000);
+
+  if (expiresAt > now) {
+    return tokenRow.access_token;
+  }
+
+  // 3. Token is expired, try refresh
+  console.log("Token expired, attempting refresh...");
+  const clientId = Deno.env.get("MELHOR_ENVIO_CLIENT_ID");
+  const clientSecret = Deno.env.get("MELHOR_ENVIO_CLIENT_SECRET");
+
+  if (!clientId || !clientSecret) {
+    throw new Error("MELHOR_ENVIO_CLIENT_ID ou MELHOR_ENVIO_CLIENT_SECRET não configurado");
+  }
+
+  const refreshResponse = await fetch("https://sandbox.melhorenvio.com.br/oauth/token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+    },
+    body: JSON.stringify({
+      grant_type: "refresh_token",
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: tokenRow.refresh_token,
+    }),
+  });
+
+  if (!refreshResponse.ok) {
+    const errText = await refreshResponse.text();
+    console.error("Token refresh failed:", errText);
+    throw new Error("Token expirado e não foi possível renovar. Re-autorize o app.");
+  }
+
+  const refreshData = await refreshResponse.json();
+  const newExpiresAt = new Date(Date.now() + (refreshData.expires_in || 2592000) * 1000).toISOString();
+
+  await supabase.from("melhor_envio_tokens").update({
+    access_token: refreshData.access_token,
+    refresh_token: refreshData.refresh_token,
+    expires_at: newExpiresAt,
+    updated_at: new Date().toISOString(),
+  }).eq("id", tokenRow.id);
+
+  console.log("Token refreshed successfully");
+  return refreshData.access_token;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,10 +83,11 @@ serve(async (req) => {
   }
 
   try {
-    const token = Deno.env.get("MELHOR_ENVIO_TOKEN");
-    if (!token) {
-      throw new Error("MELHOR_ENVIO_TOKEN not configured");
-    }
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    const token = await getValidToken(supabase);
 
     const { destCep, items } = await req.json();
 
@@ -34,11 +98,9 @@ serve(async (req) => {
       );
     }
 
-    // Calculate total weight and dimensions from items
-    // Default: each item ~300g, 30x25x5cm (uniform package)
     const totalQuantity = (items || []).reduce((sum: number, i: any) => sum + (i.quantity || 1), 0) || 1;
-    const weight = Math.max(0.3 * totalQuantity, 0.3); // min 300g
-    const height = Math.min(5 + (totalQuantity - 1) * 2, 50); // stacking
+    const weight = Math.max(0.3 * totalQuantity, 0.3);
+    const height = Math.min(5 + (totalQuantity - 1) * 2, 50);
     const width = 30;
     const length = 25;
     const totalValue = (items || []).reduce((sum: number, i: any) => sum + (i.price || 50) * (i.quantity || 1), 0) || 50;
@@ -78,7 +140,6 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    // Filter valid options (no errors, with price)
     const options = data
       .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
       .map((s: any) => ({

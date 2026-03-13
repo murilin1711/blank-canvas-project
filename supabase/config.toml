@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.melhor-envio-quote]
 verify_jwt = false
+
+[functions.melhor-envio-auth]
+verify_jwt = false

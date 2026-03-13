@@ -461,7 +461,7 @@ export default function AdminPage() {
   const ORDER_STATUSES = [
     { value: 'pending', label: 'Pagamento pendente', color: 'bg-yellow-100 text-yellow-700' },
     { value: 'paid', label: 'Pagamento aprovado', color: 'bg-green-100 text-green-700' },
-    { value: 'separating', label: 'Separando Pedido', color: 'bg-blue-100 text-blue-700' },
+    { value: 'separating', label: 'Envio Pronto', color: 'bg-blue-100 text-blue-700' },
     { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
   ];
 
