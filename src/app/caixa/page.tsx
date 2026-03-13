@@ -17,6 +17,7 @@ import {
   Lock,
   ChevronDown,
   ChevronUp,
+  Bike,
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -318,6 +319,44 @@ export default function CaixaPage() {
     }
   };
 
+  const handleJumaDispatch = async (order: Order) => {
+    const confirmed = window.confirm(
+      `Confirma chamar motoboy Juma para o pedido #${order.id.slice(0, 8)}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = getToken();
+      if (!token) { handleLogout(); return; }
+
+      const addr = order.shipping_address || {};
+      const { data, error } = await supabase.functions.invoke("juma-dispatch", {
+        body: {
+          token,
+          orderId: order.id,
+          deliveryAddress: {
+            street: addr.street || addr.rua || "",
+            number: addr.number || addr.numero || "S/N",
+            neighborhood: addr.neighborhood || addr.bairro || "",
+            city: addr.city || addr.cidade || "Anápolis",
+            state: addr.state || addr.estado || "GO",
+            recipientName: addr.recipientName || addr.nome || "Cliente",
+            recipientPhone: addr.recipientPhone || addr.telefone || "",
+          },
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Motoboy Juma solicitado! ${data.duration || ""}`);
+      updateOrderStatus(order.id, "shipped");
+    } catch (err: any) {
+      console.error("Juma dispatch error:", err);
+      toast.error(`Erro ao chamar Juma: ${err.message}`);
+    }
+  };
+
   const updatePaymentStatus = async (id: string, status: string) => {
     setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
     
@@ -548,6 +587,18 @@ export default function CaixaPage() {
                         ))}
                       </select>
                     </div>
+                    
+                    {/* Juma dispatch button */}
+                    {order.status === "separating" && order.shipping_address && (
+                      <button
+                        onClick={() => handleJumaDispatch(order)}
+                        className="mt-3 flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                      >
+                        <Bike className="w-3.5 h-3.5" />
+                        Chamar Motoboy Juma
+                      </button>
+                    )}
+
                     <p className="text-sm text-gray-500">{formatDate(order.created_at)}</p>
                     
                     {order.order_items && order.order_items.length > 0 && (

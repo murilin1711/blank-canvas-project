@@ -30,7 +30,8 @@ import {
   Activity,
   Clock,
   Image,
-  GripVertical
+  GripVertical,
+  Bike
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -486,6 +487,44 @@ export default function AdminPage() {
       console.error("Error updating order status:", error);
       toast.error("Erro ao atualizar status");
       reloadSection('orders');
+    }
+  };
+
+  const handleJumaDispatch = async (order: Order) => {
+    const confirmed = window.confirm(
+      `Confirma chamar motoboy Juma para o pedido #${order.id.slice(0, 8)}?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+
+      const addr = order.shipping_address || {};
+      const { data, error } = await supabase.functions.invoke("juma-dispatch", {
+        body: {
+          token,
+          orderId: order.id,
+          deliveryAddress: {
+            street: addr.street || addr.rua || "",
+            number: addr.number || addr.numero || "S/N",
+            neighborhood: addr.neighborhood || addr.bairro || "",
+            city: addr.city || addr.cidade || "Anápolis",
+            state: addr.state || addr.estado || "GO",
+            recipientName: addr.recipientName || addr.nome || "Cliente",
+            recipientPhone: addr.recipientPhone || addr.telefone || "",
+          },
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(`Motoboy Juma solicitado! ${data.duration || ""}`);
+      updateOrderStatus(order.id, "shipped");
+    } catch (err: any) {
+      console.error("Juma dispatch error:", err);
+      toast.error(`Erro ao chamar Juma: ${err.message}`);
     }
   };
 
@@ -1361,6 +1400,7 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -1380,6 +1420,17 @@ export default function AdminPage() {
                                   <option key={s.value} value={s.value}>{s.label}</option>
                                 ))}
                               </select>
+                            </td>
+                            <td className="px-6 py-4">
+                              {order.status === "separating" && order.shipping_address && (
+                                <button
+                                  onClick={() => handleJumaDispatch(order)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                                >
+                                  <Bike className="w-3.5 h-3.5" />
+                                  Chamar Juma
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}

@@ -18,17 +18,19 @@ export default function CarrinhoPage() {
   const [cep, setCep] = useState("");
   const [shippingOptions, setShippingOptions] = useState<{
     juma: { price: number; duration: string; distance: string } | null;
-    economico: { price: number; date: string } | null;
+    melhorEnvio: Array<{ id: number; name: string; company: string; companyLogo: string; price: number; deliveryDays: number; deliveryRange: { min: number; max: number } | null }>;
   } | null>(null);
-  const [selectedShipping, setSelectedShipping] = useState<"juma" | "economico" | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showProducts, setShowProducts] = useState(true);
 
-  const shipping = selectedShipping === "juma" 
-    ? (shippingOptions?.juma?.price || 0) 
-    : selectedShipping === "economico" 
-      ? (shippingOptions?.economico?.price || 0) 
-      : 0;
+  const getSelectedShippingPrice = () => {
+    if (!selectedShipping || !shippingOptions) return 0;
+    if (selectedShipping === "juma") return shippingOptions.juma?.price || 0;
+    const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
+    return meOption?.price || 0;
+  };
+  const shipping = getSelectedShippingPrice();
   const total = subtotal + shipping;
 
   const formatCEP = (value: string) => {
@@ -62,18 +64,14 @@ export default function CarrinhoPage() {
       }
 
       const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const jumaRegionCities = [
-        "anapolis", "neropolis", "abadiania", "campo limpo de goias",
-        "pirenopolis", "silvania", "goianapolis", "terezopolis de goias",
-        "ouro verde de goias", "damolandia", "petrolina de goias"
-      ];
       const cityNormalized = normalize(viaCepData.localidade || "");
-      const isJumaRegion = viaCepData.uf === "GO" && jumaRegionCities.includes(cityNormalized);
-      const isLocalCity = cityNormalized === "anapolis" && viaCepData.uf === "GO";
+      const isAnapolis = cityNormalized === "anapolis" && viaCepData.uf === "GO";
 
       let jumaOption = null;
+      let melhorEnvioOptions: any[] = [];
 
-      if (isJumaRegion) {
+      // Juma only for Anápolis
+      if (isAnapolis) {
         try {
           const { data, error } = await supabase.functions.invoke("juma-quote", {
             body: {
@@ -99,17 +97,29 @@ export default function CarrinhoPage() {
         }
       }
 
-      // Economico fallback (mock until Melhor Envio is configured)
-      const today = new Date();
-      const economicoDate = new Date(today);
-      economicoDate.setDate(today.getDate() + (isLocalCity ? 5 : 10));
+      // Melhor Envio for all addresses (including Anápolis as fallback)
+      try {
+        const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
+          body: {
+            destCep: cleanCep,
+            items: items.map(i => ({ price: i.price, quantity: i.quantity })),
+          },
+        });
+
+        if (!meError && meData?.success && meData.options?.length > 0) {
+          melhorEnvioOptions = meData.options;
+        }
+      } catch (e) {
+        console.error("Melhor Envio quote error:", e);
+      }
+
+      if (!jumaOption && melhorEnvioOptions.length === 0) {
+        toast.error("Nenhuma opção de frete disponível para este CEP");
+      }
 
       setShippingOptions({
         juma: jumaOption,
-        economico: {
-          price: isLocalCity ? 13.90 : 19.90,
-          date: economicoDate.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" }),
-        },
+        melhorEnvio: melhorEnvioOptions,
       });
     } catch (error) {
       console.error("Shipping calc error:", error);
@@ -357,23 +367,35 @@ export default function CarrinhoPage() {
                       </button>
                     )}
 
-                    <button
-                      onClick={() => setSelectedShipping("economico")}
-                      className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
-                        selectedShipping === "economico" 
-                          ? "border-[#2e3091] bg-[#2e3091]/5" 
-                          : "border-border-light hover:border-text-muted"
-                      }`}
-                    >
-                      <Truck className="w-5 h-5 text-text-muted" />
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-text-primary">ECONÔMICO</p>
-                        <p className="text-xs text-text-muted">Receba até {shippingOptions.economico?.date}</p>
-                      </div>
-                      <span className="font-semibold text-sm text-text-primary">
-                        R$ {shippingOptions.economico?.price.toFixed(2).replace(".", ",")}
-                      </span>
-                    </button>
+                    {shippingOptions.melhorEnvio.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setSelectedShipping(`me-${option.id}`)}
+                        className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
+                          selectedShipping === `me-${option.id}` 
+                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                            : "border-border-light hover:border-text-muted"
+                        }`}
+                      >
+                        {option.companyLogo ? (
+                          <img src={option.companyLogo} alt={option.company} className="w-8 h-8 object-contain rounded" />
+                        ) : (
+                          <Truck className="w-5 h-5 text-text-muted" />
+                        )}
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-sm text-text-primary">{option.company} - {option.name}</p>
+                          <p className="text-xs text-text-muted">
+                            {option.deliveryRange 
+                              ? `${option.deliveryRange.min}-${option.deliveryRange.max} dias úteis`
+                              : `${option.deliveryDays} dias úteis`
+                            }
+                          </p>
+                        </div>
+                        <span className="font-semibold text-sm text-text-primary">
+                          R$ {option.price.toFixed(2).replace(".", ",")}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
