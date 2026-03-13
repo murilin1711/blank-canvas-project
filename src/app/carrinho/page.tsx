@@ -367,23 +367,35 @@ export default function CarrinhoPage() {
                       </button>
                     )}
 
-                    <button
-                      onClick={() => setSelectedShipping("economico")}
-                      className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
-                        selectedShipping === "economico" 
-                          ? "border-[#2e3091] bg-[#2e3091]/5" 
-                          : "border-border-light hover:border-text-muted"
-                      }`}
-                    >
-                      <Truck className="w-5 h-5 text-text-muted" />
-                      <div className="flex-1 text-left">
-                        <p className="font-medium text-sm text-text-primary">ECONÔMICO</p>
-                        <p className="text-xs text-text-muted">Receba até {shippingOptions.economico?.date}</p>
-                      </div>
-                      <span className="font-semibold text-sm text-text-primary">
-                        R$ {shippingOptions.economico?.price.toFixed(2).replace(".", ",")}
-                      </span>
-                    </button>
+                    {shippingOptions.melhorEnvio.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => setSelectedShipping(`me-${option.id}`)}
+                        className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
+                          selectedShipping === `me-${option.id}` 
+                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                            : "border-border-light hover:border-text-muted"
+                        }`}
+                      >
+                        {option.companyLogo ? (
+                          <img src={option.companyLogo} alt={option.company} className="w-8 h-8 object-contain rounded" />
+                        ) : (
+                          <Truck className="w-5 h-5 text-text-muted" />
+                        )}
+                        <div className="flex-1 text-left">
+                          <p className="font-medium text-sm text-text-primary">{option.company} - {option.name}</p>
+                          <p className="text-xs text-text-muted">
+                            {option.deliveryRange 
+                              ? `${option.deliveryRange.min}-${option.deliveryRange.max} dias úteis`
+                              : `${option.deliveryDays} dias úteis`
+                            }
+                          </p>
+                        </div>
+                        <span className="font-semibold text-sm text-text-primary">
+                          R$ {option.price.toFixed(2).replace(".", ",")}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
