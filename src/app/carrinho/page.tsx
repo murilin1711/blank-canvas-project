@@ -18,17 +18,19 @@ export default function CarrinhoPage() {
   const [cep, setCep] = useState("");
   const [shippingOptions, setShippingOptions] = useState<{
     juma: { price: number; duration: string; distance: string } | null;
-    economico: { price: number; date: string } | null;
+    melhorEnvio: Array<{ id: number; name: string; company: string; companyLogo: string; price: number; deliveryDays: number; deliveryRange: { min: number; max: number } | null }>;
   } | null>(null);
-  const [selectedShipping, setSelectedShipping] = useState<"juma" | "economico" | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showProducts, setShowProducts] = useState(true);
 
-  const shipping = selectedShipping === "juma" 
-    ? (shippingOptions?.juma?.price || 0) 
-    : selectedShipping === "economico" 
-      ? (shippingOptions?.economico?.price || 0) 
-      : 0;
+  const getSelectedShippingPrice = () => {
+    if (!selectedShipping || !shippingOptions) return 0;
+    if (selectedShipping === "juma") return shippingOptions.juma?.price || 0;
+    const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
+    return meOption?.price || 0;
+  };
+  const shipping = getSelectedShippingPrice();
   const total = subtotal + shipping;
 
   const formatCEP = (value: string) => {
