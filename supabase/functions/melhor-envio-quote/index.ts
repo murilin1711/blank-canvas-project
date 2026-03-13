@@ -87,10 +87,26 @@ serve(async (req) => {
     try {
       token = await getValidToken(supabase);
     } catch (e) {
-      console.warn("Could not get token, will try public endpoint:", e.message);
+      console.warn("Could not get token:", e.message);
     }
 
-    const { destCep, items } = await req.json();
+    const body = await req.json();
+
+    // Action: get-token — return the token for client-side API calls
+    if (body.action === "get-token") {
+      if (!token) {
+        return new Response(
+          JSON.stringify({ error: "Nenhum token disponível" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ success: true, token }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { destCep, items } = body;
 
     if (!destCep) {
       return new Response(
