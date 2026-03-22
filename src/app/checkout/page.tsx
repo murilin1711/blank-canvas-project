@@ -4,7 +4,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutFooter from "@/components/sections/checkout-footer";
-import { Check, Home, ChevronDown, CreditCard, Wallet, X, Truck, Zap } from "lucide-react";
+import { Check, Home, ChevronDown, CreditCard, Wallet, X, Truck, Zap, AlertCircle, MapPin } from "lucide-react";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
 import { StripeCustomPayment } from "@/components/StripeCustomPayment";
 import { MercadoPagoPixPayment } from "@/components/MercadoPagoPixPayment";
@@ -176,10 +176,11 @@ export default function CheckoutPage() {
         setCartShippingData(data);
         setShippingMethod(data.selectedId);
         if (data.allOptions) {
-          setCartShippingOptions(data.allOptions);
-          if (data.allOptions.juma) {
-            setJumaAvailable(true);
-            setShippingPrices(prev => ({ ...prev, juma: data.allOptions.juma.price }));
+          // Remove Juma do cache do carrinho — Juma é exclusivo para Anápolis (bloqueado no checkout)
+          setCartShippingOptions({ ...data.allOptions, juma: null });
+          // Se a seleção salva era Juma, limpa para forçar nova escolha
+          if (data.selectedId === "juma") {
+            setShippingMethod("");
           }
         }
       }
@@ -190,12 +191,23 @@ export default function CheckoutPage() {
   
   // Always start with address not confirmed - user must confirm each time
   const [addressConfirmed, setAddressConfirmed] = useState(false);
+  const [isLoadingShipping, setIsLoadingShipping] = useState(false);
   
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "pix" | "bolsa-uniforme">("stripe");
   const [showBolsaUniformeModal, setShowBolsaUniformeModal] = useState(false);
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
   const [showPixPayment, setShowPixPayment] = useState(false);
+
+  // Bolsa Uniforme split payment: produtos pagos → frete pendente
+  const [bolsaUniformeCompleted, setBolsaUniformeCompleted] = useState(false);
+  const [shippingPaymentMethod, setShippingPaymentMethod] = useState<"stripe" | "pix">("pix");
+  const [showShippingStripe, setShowShippingStripe] = useState(false);
+  const [showShippingPix, setShowShippingPix] = useState(false);
+
+  // Detecta se o endereço é de Anápolis (normaliza acentos)
+  const isAnapolisCity = (city: string) =>
+    city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === "anapolis";
 
   // Save data to localStorage whenever it changes (respecting save preferences)
   useEffect(() => {
@@ -339,32 +351,56 @@ export default function CheckoutPage() {
       toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
       return;
     }
-    setAddressConfirmed(true);
 
-    // Try Juma quote for local delivery
-    const isLocal = address.city?.toLowerCase() === "anápolis" && address.state === "GO";
-    if (isLocal || address.state === "GO") {
-      try {
-        const { data, error } = await supabase.functions.invoke("juma-quote", {
-          body: {
-            address: {
-              street: address.street,
-              number: address.number,
-              neighborhood: address.neighborhood,
-              city: address.city,
-              state: address.state,
-            },
-          },
-        });
-        if (!error && data?.success) {
-          const jumaPrice = data.cost / 100;
-          setShippingPrices(prev => ({ ...prev, juma: jumaPrice }));
-          setJumaAvailable(true);
-        }
-      } catch (e) {
-        console.error("Juma quote error in checkout:", e);
+    // Frete não disponível para Anápolis — redirecionar para a loja física
+    if (isAnapolisCity(address.city)) {
+      toast.error("Entrega não disponível para Anápolis. Por favor, visite nossa loja.", { duration: 5000 });
+      return;
+    }
+
+    setAddressConfirmed(true);
+    setIsLoadingShipping(true);
+    setCartShippingOptions(null);
+
+    const cleanCep = address.cep.replace(/\D/g, "");
+    let melhorEnvioOptions: any[] = [];
+
+    // Apenas Melhor Envio — Juma é exclusivo para Anápolis (bloqueado acima)
+    try {
+      const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
+        body: {
+          destCep: cleanCep,
+          items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
+        },
+      });
+      if (!meError && meData?.success && meData.options?.length > 0) {
+        melhorEnvioOptions = meData.options;
+      }
+    } catch (e) {
+      console.error("Melhor Envio quote error in checkout:", e);
+    }
+
+    const newOptions = { juma: null, melhorEnvio: melhorEnvioOptions };
+    setCartShippingOptions(newOptions);
+
+    // Mantém seleção do carrinho se ainda válida; senão auto-seleciona a primeira opção
+    const selectionStillValid =
+      (shippingMethod === "juma" && !!jumaOption) ||
+      melhorEnvioOptions.some((o: any) => `me-${o.id}` === shippingMethod);
+
+    if (!selectionStillValid) {
+      if (jumaOption) {
+        setShippingMethod("juma");
+      } else if (melhorEnvioOptions.length > 0) {
+        setShippingMethod(`me-${melhorEnvioOptions[0].id}`);
       }
     }
+
+    if (!jumaOption && melhorEnvioOptions.length === 0) {
+      toast.error("Não foi possível calcular o frete. Tente confirmar o endereço novamente.");
+    }
+
+    setIsLoadingShipping(false);
   };
 
   const formatCPF = (value: string) => {
@@ -420,8 +456,12 @@ export default function CheckoutPage() {
         city: data.localidade || prev.city,
         state: data.uf || prev.state,
       }));
-      
-      toast.success("Endereço preenchido automaticamente!");
+
+      if (isAnapolisCity(data.localidade || "")) {
+        toast.warning("CEP de Anápolis detectado. No momento não realizamos entregas para esta cidade — visite nossa loja!", { duration: 6000 });
+      } else {
+        toast.success("Endereço preenchido automaticamente!");
+      }
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
       toast.error("Erro ao buscar o CEP");
@@ -783,9 +823,31 @@ export default function CheckoutPage() {
                           </label>
                         </div>
 
+                        {/* Aviso para endereços de Anápolis */}
+                        {isAnapolisCity(address.city) && (
+                          <div className="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                            <div className="flex gap-3">
+                              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-sm font-semibold text-amber-800">
+                                  Frete não disponível para Anápolis
+                                </p>
+                                <p className="text-sm text-amber-700 mt-1">
+                                  No momento não realizamos entregas para endereços em Anápolis. Para adquirir seus produtos, visite nossa loja presencialmente.
+                                </p>
+                                <div className="flex items-center gap-1.5 mt-2 text-sm font-medium text-amber-800">
+                                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                                  <span>Goiás Minas Uniformes — Anápolis, GO</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <button
                           onClick={confirmAddress}
-                          className="w-full mt-6 bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn"
+                          disabled={isAnapolisCity(address.city)}
+                          className="w-full mt-6 bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           Confirmar endereço
                         </button>
@@ -846,8 +908,12 @@ export default function CheckoutPage() {
                           </div>
 
                           <div className="space-y-3 ml-7">
-                            {/* Show cart shipping options if available */}
-                            {cartShippingOptions ? (
+                            {isLoadingShipping ? (
+                              <div className="flex items-center gap-3 py-3 text-text-muted">
+                                <div className="w-5 h-5 border-2 border-[#2e3091] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                                <span className="text-body-sm">Calculando opções de frete...</span>
+                              </div>
+                            ) : cartShippingOptions ? (
                               <>
                                 {cartShippingOptions.juma && (
                                   <label className="flex items-center justify-between cursor-pointer">
@@ -892,7 +958,7 @@ export default function CheckoutPage() {
                                         <div>
                                           <p className="text-body-sm font-medium text-text-primary">{option.company} - {option.name}</p>
                                           <p className="text-caption text-text-muted">
-                                            {option.deliveryRange 
+                                            {option.deliveryRange
                                               ? `${option.deliveryRange.min}-${option.deliveryRange.max} dias úteis`
                                               : `${option.deliveryDays} dias úteis`
                                             }
@@ -905,45 +971,14 @@ export default function CheckoutPage() {
                                     </span>
                                   </label>
                                 ))}
-                              </>
-                            ) : (
-                              <>
-                                {/* Fallback: hardcoded economico + juma from checkout address */}
-                                <label className="flex items-center justify-between cursor-pointer">
-                                  <div className="flex items-center gap-3">
-                                    <input
-                                      type="radio"
-                                      checked={shippingMethod === "economico"}
-                                      onChange={() => setShippingMethod("economico")}
-                                      className="w-5 h-5 accent-[#2e3091]"
-                                    />
-                                    <div>
-                                      <p className="text-body-sm font-medium text-text-primary">Econômico</p>
-                                      <p className="text-caption text-text-muted">Entrega padrão</p>
-                                    </div>
-                                  </div>
-                                  <span className="text-body-sm font-medium text-text-primary">R$ 13,90</span>
-                                </label>
 
-                                {jumaAvailable && shippingPrices.juma !== null && (
-                                  <label className="flex items-center justify-between cursor-pointer">
-                                    <div className="flex items-center gap-3">
-                                      <input
-                                        type="radio"
-                                        checked={shippingMethod === "juma"}
-                                        onChange={() => setShippingMethod("juma")}
-                                        className="w-5 h-5 accent-[#2e3091]"
-                                      />
-                                      <div>
-                                        <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
-                                        <p className="text-caption text-text-muted">Entrega expressa na região</p>
-                                      </div>
-                                    </div>
-                                    <span className="text-body-sm font-medium text-text-primary">R$ {shippingPrices.juma.toFixed(2).replace(".", ",")}</span>
-                                  </label>
+                                {!cartShippingOptions.juma && cartShippingOptions.melhorEnvio?.length === 0 && (
+                                  <p className="text-body-sm text-text-muted py-2">
+                                    Nenhuma opção de frete disponível para este endereço.
+                                  </p>
                                 )}
                               </>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -962,7 +997,7 @@ export default function CheckoutPage() {
               {/* Pagamento Step */}
               {currentStep === "pagamento" && (
                 <div>
-                  {!showStripeCheckout && !showPixPayment ? (
+                  {!bolsaUniformeCompleted && !showStripeCheckout && !showPixPayment ? (
                     <>
                       <h2 className="text-h3 font-medium text-text-primary mb-6">
                         Selecionar forma de pagamento
@@ -1094,12 +1129,12 @@ export default function CheckoutPage() {
                             </div>
                             
                             {paymentMethod === "bolsa-uniforme" && (
-                              <div className="ml-8 mt-3">
+                              <div className="ml-8 mt-3 space-y-3">
                                 <p className="text-body-sm text-text-secondary">
-                                  Pague com o saldo do seu cartão Bolsa Uniforme. 
+                                  Pague com o saldo do seu cartão Bolsa Uniforme.
                                   Você precisará:
                                 </p>
-                                <ul className="text-body-sm text-text-secondary mt-2 space-y-1">
+                                <ul className="text-body-sm text-text-secondary space-y-1">
                                   <li className="flex items-center gap-2">
                                     <span className="w-5 h-5 bg-[#2e3091]/10 rounded-full flex items-center justify-center text-xs text-[#2e3091] font-medium">1</span>
                                     Foto do QR Code do cartão
@@ -1109,6 +1144,17 @@ export default function CheckoutPage() {
                                     Sua senha do cartão
                                   </li>
                                 </ul>
+                                {shipping > 0 && (
+                                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <p className="text-xs text-amber-700">
+                                      <span className="font-semibold">O Bolsa Uniforme cobre apenas os produtos</span>{" "}
+                                      (R$ {subtotal.toFixed(2).replace(".", ",")}). O frete de{" "}
+                                      R$ {shipping.toFixed(2).replace(".", ",")} será pago separadamente com
+                                      Cartão, Boleto ou Pix após a confirmação do Bolsa Uniforme.
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -1137,7 +1183,7 @@ export default function CheckoutPage() {
                         )}
                       </button>
                     </>
-                  ) : showPixPayment ? (
+                  ) : !bolsaUniformeCompleted && showPixPayment ? (
                     /* Mercado Pago Pix Payment */
                     <MercadoPagoPixPayment
                       items={items.map(item => ({
@@ -1166,7 +1212,7 @@ export default function CheckoutPage() {
                       shipping={shipping}
                       onBack={() => setShowPixPayment(false)}
                     />
-                  ) : (
+                  ) : !bolsaUniformeCompleted ? (
                     /* Stripe Custom Payment Form */
                     <div>
                       <div className="flex items-center justify-between mb-6">
@@ -1210,6 +1256,160 @@ export default function CheckoutPage() {
                         />
                       </div>
                     </div>
+                  ) : null}
+
+                  {/* === Etapa 2: Pagar o frete após Bolsa Uniforme === */}
+                  {bolsaUniformeCompleted && shipping > 0 && (
+                    showShippingStripe ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-6">
+                          <h2 className="text-h3 font-medium text-text-primary">
+                            Pagar frete — R$ {shipping.toFixed(2).replace(".", ",")}
+                          </h2>
+                          <button
+                            onClick={() => setShowShippingStripe(false)}
+                            className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                            Voltar
+                          </button>
+                        </div>
+                        <div className="bg-background-primary rounded-2xl p-6 mb-6">
+                          <StripeCustomPayment
+                            items={items.map(item => ({
+                              productId: item.productId,
+                              productName: item.productName,
+                              productImage: item.productImage,
+                              price: item.price,
+                              size: item.size,
+                              quantity: item.quantity,
+                              schoolSlug: item.schoolSlug,
+                            }))}
+                            customerEmail={user?.email || ""}
+                            customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+                            shippingAddress={{
+                              cep: address.cep,
+                              street: address.street,
+                              number: address.number,
+                              complement: address.complement,
+                              neighborhood: address.neighborhood,
+                              city: address.city,
+                              state: address.state,
+                            }}
+                            shipping={0}
+                            userId={user?.id || ""}
+                            total={shipping}
+                          />
+                        </div>
+                      </div>
+                    ) : showShippingPix ? (
+                      <MercadoPagoPixPayment
+                        items={items.map(item => ({
+                          productId: item.productId,
+                          productName: item.productName,
+                          productImage: item.productImage,
+                          price: item.price,
+                          size: item.size,
+                          quantity: item.quantity,
+                          schoolSlug: item.schoolSlug,
+                        }))}
+                        customerEmail={user?.email || ""}
+                        customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+                        cpf={personal.cpf}
+                        total={shipping}
+                        userId={user?.id || ""}
+                        shippingAddress={{
+                          cep: address.cep,
+                          street: address.street,
+                          number: address.number,
+                          complement: address.complement,
+                          neighborhood: address.neighborhood,
+                          city: address.city,
+                          state: address.state,
+                        }}
+                        shipping={0}
+                        onBack={() => setShowShippingPix(false)}
+                      />
+                    ) : (
+                      <>
+                        {/* Banner confirmação produtos */}
+                        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <Check className="w-5 h-5 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-green-800">Produtos confirmados via Bolsa Uniforme!</p>
+                              <p className="text-sm text-green-700 mt-0.5">
+                                R$ {subtotal.toFixed(2).replace(".", ",")} cobertos. Agora pague o frete separadamente.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <h2 className="text-h3 font-medium text-text-primary mb-4">
+                          Pagar o frete — R$ {shipping.toFixed(2).replace(".", ",")}
+                        </h2>
+
+                        <div className="space-y-4 mb-6">
+                          {/* Stripe */}
+                          <label className={`block cursor-pointer rounded-2xl border-2 transition-all ${
+                            shippingPaymentMethod === "stripe"
+                              ? "border-[#2e3091] bg-[#2e3091]/5"
+                              : "border-border-light bg-background-primary hover:border-text-muted"
+                          }`}>
+                            <div className="p-5 flex items-center gap-3">
+                              <input
+                                type="radio"
+                                checked={shippingPaymentMethod === "stripe"}
+                                onChange={() => setShippingPaymentMethod("stripe")}
+                                className="w-5 h-5 accent-[#2e3091]"
+                              />
+                              <CreditCard className="w-5 h-5 text-[#2e3091]" />
+                              <span className="text-body-regular font-medium text-text-primary">
+                                Cartão de Crédito / Boleto
+                              </span>
+                            </div>
+                          </label>
+
+                          {/* PIX */}
+                          <label className={`block cursor-pointer rounded-2xl border-2 transition-all ${
+                            shippingPaymentMethod === "pix"
+                              ? "border-[#2e3091] bg-[#2e3091]/5"
+                              : "border-border-light bg-background-primary hover:border-text-muted"
+                          }`}>
+                            <div className="p-5 flex items-center gap-3">
+                              <input
+                                type="radio"
+                                checked={shippingPaymentMethod === "pix"}
+                                onChange={() => setShippingPaymentMethod("pix")}
+                                className="w-5 h-5 accent-[#2e3091]"
+                              />
+                              <img src={pixLogo} alt="Pix" className="h-5" />
+                              <span className="text-body-regular font-medium text-text-primary">Pix</span>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium ml-auto">
+                                Aprovação imediata
+                              </span>
+                            </div>
+                          </label>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            if (shippingPaymentMethod === "stripe") {
+                              setShowShippingStripe(true);
+                            } else {
+                              setShowShippingPix(true);
+                            }
+                          }}
+                          className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase"
+                        >
+                          {shippingPaymentMethod === "stripe"
+                            ? "Pagar frete com Cartão / Boleto"
+                            : "Pagar frete com Pix"}
+                        </button>
+                      </>
+                    )
                   )}
                 </div>
               )}
@@ -1228,7 +1428,9 @@ export default function CheckoutPage() {
                         customer_name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Cliente",
                         customer_phone: personal.phone,
                         customer_email: user?.email,
-                        total_amount: total,
+                        // Bolsa Uniforme cobre apenas os produtos (subtotal)
+                        total_amount: subtotal,
+                        shipping_amount: shipping,
                         items: items.map(item => ({
                           productId: item.productId,
                           productName: item.productName,
@@ -1252,13 +1454,21 @@ export default function CheckoutPage() {
                       if (error) {
                         console.error("Error saving bolsa uniforme payment:", error);
                       } else {
-                        // Track activity
-                        await trackActivity("checkout_completed", `Finalizou compra via Bolsa Uniforme - ${formatCurrency(total)}`, {
+                        await trackActivity("checkout_completed", `Finalizou produtos via Bolsa Uniforme - ${formatCurrency(subtotal)}`, {
                           paymentMethod: "bolsa_uniforme",
-                          total,
+                          subtotal,
+                          shippingPending: shipping > 0,
                           items: items.length
                         });
-                        clearCart();
+
+                        if (shipping > 0) {
+                          // Frete ainda precisa ser pago com outro método
+                          setShowBolsaUniformeModal(false);
+                          setBolsaUniformeCompleted(true);
+                        } else {
+                          // Sem frete — pedido concluído
+                          clearCart();
+                        }
                       }
                     } catch (err) {
                       console.error("Error:", err);

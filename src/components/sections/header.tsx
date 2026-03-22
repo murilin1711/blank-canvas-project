@@ -81,7 +81,7 @@ const Header = () => {
       setIsScrolled(window.scrollY > bannerHeight);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 

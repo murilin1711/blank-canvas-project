@@ -4,7 +4,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp, Zap, AlertCircle, MapPin } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import CheckoutFooter from "@/components/sections/checkout-footer";
@@ -23,6 +23,7 @@ export default function CarrinhoPage() {
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showProducts, setShowProducts] = useState(true);
+  const [isAnapolisAddress, setIsAnapolisAddress] = useState(false);
 
   const getSelectedShippingPrice = () => {
     if (!selectedShipping || !shippingOptions) return 0;
@@ -50,6 +51,7 @@ export default function CarrinhoPage() {
     setIsCalculating(true);
     setShippingOptions(null);
     setSelectedShipping(null);
+    setIsAnapolisAddress(false);
 
     try {
       // Fetch address from ViaCEP to get city/state
@@ -67,11 +69,18 @@ export default function CarrinhoPage() {
       const cityNormalized = normalize(viaCepData.localidade || "");
       const isAnapolis = cityNormalized === "anapolis" && viaCepData.uf === "GO";
 
+      // Frete não disponível para Anápolis — exibe aviso e encerra
+      if (isAnapolis) {
+        setIsAnapolisAddress(true);
+        setIsCalculating(false);
+        return;
+      }
+
       let jumaOption = null;
       let melhorEnvioOptions: any[] = [];
 
-      // Juma only for Anápolis
-      if (isAnapolis) {
+      // Juma only for Anápolis (kept for future use)
+      if (false && isAnapolis) {
         try {
           const { data, error } = await supabase.functions.invoke("juma-quote", {
             body: {
@@ -370,7 +379,7 @@ export default function CarrinhoPage() {
                   <input
                     type="text"
                     value={cep}
-                    onChange={(e) => setCep(formatCEP(e.target.value))}
+                    onChange={(e) => { setCep(formatCEP(e.target.value)); setIsAnapolisAddress(false); setShippingOptions(null); }}
                     placeholder="Insira seu CEP"
                     maxLength={9}
                     className="flex-1 px-4 py-3 border border-border-light rounded-md text-sm focus:outline-none focus:border-[#2e3091] bg-background-primary"
@@ -387,6 +396,27 @@ export default function CarrinhoPage() {
                 <button className="text-body-sm text-text-primary underline mb-4">
                   Não sei meu CEP
                 </button>
+
+                {/* Aviso Anápolis */}
+                {isAnapolisAddress && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-2">
+                    <div className="flex gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">
+                          Frete não disponível para Anápolis
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          No momento não realizamos entregas para endereços em Anápolis. Para adquirir seus produtos, visite nossa loja presencialmente.
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-2 text-sm font-medium text-amber-800">
+                          <MapPin className="w-4 h-4 flex-shrink-0" />
+                          <span>Goiás Minas Uniformes — Anápolis, GO</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Shipping Options */}
                 {shippingOptions && (

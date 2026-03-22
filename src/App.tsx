@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
@@ -6,28 +7,29 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
 import Home from '@/app/page';
-import SobrePage from '@/app/sobre/page';
-import AuthPage from '@/app/auth/page';
-import CarrinhoPage from '@/app/carrinho/page';
-import CheckoutPage from '@/app/checkout/page';
-import CheckoutSucessoPage from '@/app/checkout/sucesso/page';
-import CheckoutCanceladoPage from '@/app/checkout/cancelado/page';
-import FavoritosPage from '@/app/favoritos/page';
-import MeusPedidosPage from '@/app/meus-pedidos/page';
-import ColegioMilitarPage from '@/app/escolas/colegio-militar/page';
-import DynamicProductPage from '@/app/escolas/colegio-militar/produto/[id]/page';
-import Produto1Page from '@/app/escolas/colegio-militar/produto1/page';
-import Produto2Page from '@/app/escolas/colegio-militar/produto2/page';
-import Produto3Page from '@/app/escolas/colegio-militar/produto3/page';
-import Produto4Page from '@/app/escolas/colegio-militar/produto4/page';
-import Produto5Page from '@/app/escolas/colegio-militar/produto5/page';
-import Produto6Page from '@/app/escolas/colegio-militar/produto6/page';
-import AdminPage from '@/app/admin/page';
-import CaixaPage from '@/app/caixa/page';
-import EmpresarialPage from '@/app/empresarial/page';
-import LinhaEmpresarialPage from '@/app/empresarial/linha/page';
-import PersonalizacaoPage from '@/app/personalizacao/page';
-import LinhaPersonalizacaoPage from '@/app/personalizacao/linha/page';
+
+const SobrePage = lazy(() => import('@/app/sobre/page'));
+const AuthPage = lazy(() => import('@/app/auth/page'));
+const CarrinhoPage = lazy(() => import('@/app/carrinho/page'));
+const CheckoutPage = lazy(() => import('@/app/checkout/page'));
+const CheckoutSucessoPage = lazy(() => import('@/app/checkout/sucesso/page'));
+const CheckoutCanceladoPage = lazy(() => import('@/app/checkout/cancelado/page'));
+const FavoritosPage = lazy(() => import('@/app/favoritos/page'));
+const MeusPedidosPage = lazy(() => import('@/app/meus-pedidos/page'));
+const ColegioMilitarPage = lazy(() => import('@/app/escolas/colegio-militar/page'));
+const DynamicProductPage = lazy(() => import('@/app/escolas/colegio-militar/produto/[id]/page'));
+const Produto1Page = lazy(() => import('@/app/escolas/colegio-militar/produto1/page'));
+const Produto2Page = lazy(() => import('@/app/escolas/colegio-militar/produto2/page'));
+const Produto3Page = lazy(() => import('@/app/escolas/colegio-militar/produto3/page'));
+const Produto4Page = lazy(() => import('@/app/escolas/colegio-militar/produto4/page'));
+const Produto5Page = lazy(() => import('@/app/escolas/colegio-militar/produto5/page'));
+const Produto6Page = lazy(() => import('@/app/escolas/colegio-militar/produto6/page'));
+const AdminPage = lazy(() => import('@/app/admin/page'));
+const CaixaPage = lazy(() => import('@/app/caixa/page'));
+const EmpresarialPage = lazy(() => import('@/app/empresarial/page'));
+const LinhaEmpresarialPage = lazy(() => import('@/app/empresarial/linha/page'));
+const PersonalizacaoPage = lazy(() => import('@/app/personalizacao/page'));
+const LinhaPersonalizacaoPage = lazy(() => import('@/app/personalizacao/linha/page'));
 
 function App() {
   return (
@@ -36,11 +38,12 @@ function App() {
         <CartProvider>
           <FavoritesProvider>
             <ScrollToTop />
+            <Suspense fallback={null}>
             <Routes>
               {/* Admin route without header */}
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/caixa" element={<CaixaPage />} />
-              
+
               {/* Regular routes with header */}
               <Route path="/*" element={
                 <>
@@ -71,6 +74,7 @@ function App() {
                 </>
               } />
             </Routes>
+            </Suspense>
             <Toaster position="top-right" richColors />
           </FavoritesProvider>
         </CartProvider>

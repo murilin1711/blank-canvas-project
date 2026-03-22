@@ -19,13 +19,13 @@ const slides = [
 },
 {
   type: 'image' as const,
-  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goiasminas-1765250868843.jpg?width=8000&height=8000&resize=contain',
+  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goiasminas-1765250868843.jpg?width=1920&height=1080&resize=cover',
   title: "",
   link: ""
 },
 {
   type: 'image' as const,
-  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/Uniforme-escolar-com-qualidade-e-conforto-Apresentamos-as-camisetas-da-Escola-Decisivo-Jun-1765250868958.jpg?width=8000&height=8000&resize=contain',
+  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/Uniforme-escolar-com-qualidade-e-conforto-Apresentamos-as-camisetas-da-Escola-Decisivo-Jun-1765250868958.jpg?width=1920&height=1080&resize=cover',
   title: "",
   link: ""
 }];
@@ -207,7 +207,7 @@ const HeroBanner = () => {
             loop
             muted
             playsInline
-            preload="auto"
+            preload="metadata"
             aria-hidden="true">
 
                 <source src={slide.url} type="video/mp4" />
@@ -243,7 +243,7 @@ const HeroBanner = () => {
               loop
               muted={isMuted}
               playsInline
-              preload="auto"
+              preload="metadata"
               onEnded={handleVideoEnd}>
 
                   <source src={slide.url} type="video/mp4" />
@@ -252,7 +252,9 @@ const HeroBanner = () => {
             <img
               src={slide.url}
               className="h-full w-full object-cover"
-              alt="Banner slide" />
+              alt="Banner slide"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'low'} />
 
             }
 
