@@ -471,10 +471,20 @@ export default function CheckoutPage() {
   // Handle CEP change with auto-fill
   const handleCepChange = (value: string) => {
     const formattedCep = formatCEP(value);
-    setAddress({ ...address, cep: formattedCep });
-    
-    // Auto-fetch when CEP is complete (8 digits)
     const cleanCep = value.replace(/\D/g, "");
+
+    // Limpar campos de localidade ao mudar o CEP para evitar dados obsoletos
+    // (ex: city="Anápolis" de uma busca anterior bloqueando o confirmAddress)
+    setAddress(prev => ({
+      ...prev,
+      cep: formattedCep,
+      street: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+    }));
+
+    // Auto-fetch quando CEP completo (8 dígitos)
     if (cleanCep.length === 8) {
       fetchAddressByCEP(cleanCep);
     }

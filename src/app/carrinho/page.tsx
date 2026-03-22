@@ -56,18 +56,19 @@ export default function CarrinhoPage() {
     const cleanCep = cep.replace(/\D/g, "");
 
     try {
-      // Disparar ViaCEP e Melhor Envio em paralelo para reduzir latência
-      const [viaCepData, meResult] = await Promise.all([
-        fetch(`https://viacep.com.br/ws/${cleanCep}/json/`).then((r) => r.json()),
-        supabase.functions
-          .invoke("melhor-envio-quote", {
-            body: {
-              destCep: cleanCep,
-              items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
-            },
-          })
-          .catch((e: unknown) => ({ data: null, error: e })),
-      ]);
+      // Iniciar ambas as chamadas em paralelo imediatamente
+      const viaCepPromise = fetch(`https://viacep.com.br/ws/${cleanCep}/json/`).then((r) => r.json());
+      const mePromise = supabase.functions
+        .invoke("melhor-envio-quote", {
+          body: {
+            destCep: cleanCep,
+            items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
+          },
+        })
+        .catch((e: unknown) => ({ data: null, error: e }));
+
+      // Checar ViaCEP primeiro (rápido ~200ms) — permite saída antecipada sem esperar ME
+      const viaCepData = await viaCepPromise;
 
       if (viaCepData.erro) {
         toast.error("CEP não encontrado");
@@ -78,13 +79,15 @@ export default function CarrinhoPage() {
       const cityNormalized = normalize(viaCepData.localidade || "");
       const isAnapolis = cityNormalized === "anapolis" && viaCepData.uf === "GO";
 
-      // Frete não disponível para Anápolis — exibe aviso e encerra
+      // Frete não disponível para Anápolis — exibe aviso sem esperar ME
       if (isAnapolis) {
         setIsAnapolisAddress(true);
         return;
       }
 
-      // Processar resultado do Melhor Envio
+      // Não é Anápolis — aguardar ME (já rodando em background desde o início)
+      const meResult = await mePromise;
+
       let melhorEnvioOptions: any[] = [];
       let melhorEnvioBlocked = false;
       let melhorEnvioFailed = false;
