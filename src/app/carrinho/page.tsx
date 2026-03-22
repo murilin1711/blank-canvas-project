@@ -53,15 +53,24 @@ export default function CarrinhoPage() {
     setSelectedShipping(null);
     setIsAnapolisAddress(false);
 
+    const cleanCep = cep.replace(/\D/g, "");
+
     try {
-      // Fetch address from ViaCEP to get city/state
-      const cleanCep = cep.replace(/\D/g, "");
-      const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-      const viaCepData = await viaCepRes.json();
+      // Disparar ViaCEP e Melhor Envio em paralelo para reduzir latência
+      const [viaCepData, meResult] = await Promise.all([
+        fetch(`https://viacep.com.br/ws/${cleanCep}/json/`).then((r) => r.json()),
+        supabase.functions
+          .invoke("melhor-envio-quote", {
+            body: {
+              destCep: cleanCep,
+              items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
+            },
+          })
+          .catch((e: unknown) => ({ data: null, error: e })),
+      ]);
 
       if (viaCepData.erro) {
         toast.error("CEP não encontrado");
-        setIsCalculating(false);
         return;
       }
 
@@ -72,67 +81,28 @@ export default function CarrinhoPage() {
       // Frete não disponível para Anápolis — exibe aviso e encerra
       if (isAnapolis) {
         setIsAnapolisAddress(true);
-        setIsCalculating(false);
         return;
       }
 
-      let jumaOption = null;
+      // Processar resultado do Melhor Envio
       let melhorEnvioOptions: any[] = [];
-
-      // Juma only for Anápolis (kept for future use)
-      if (false && isAnapolis) {
-        try {
-          const { data, error } = await supabase.functions.invoke("juma-quote", {
-            body: {
-              address: {
-                street: viaCepData.logradouro || "",
-                number: "S/N",
-                neighborhood: viaCepData.bairro || "",
-                city: viaCepData.localidade || "",
-                state: viaCepData.uf || "",
-              },
-            },
-          });
-
-          if (!error && data?.success) {
-            jumaOption = {
-              price: data.cost,
-              duration: data.durationInfo || "~30 min",
-              distance: data.distanceInfo || "",
-            };
-          }
-        } catch (e) {
-          console.error("Juma quote error:", e);
-        }
-      }
-
-      // Melhor Envio via backend
       let melhorEnvioBlocked = false;
       let melhorEnvioFailed = false;
-      try {
-        const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
-          body: {
-            destCep: cleanCep,
-            items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
-          },
-        });
 
-        if (meError) {
-          const message = String(meError.message || "");
-          if (message.includes("MELHOR_ENVIO_WAF_BLOCKED")) {
-            melhorEnvioBlocked = true;
-          } else {
-            melhorEnvioFailed = true;
-          }
-        } else if (meData?.success && meData.options?.length > 0) {
-          melhorEnvioOptions = meData.options;
+      const { data: meData, error: meError } = meResult as { data: any; error: any };
+
+      if (meError) {
+        const message = String(meError.message || "");
+        if (message.includes("MELHOR_ENVIO_WAF_BLOCKED")) {
+          melhorEnvioBlocked = true;
+        } else {
+          melhorEnvioFailed = true;
         }
-      } catch (e) {
-        console.error("Melhor Envio quote error:", e);
-        melhorEnvioFailed = true;
+      } else if (meData?.success && meData.options?.length > 0) {
+        melhorEnvioOptions = meData.options;
       }
 
-      if (!jumaOption && melhorEnvioOptions.length === 0) {
+      if (melhorEnvioOptions.length === 0) {
         if (melhorEnvioBlocked) {
           toast.error("Frete nacional indisponível no momento (bloqueio regional do provedor)");
         } else if (melhorEnvioFailed) {
@@ -143,7 +113,7 @@ export default function CarrinhoPage() {
       }
 
       setShippingOptions({
-        juma: jumaOption,
+        juma: null,
         melhorEnvio: melhorEnvioOptions,
       });
     } catch (error) {

@@ -12,7 +12,18 @@ const corsHeaders = {
 const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br/api/v2";
 const STORE_CEP = "75020020";
 
+// Cache em memória do token — evita query no banco em instâncias quentes
+let _tokenCache: { token: string; expiresAt: number } | null = null;
+
 async function getValidToken(supabase: any): Promise<string> {
+  const bufferMs = 5 * 60 * 1000; // 5 min de margem
+  const now = Date.now();
+
+  // Retorna do cache se ainda válido (evita round-trip ao banco)
+  if (_tokenCache && _tokenCache.expiresAt > now + bufferMs) {
+    return _tokenCache.token;
+  }
+
   const { data: tokenRow } = await supabase
     .from("melhor_envio_tokens")
     .select("*")
@@ -25,13 +36,14 @@ async function getValidToken(supabase: any): Promise<string> {
   }
 
   const expiresAt = new Date(tokenRow.expires_at);
-  const now = new Date(Date.now() + 5 * 60 * 1000);
+  const expiresAtMs = expiresAt.getTime();
 
-  if (expiresAt > now) {
+  if (expiresAtMs > now + bufferMs) {
+    _tokenCache = { token: tokenRow.access_token, expiresAt: expiresAtMs };
     return tokenRow.access_token;
   }
 
-  // Token expired, try refresh
+  // Token expirado — renovar
   const clientId = Deno.env.get("MELHOR_ENVIO_CLIENT_ID");
   const clientSecret = Deno.env.get("MELHOR_ENVIO_CLIENT_SECRET");
 
@@ -61,17 +73,25 @@ async function getValidToken(supabase: any): Promise<string> {
   }
 
   const refreshData = await refreshResponse.json();
-  const newExpiresAt = new Date(Date.now() + (refreshData.expires_in || 2592000) * 1000).toISOString();
+  const newExpiresAtMs = now + (refreshData.expires_in || 2592000) * 1000;
+  const newExpiresAtIso = new Date(newExpiresAtMs).toISOString();
 
   await supabase.from("melhor_envio_tokens").update({
     access_token: refreshData.access_token,
     refresh_token: refreshData.refresh_token,
-    expires_at: newExpiresAt,
+    expires_at: newExpiresAtIso,
     updated_at: new Date().toISOString(),
   }).eq("id", tokenRow.id);
 
+  _tokenCache = { token: refreshData.access_token, expiresAt: newExpiresAtMs };
   return refreshData.access_token;
 }
+
+// Cliente Supabase em escopo de módulo — reutilizado entre requests na mesma instância
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -79,9 +99,6 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     let token: string | null = null;
     try {
