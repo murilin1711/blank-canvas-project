@@ -81,7 +81,7 @@ interface AddressData {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, hasFreeShipping } = useCart();
   const { user, loading } = useAuth();
 
   // Load saved data from localStorage
@@ -254,6 +254,7 @@ export default function CheckoutPage() {
   const stepIndex = steps.findIndex((s) => s.key === currentStep);
   
   const getShippingPrice = () => {
+    if (hasFreeShipping || shippingMethod === "free") return 0;
     if (cartShippingData && cartShippingOptions) {
       if (shippingMethod === "juma" && cartShippingOptions.juma) {
         return cartShippingOptions.juma.price;
@@ -270,6 +271,7 @@ export default function CheckoutPage() {
   const total = subtotal + shipping;
 
   const getShippingLabel = () => {
+    if (hasFreeShipping || shippingMethod === "free") return "🚚 Frete Grátis";
     if (cartShippingOptions) {
       if (shippingMethod === "juma" && cartShippingOptions.juma) return "Entrega Rápida (Juma)";
       if (shippingMethod.startsWith("me-")) {
@@ -371,6 +373,12 @@ export default function CheckoutPage() {
     setAddressConfirmed(true);
 
     const cleanCep = address.cep.replace(/\D/g, "");
+
+    // Frete grátis: confirmar endereço sem chamar ME
+    if (hasFreeShipping || shippingMethod === "free") {
+      setShippingMethod("free");
+      return;
+    }
 
     // Se já temos opções do carrinho para o mesmo CEP, reutilizar sem nova chamada à API
     const cartOptions: any[] = cartShippingOptions?.melhorEnvio ?? [];
@@ -934,12 +942,25 @@ export default function CheckoutPage() {
                           </div>
 
                           <div className="space-y-3 ml-7">
+                            {/* Badge frete grátis */}
+                            {hasFreeShipping && (
+                              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <Truck className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                  <div>
+                                    <p className="text-body-sm font-semibold text-green-800">🎉 Frete Grátis</p>
+                                    <p className="text-caption text-green-600">Entrega sem custo adicional</p>
+                                  </div>
+                                </div>
+                                <span className="text-body-sm font-bold text-green-700">R$ 0,00</span>
+                              </div>
+                            )}
                             {isLoadingShipping ? (
                               <div className="flex items-center gap-3 py-3 text-text-muted">
                                 <div className="w-5 h-5 border-2 border-[#2e3091] border-t-transparent rounded-full animate-spin flex-shrink-0" />
                                 <span className="text-body-sm">Calculando opções de frete...</span>
                               </div>
-                            ) : cartShippingOptions ? (
+                            ) : (!hasFreeShipping && cartShippingOptions) ? (
                               <>
                                 {cartShippingOptions.juma && (
                                   <label className="flex items-center justify-between cursor-pointer">

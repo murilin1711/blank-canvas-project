@@ -14,6 +14,7 @@ export interface CartItem {
   schoolSlug: string;
   embroideryName?: string;
   embroideryPrice?: number;
+  freeShipping?: boolean;
 }
 
 interface CartContextType {
@@ -24,6 +25,7 @@ interface CartContextType {
   clearCart: () => void;
   subtotal: number;
   itemCount: number;
+  hasFreeShipping: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -92,10 +94,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const subtotal = items.reduce((acc, item) => acc + (item.price + (item.embroideryPrice || 0)) * item.quantity, 0);
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
+  const hasFreeShipping = items.some((item) => item.freeShipping === true);
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount }}
+      value={{ items, addItem, removeItem, updateQuantity, clearCart, subtotal, itemCount, hasFreeShipping }}
     >
       {children}
     </CartContext.Provider>

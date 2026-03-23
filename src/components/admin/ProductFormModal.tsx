@@ -28,6 +28,7 @@ interface ProductFormData {
   school_slug: string;
   similar_products: number[];
   allows_embroidery: boolean;
+  free_shipping: boolean;
 }
 
 interface ProductFormModalProps {
@@ -64,6 +65,7 @@ export default function ProductFormModal({
         school_slug: editingProduct.school_slug || "colegio-militar",
         similar_products: editingProduct.similar_products || [],
         allows_embroidery: editingProduct.allows_embroidery || false,
+        free_shipping: editingProduct.free_shipping || false,
       };
     }
     return {
@@ -77,6 +79,7 @@ export default function ProductFormModal({
       school_slug: "colegio-militar",
       similar_products: [],
       allows_embroidery: false,
+      free_shipping: false,
     };
   };
 
@@ -269,6 +272,7 @@ export default function ProductFormModal({
         school_slug: form.school_slug,
         similar_products: form.similar_products,
         allows_embroidery: form.allows_embroidery,
+        free_shipping: form.free_shipping,
       };
 
       if (editingProduct) {
@@ -783,6 +787,20 @@ export default function ProductFormModal({
               </button>
             )}
           </div>
+
+          {/* Free shipping toggle */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.free_shipping}
+              onChange={(e) => setForm({ ...form, free_shipping: e.target.checked })}
+              className="w-5 h-5 accent-[#16a34a] rounded"
+            />
+            <div>
+              <span className="text-sm text-gray-700 font-medium">🚚 Frete grátis</span>
+              <p className="text-xs text-gray-500">Carrinho com este produto não paga frete</p>
+            </div>
+          </label>
 
           {/* Embroidery toggle */}
           <label className="flex items-center gap-3 cursor-pointer">

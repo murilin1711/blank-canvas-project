@@ -11,7 +11,7 @@ import CheckoutFooter from "@/components/sections/checkout-footer";
 
 export default function CarrinhoPage() {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, subtotal, itemCount } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, itemCount, hasFreeShipping } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
   const { user } = useAuth();
   
@@ -26,6 +26,7 @@ export default function CarrinhoPage() {
   const [isAnapolisAddress, setIsAnapolisAddress] = useState(false);
 
   const getSelectedShippingPrice = () => {
+    if (selectedShipping === "free") return 0;
     if (!selectedShipping || !shippingOptions) return 0;
     if (selectedShipping === "juma") return shippingOptions.juma?.price || 0;
     const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
@@ -128,6 +129,25 @@ export default function CarrinhoPage() {
   };
 
   const handleProceedToCheckout = () => {
+    // Frete grátis: salvar seleção sem precisar de CEP/opções pagas
+    if (hasFreeShipping && (selectedShipping === "free" || !selectedShipping)) {
+      localStorage.setItem("checkout_shipping_selection", JSON.stringify({
+        selectedId: "free",
+        price: 0,
+        cep: cep.replace(/\D/g, ""),
+        label: "Frete Grátis",
+        type: "free",
+        allOptions: { juma: null, melhorEnvio: [] },
+      }));
+      if (user) {
+        navigate("/checkout");
+      } else {
+        toast.info("Faça login para continuar com a compra");
+        navigate("/auth", { state: { from: "/checkout" } });
+      }
+      return;
+    }
+
     // Persist shipping selection to localStorage for checkout
     if (selectedShipping && shippingOptions) {
       const shippingData: any = {
@@ -143,14 +163,13 @@ export default function CarrinhoPage() {
         const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
         if (meOption) {
           shippingData.label = `${meOption.company} - ${meOption.name}`;
-          shippingData.description = meOption.deliveryRange 
+          shippingData.description = meOption.deliveryRange
             ? `${meOption.deliveryRange.min}-${meOption.deliveryRange.max} dias úteis`
             : `${meOption.deliveryDays} dias úteis`;
           shippingData.type = "melhor_envio";
           shippingData.companyLogo = meOption.companyLogo;
         }
       }
-      // Save all options too so user can change in checkout
       shippingData.allOptions = {
         juma: shippingOptions.juma,
         melhorEnvio: shippingOptions.melhorEnvio,
@@ -346,8 +365,25 @@ export default function CarrinhoPage() {
             {/* Left Column - Shipping Calculator */}
             <div className="lg:flex-1">
               <div className="bg-background-primary rounded-2xl p-6 mb-6">
-                <h3 className="font-suisse text-sm font-medium text-text-primary mb-4">Calcular frete:</h3>
-                
+                {/* Banner frete grátis */}
+                {hasFreeShipping && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <Truck className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-green-800">🎉 Frete grátis aplicado!</p>
+                        <p className="text-xs text-green-700 mt-0.5">
+                          Um produto do seu carrinho tem frete grátis. Você não precisa pagar o frete.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <h3 className="font-suisse text-sm font-medium text-text-primary mb-4">
+                  {hasFreeShipping ? "Calcular prazo de entrega:" : "Calcular frete:"}
+                </h3>
+
                 <div className="flex gap-2 mb-4">
                   <input
                     type="text"
@@ -388,6 +424,27 @@ export default function CarrinhoPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Opção frete grátis sempre visível quando disponível */}
+                {hasFreeShipping && (
+                  <div className="space-y-3 pt-4 border-t border-border-light">
+                    <button
+                      onClick={() => setSelectedShipping("free")}
+                      className={`w-full flex items-center gap-4 p-4 border-2 rounded-lg transition-all ${
+                        selectedShipping === "free" || !selectedShipping
+                          ? "border-green-500 bg-green-50"
+                          : "border-border-light hover:border-green-400"
+                      }`}
+                    >
+                      <Truck className="w-5 h-5 text-green-600" />
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-sm text-green-800">Frete Grátis</p>
+                        <p className="text-xs text-green-600">Entrega sem custo adicional</p>
+                      </div>
+                      <span className="font-bold text-sm text-green-700">R$ 0,00</span>
+                    </button>
                   </div>
                 )}
 

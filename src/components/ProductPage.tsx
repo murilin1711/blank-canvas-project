@@ -38,6 +38,7 @@ interface ProductPageProps {
   variations?: Variation[];
   basePrice?: number;
   allowsEmbroidery?: boolean;
+  freeShipping?: boolean;
 }
 
 const EMBROIDERY_PRICE = 15.00;
@@ -54,6 +55,7 @@ export default function ProductPage({
   variations = [],
   basePrice,
   allowsEmbroidery = false,
+  freeShipping = false,
 }: ProductPageProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
@@ -194,6 +196,7 @@ export default function ProductPage({
       size: sizeLabel,
       quantity: 1,
       schoolSlug,
+      freeShipping,
     });
     
     if (goToCheckout) {
@@ -216,6 +219,7 @@ export default function ProductPage({
       schoolSlug,
       embroideryName: embroideryName.trim(),
       embroideryPrice: EMBROIDERY_PRICE,
+      freeShipping,
     });
     
     setShowEmbroideryConfirm(false);

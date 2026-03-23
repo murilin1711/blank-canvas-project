@@ -136,6 +136,7 @@ export default function DynamicProductPage() {
       similarProductIds={similarProductIds}
       variations={productVariations}
       allowsEmbroidery={product.allows_embroidery || false}
+      freeShipping={product.free_shipping || false}
     />
   );
 }
