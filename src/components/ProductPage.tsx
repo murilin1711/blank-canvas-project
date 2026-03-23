@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
+import { recommendSize } from "@/lib/sizeFinder";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -231,18 +232,11 @@ export default function ProductPage({
     setPendingAction(null);
   };
 
-  const computeRecommendedSize = (): string => {
-    const h = altura / 100;
-    const bmi = peso / (h * h);
-    const adjust = sexo === "f" ? -0.2 : 0;
-    const score = bmi + adjust;
-    if (score < 20) return "P";
-    if (score < 24.5) return "M";
-    if (score < 29) return "G";
-    return "GG";
-  };
-
-  const recommended = computeRecommendedSize();
+  const sizeResult = useMemo(
+    () => recommendSize(productName, sexo, caimento, altura, peso, sizes),
+    [productName, sexo, caimento, altura, peso, sizes]
+  );
+  const recommended = sizeResult.primary;
   const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
   const prevImage = () => setActiveIndex((s) => (s - 1 + images.length) % images.length);
 
@@ -833,38 +827,45 @@ export default function ProductPage({
               {/* ETAPA 3: Resultado Premium */}
               {fitStep === 3 && (
                 <div className="flex flex-col gap-4 flex-1">
-                  {/* Card de resultado premium */}
+                  {/* Resultado card */}
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="text-xs font-bold text-green-700 uppercase tracking-wider">
-                        Resultado Premium
+                        Resultado
                       </span>
                     </div>
-                    
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Caimento ideal identificado
+
+                    <h3 className="text-base font-semibold text-gray-900 mb-3">
+                      Tamanho recomendado para você
                     </h3>
-                    
-                    <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
-                      <p className="text-sm text-gray-600 mb-1">Tamanho recomendado:</p>
-                      <p className="text-3xl font-bold text-[#2e3091]">{recommended}</p>
+
+                    <div className="bg-white rounded-xl p-4 mb-3 shadow-sm text-center">
+                      <p className="text-sm text-gray-500 mb-1">Tamanho ideal:</p>
+                      <p className="text-4xl font-bold text-[#2e3091]">{sizeResult.primary}</p>
                     </div>
-                    
-                    <p className="text-sm text-gray-600 leading-relaxed">
-                      Desenvolvido para sua altura e proporção corporal.
-                    </p>
+
+                    {sizeResult.alternative && (
+                      <div className="bg-white/70 rounded-lg px-4 py-2 mb-2 text-sm text-center text-gray-600">
+                        Alternativa próxima:{" "}
+                        <span className="font-semibold text-gray-800">{sizeResult.alternative}</span>
+                      </div>
+                    )}
+
+                    {sizeResult.bodyMeasurement && (
+                      <p className="text-xs text-gray-500 text-center mt-1">
+                        {sizeResult.bodyMeasurement}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Observação de alerta */}
+                  {/* Observação */}
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                    <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-amber-500 text-lg">⚠️</span>
-                    </div>
+                    <span className="text-amber-500 text-lg flex-shrink-0 mt-0.5">⚠️</span>
                     <div>
                       <p className="text-sm font-medium text-amber-800">Observação</p>
                       <p className="text-sm text-amber-700 mt-1">
-                        O tamanho G pode ficar desajustado ao seu corpo!
+                        Recomendação baseada nas suas medidas estimadas. Para maior precisão, tire suas medidas manualmente.
                       </p>
                     </div>
                   </div>
@@ -878,12 +879,12 @@ export default function ProductPage({
                     </button>
                     <button
                       onClick={() => {
-                        setSelectedSize(recommended);
+                        setSelectedSize(sizeResult.primary);
                         setOpenFitFinder(false);
                       }}
                       className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#252a7a] hover:shadow-lg transition-all"
                     >
-                      Usar tamanho {recommended}
+                      Usar tamanho {sizeResult.primary}
                     </button>
                   </div>
                 </div>
