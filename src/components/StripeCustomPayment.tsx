@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 
-const stripePromise = loadStripe("pk_test_51Sjq5zE3ZoLTmzUOL1Ls6bmKRH23iWmAtGZ8x6GHMkk90diS0GyCOv9Y9SNEvINzBGaVbqZ2eULMh1x8hK74ld3b00VR2fM3Gj");
+const stripePromise = loadStripe("pk_live_51Sjq5rCqZkAHwwNi0vB9OmmjcbY2Mb4wSKYzS0tSbz4HXgS1v6XvcZ6ziWMYUHhuyg7ZUHw9GCIdyakFSydvdmCH00jodFcAym");
 
 
 interface CartItem {
