@@ -167,11 +167,11 @@ function estimateBody(
 
   //
   // Male reference points (chest / waist):
-  //   BMI 20 → ~89 / ~72   (slim, PP shirt range)
-  //   BMI 22 → ~94 / ~77   (lean-normal, P range)
-  //   BMI 24 → ~99 / ~82   (average, M range)
-  //   BMI 26 → ~103 / ~87  (above average, G range)
-  //   BMI 28 → ~107 / ~92  (overweight, GG range)
+  //   BMI 20 → ~93 / ~72   (slim, PP shirt range)
+  //   BMI 22 → ~96 / ~76   (lean-normal, P range)
+  //   BMI 24 → ~99 / ~81   (average, M range)
+  //   BMI 27 → ~104 / ~89  (above average, M→G border)
+  //   BMI 29 → ~107 / ~94  (overweight, G→GG range)
   //
   // Female reference points (chest / waist):
   //   BMI 19 → ~84 / ~63
@@ -184,7 +184,7 @@ function estimateBody(
   let waist: number;
 
   if (g === "m") {
-    chest = 94 + (bmi - 22) * 2.2;
+    chest = 96 + (bmi - 22) * 1.65;
     waist = 76 + (bmi - 22) * 2.6;
   } else {
     chest = 88 + (bmi - 21) * 2.2;
