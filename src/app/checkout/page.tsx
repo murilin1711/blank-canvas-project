@@ -14,32 +14,42 @@ import { Checkbox } from "@/components/ui/checkbox";
 import pixLogo from "@/assets/payment/pix.png";
 
 // Input field component - MUST be outside main component to prevent focus loss
-const InputField = ({ 
-  label, 
-  value, 
-  onChange, 
-  placeholder, 
+const InputField = ({
+  label,
+  value,
+  onChange,
+  placeholder,
   required = false,
   className = "",
-  type = "text"
-}: { 
-  label: string; 
-  value: string; 
-  onChange: (value: string) => void; 
+  type = "text",
+  maxLength,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
   className?: string;
   type?: string;
+  maxLength?: number;
 }) => (
   <div className={className}>
-    <label className="block text-body-sm text-text-primary mb-2">
-      {label}{required && "*"}
-    </label>
+    <div className="flex justify-between items-baseline mb-2">
+      <label className="block text-body-sm text-text-primary">
+        {label}{required && "*"}
+      </label>
+      {maxLength && (
+        <span className={`text-xs ${value.length >= maxLength ? "text-red-500 font-medium" : "text-text-muted"}`}>
+          {value.length}/{maxLength}
+        </span>
+      )}
+    </div>
     <input
       type={type}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(maxLength ? e.target.value.slice(0, maxLength) : e.target.value)}
       placeholder={placeholder}
+      maxLength={maxLength}
       className="w-full px-5 py-4 border border-border-light rounded-full focus:outline-none focus:border-[#2e3091] text-body-sm text-text-secondary placeholder:text-text-muted bg-background-primary"
     />
   </div>
@@ -359,13 +369,24 @@ export default function CheckoutPage() {
     }
 
     setAddressConfirmed(true);
-    setIsLoadingShipping(true);
-    setCartShippingOptions(null);
 
     const cleanCep = address.cep.replace(/\D/g, "");
+
+    // Se já temos opções do carrinho para o mesmo CEP, reutilizar sem nova chamada à API
+    const cartOptions: any[] = cartShippingOptions?.melhorEnvio ?? [];
+    if (cartOptions.length > 0 && cartShippingData?.cep === cleanCep) {
+      const selectionValid = cartOptions.some((o: any) => `me-${o.id}` === shippingMethod);
+      if (!selectionValid) {
+        setShippingMethod(`me-${cartOptions[0].id}`);
+      }
+      return;
+    }
+
+    // CEP diferente ou sem opções do carrinho → buscar Melhor Envio
+    setIsLoadingShipping(true);
+    setCartShippingOptions(null);
     let melhorEnvioOptions: any[] = [];
 
-    // Apenas Melhor Envio — Juma é exclusivo para Anápolis (bloqueado acima)
     try {
       const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
         body: {
@@ -380,23 +401,16 @@ export default function CheckoutPage() {
       console.error("Melhor Envio quote error in checkout:", e);
     }
 
-    const newOptions = { juma: null, melhorEnvio: melhorEnvioOptions };
-    setCartShippingOptions(newOptions);
+    setCartShippingOptions({ juma: null, melhorEnvio: melhorEnvioOptions });
 
-    // Mantém seleção do carrinho se ainda válida; senão auto-seleciona a primeira opção
-    const selectionStillValid =
-      (shippingMethod === "juma" && !!jumaOption) ||
-      melhorEnvioOptions.some((o: any) => `me-${o.id}` === shippingMethod);
-
+    const selectionStillValid = melhorEnvioOptions.some((o: any) => `me-${o.id}` === shippingMethod);
     if (!selectionStillValid) {
-      if (jumaOption) {
-        setShippingMethod("juma");
-      } else if (melhorEnvioOptions.length > 0) {
+      if (melhorEnvioOptions.length > 0) {
         setShippingMethod(`me-${melhorEnvioOptions[0].id}`);
       }
     }
 
-    if (!jumaOption && melhorEnvioOptions.length === 0) {
+    if (melhorEnvioOptions.length === 0) {
       toast.error("Não foi possível calcular o frete. Tente confirmar o endereço novamente.");
     }
 
@@ -764,6 +778,7 @@ export default function CheckoutPage() {
                               value={address.complement}
                               onChange={(v) => setAddress({ ...address, complement: v })}
                               placeholder="Ex: Apartamento, Bloco, etc"
+                              maxLength={50}
                             />
                             <InputField
                               label="Bairro"
@@ -779,6 +794,7 @@ export default function CheckoutPage() {
                             value={address.reference}
                             onChange={(v) => setAddress({ ...address, reference: v })}
                             placeholder="Ex: Próximo ao mercado, Próximo ao hospital, etc"
+                            maxLength={80}
                           />
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
