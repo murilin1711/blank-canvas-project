@@ -232,6 +232,8 @@ export function StripeCustomPayment({
         setIsLoading(true);
         setError(null);
 
+        console.log("[Stripe] Iniciando payment intent", { shipping, customerEmail, itemsCount: items.length });
+
         const { data, error: fnError } = await supabase.functions.invoke(
           "create-payment-intent",
           {
@@ -246,8 +248,26 @@ export function StripeCustomPayment({
           }
         );
 
-        if (fnError || !data?.clientSecret) {
-          console.error("Error creating payment intent:", fnError);
+        if (fnError) {
+          // Extrair mensagem real da edge function
+          let detail = fnError.message || "";
+          try {
+            const ctx = (fnError as any).context;
+            if (ctx) {
+              const body = await ctx.json().catch(() => null);
+              if (body?.error) detail = body.error;
+            }
+          } catch (_) {}
+          console.error("[Stripe] Edge function error:", detail, fnError);
+          const userMsg = detail.includes("STRIPE_SECRET_KEY")
+            ? "Chave Stripe não configurada no servidor. Contate o suporte."
+            : detail || "Não foi possível iniciar o pagamento. Tente novamente.";
+          setError(userMsg);
+          return;
+        }
+
+        if (!data?.clientSecret) {
+          console.error("[Stripe] Resposta sem clientSecret:", data);
           setError("Não foi possível iniciar o pagamento. Tente novamente.");
           return;
         }
