@@ -119,8 +119,8 @@ const MIN_EASE: Record<string, number> = {
   "camisete-f":  2, // fitted blouse
   "tunica-f":    4, // semi-fitted tunic
   "tunica-m":    2, // tunic (slightly fitted)
-  "saia":        0, // waist is exact measurement
-  "calca":       0, // waist is exact measurement
+  "saia":        1, // +1 prevents recommending a garment whose hw equals or is below the body hw after rounding
+  "calca":       1, // same rounding safety: garment must have at least ~2-4 cm full-waist ease
 };
 
 // ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────
@@ -166,28 +166,31 @@ function estimateBody(
   const g = gender ?? "m";
 
   //
-  // Male reference points (chest / waist):
-  //   BMI 20 → ~93 / ~72   (slim, PP shirt range)
-  //   BMI 22 → ~96 / ~76   (lean-normal, P range)
-  //   BMI 24 → ~99 / ~81   (average, M range)
+  // Male reference points at 175 cm (chest / waist):
+  //   BMI 20 → ~93 / ~72   (slim, PP range)
+  //   BMI 22 → ~96 / ~76   (lean, P range)
+  //   BMI 24 → ~100 / ~81  (average, M range)
   //   BMI 27 → ~104 / ~89  (above average, M→G border)
   //   BMI 29 → ~107 / ~94  (overweight, G→GG range)
   //
-  // Female reference points (chest / waist):
+  // Female reference points at 165 cm (chest / waist):
   //   BMI 19 → ~84 / ~63
   //   BMI 21 → ~88 / ~68
   //   BMI 23 → ~93 / ~73
   //   BMI 25 → ~97 / ~78
   //   BMI 27 → ~101 / ~83
   //
+  // Height correction: taller people have larger frames at the same BMI.
+  // +0.2 cm per cm above/below reference height (175 m / 165 f).
+  //
   let chest: number;
   let waist: number;
 
   if (g === "m") {
-    chest = 96 + (bmi - 22) * 1.65;
+    chest = 96 + (bmi - 22) * 1.65 + (altura - 175) * 0.2;
     waist = 76 + (bmi - 22) * 2.6;
   } else {
-    chest = 88 + (bmi - 21) * 2.2;
+    chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.2;
     waist = 68 + (bmi - 21) * 2.3;
   }
 
