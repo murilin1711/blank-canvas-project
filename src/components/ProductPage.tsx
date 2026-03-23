@@ -845,13 +845,6 @@ export default function ProductPage({
                       <p className="text-4xl font-bold text-[#2e3091]">{sizeResult.primary}</p>
                     </div>
 
-                    {sizeResult.alternative && (
-                      <div className="bg-white/70 rounded-lg px-4 py-2 mb-2 text-sm text-center text-gray-600">
-                        Alternativa próxima:{" "}
-                        <span className="font-semibold text-gray-800">{sizeResult.alternative}</span>
-                      </div>
-                    )}
-
                     {sizeResult.bodyMeasurement && (
                       <p className="text-xs text-gray-500 text-center mt-1">
                         {sizeResult.bodyMeasurement}
