@@ -191,15 +191,15 @@ function estimateBody(
     waist = 68 + (bmi - 21) * 2.3;
   }
 
-  // Body type / fit adjustment
-  // Ectomorph (justo): lean frame → measurements tend smaller
-  // Endomorph (oversize): stocky frame → measurements tend larger
+  // Body type adjustment (±1 size in most cases):
+  // Ectomorfo (justo):   lean frame → chest is relatively smaller for same BMI
+  // Endomorfo (oversize): stocky frame → waist is relatively larger for same BMI
   if (caimento === "justo") {
-    chest -= 4;
-    waist -= 3;
+    chest -= 2;
+    waist -= 2;
   } else if (caimento === "oversize") {
-    chest += 4;
-    waist += 5;
+    chest += 2;
+    waist += 4;
   }
 
   chest = Math.max(78, Math.min(145, chest));
