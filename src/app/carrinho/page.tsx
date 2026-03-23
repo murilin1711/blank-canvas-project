@@ -377,7 +377,7 @@ export default function CarrinhoPage() {
                       <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-semibold text-amber-800">
-                          Frete não disponível para Anápolis
+                          😢 Frete não disponível para Anápolis
                         </p>
                         <p className="text-sm text-amber-700 mt-1">
                           No momento não realizamos entregas para endereços em Anápolis. Para adquirir seus produtos, visite nossa loja presencialmente.
