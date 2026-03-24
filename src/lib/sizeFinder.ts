@@ -6,7 +6,7 @@ export interface SizeRecommendation {
 }
 
 // ─── GARMENT MEASUREMENT TABLES ───────────────────────────────────────────
-// All measurements in cm (original values × 100)
+// All measurements in cm (original values × 100).
 //
 // Tables are in SIZE ORDER (smallest → largest). Do NOT sort by measurement —
 // some products have measurement anomalies (PP chest > P chest from factory data);
@@ -16,40 +16,94 @@ interface ChestRow { size: string; chest: number }
 interface WaistRow { size: string; halfWaist: number }
 
 /**
- * Agasalho Gabardine – Largura = half-chest width (× 2 = full circumference)
- * M:59×2=118 | G:61×2=122 | GG:64×2=128 | EXGG:68×2=136
+ * Agasalho Gabardine Marrom Unissex – Largura = half-chest (× 2 = full)
+ * 10:49×2=98 | 12:50×2=100 | 14:53×2=106 | P:55×2=110
+ * M:59×2=118 | G:61×2=122  | GG:64×2=128 | EXG:68×2=136
  */
 const AGASALHO: ChestRow[] = [
-  { size: "M",    chest: 118 },
-  { size: "G",    chest: 122 },
-  { size: "GG",   chest: 128 },
-  { size: "EXGG", chest: 136 },
+  { size: "10",  chest: 98 },
+  { size: "12",  chest: 100 },
+  { size: "14",  chest: 106 },
+  { size: "P",   chest: 110 },
+  { size: "M",   chest: 118 },
+  { size: "G",   chest: 122 },
+  { size: "GG",  chest: 128 },
+  { size: "EXG", chest: 136 },
 ];
 
 /**
- * Camisete Social (Feminino) – Busto = full circumference.
- * Factory anomaly: PP(90) > P(88). Table order defines size precedence.
+ * Agasalho Tectel Marrom Unissex – Largura = half-chest (× 2 = full)
+ * 10:46×2=92 | 12:48×2=96 | 14:50×2=100 | P:51×2=102
+ * M:55×2=110 | G:58×2=116 | GG:60×2=120 | EXGG:66×2=132
  */
-const CAMISETE_F: ChestRow[] = [
-  { size: "PP",   chest: 90 },
-  { size: "P",    chest: 88 },
-  { size: "M",    chest: 94 },
-  { size: "G",    chest: 100 },
-  { size: "GG",   chest: 104 },
-  { size: "EXGG", chest: 112 },
-];
-
-/** Camisa Social (Masculino) – Largura = full circumference */
-const CAMISA_M: ChestRow[] = [
-  { size: "PP",   chest: 106 },
-  { size: "P",    chest: 108 },
-  { size: "M",    chest: 114 },
-  { size: "G",    chest: 120 },
-  { size: "GG",   chest: 128 },
+const AGASALHO_TECTEL: ChestRow[] = [
+  { size: "10",   chest: 92 },
+  { size: "12",   chest: 96 },
+  { size: "14",   chest: 100 },
+  { size: "P",    chest: 102 },
+  { size: "M",    chest: 110 },
+  { size: "G",    chest: 116 },
+  { size: "GG",   chest: 120 },
   { size: "EXGG", chest: 132 },
 ];
 
-/** Saia Social – Cintura = half-waist (cm) */
+/**
+ * Camisete Branco Manga Longa Feminino – Busto = full circumference.
+ * Factory anomaly: PP(90) > P(88). Table order defines size precedence.
+ */
+const CAMISETE_F: ChestRow[] = [
+  { size: "PP",  chest: 90 },
+  { size: "P",   chest: 88 },
+  { size: "M",   chest: 94 },
+  { size: "G",   chest: 100 },
+  { size: "GG",  chest: 104 },
+  { size: "EXG", chest: 112 },
+];
+
+/** Camisa Branca Manga Longa Masculina – Largura = full circumference */
+const CAMISA_M: ChestRow[] = [
+  { size: "PP",  chest: 106 },
+  { size: "P",   chest: 108 },
+  { size: "M",   chest: 114 },
+  { size: "G",   chest: 120 },
+  { size: "GG",  chest: 128 },
+  { size: "EXG", chest: 132 },
+];
+
+/**
+ * Camisa Social Bege Unissex – Largura × 2 = full circumference.
+ * 10:43×2=86 | 12:45×2=90 | 14:48×2=96 | PP:51×2=102
+ * P:54×2=108 | M:58×2=116 | G:60×2=120 | GG:63×2=126
+ * (EXG: medida não fornecida — tamanho omitido da tabela)
+ */
+const CAMISA_BEGE: ChestRow[] = [
+  { size: "10",  chest: 86 },
+  { size: "12",  chest: 90 },
+  { size: "14",  chest: 96 },
+  { size: "PP",  chest: 102 },
+  { size: "P",   chest: 108 },
+  { size: "M",   chest: 116 },
+  { size: "G",   chest: 120 },
+  { size: "GG",  chest: 126 },
+];
+
+/**
+ * Camiseta Bege Manga Curta Unissex – Largura × 2 = full circumference.
+ * 10:40×2=80 | 12:43×2=86 | 14:46×2=92 | P:50×2=100
+ * M:52×2=104 | G:57×2=114 | GG:61×2=122 | EXGG:65×2=130
+ */
+const CAMISETA_U: ChestRow[] = [
+  { size: "10",   chest: 80 },
+  { size: "12",   chest: 86 },
+  { size: "14",   chest: 92 },
+  { size: "P",    chest: 100 },
+  { size: "M",    chest: 104 },
+  { size: "G",    chest: 114 },
+  { size: "GG",   chest: 122 },
+  { size: "EXGG", chest: 130 },
+];
+
+/** Saia Marrom – Cintura = half-waist (cm) */
 const SAIA: WaistRow[] = [
   { size: "30", halfWaist: 30 },
   { size: "32", halfWaist: 31 },
@@ -65,7 +119,7 @@ const SAIA: WaistRow[] = [
   { size: "52", halfWaist: 54 }, // interpolated — measurement not provided
 ];
 
-/** Calça Social – Cintura = half-waist (cm) */
+/** Calça Social Marrom – Cintura = half-waist (cm) */
 const CALCA: WaistRow[] = [
   { size: "30", halfWaist: 30 },
   { size: "32", halfWaist: 32 },
@@ -83,7 +137,7 @@ const CALCA: WaistRow[] = [
   { size: "56", halfWaist: 56 },
 ];
 
-/** Túnica Feminina – Busto = full circumference */
+/** Túnica Branca/Marrom Feminina – Busto = full circumference */
 const TUNICA_F: ChestRow[] = [
   { size: "PP",   chest: 90 },
   { size: "P",    chest: 94 },
@@ -95,13 +149,14 @@ const TUNICA_F: ChestRow[] = [
 ];
 
 /**
- * Túnica Masculina – Largura = full circumference.
+ * Túnica Branca/Marrom Masculina – Largura = full circumference.
  * Factory anomaly: PP(100) > P(96). Table order defines size precedence.
+ * Size "12" = child size (largura 0.92 = 92 cm full).
  */
 const TUNICA_M: ChestRow[] = [
-  { size: "PPP",  chest: 92 },
+  { size: "12",   chest: 92 },
   { size: "PP",   chest: 100 },
-  { size: "P",    chest: 96 },
+  { size: "P",    chest: 96 },  // anomaly: PP(100) > P(96)
   { size: "M",    chest: 106 },
   { size: "G",    chest: 108 },
   { size: "GG",   chest: 114 },
@@ -111,23 +166,26 @@ const TUNICA_M: ChestRow[] = [
 
 // ─── MINIMUM EASE PER PRODUCT TYPE ─────────────────────────────────────────
 // Extra room (cm) the garment must have beyond the estimated body measurement.
-// Calibrated so that a 175cm/74kg male → M shirt, 175cm/80kg → M, 165cm/60kg female → M camisete.
 
 const MIN_EASE: Record<string, number> = {
-  "agasalho":   10, // loose tracksuit jacket
-  "camisa-m":   10, // social shirt (formal, loose fit for uniforms)
-  "camisete-f":  2, // fitted blouse
-  "tunica-f":    4, // semi-fitted tunic
-  "tunica-m":    2, // tunic (slightly fitted)
-  "saia":        1, // +1 prevents recommending a garment whose hw equals or is below the body hw after rounding
-  "calca":       1, // same rounding safety: garment must have at least ~2-4 cm full-waist ease
+  "agasalho":        10, // loose gabardine tracksuit jacket
+  "agasalho-tectel":  8, // sportswear jacket (tectel — slightly more fitted)
+  "camisa-m":        10, // social shirt masculino
+  "camisa-bege":     10, // social shirt unissex (same fit standard)
+  "camisete-f":       2, // fitted blouse feminino
+  "camiseta":         4, // casual unissex t-shirt
+  "tunica-f":         4, // semi-fitted tunic feminino
+  "tunica-m":         2, // tunic masculino (slightly fitted)
+  "saia":             1, // +1 prevents garment ≤ body after rounding
+  "calca":            1, // same rounding safety: ~2-4 cm full-waist ease
 };
 
 // ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────
 
 type ProductType =
-  | "agasalho" | "camisete-f" | "camisa-m"
-  | "saia"     | "calca"
+  | "agasalho" | "agasalho-tectel"
+  | "camisete-f" | "camisa-m" | "camisa-bege" | "camiseta"
+  | "saia" | "calca"
   | "tunica-f" | "tunica-m"
   | "generic";
 
@@ -141,13 +199,19 @@ function detectProductType(
   availableSizes: string[]
 ): ProductType {
   const n = normalize(productName);
-  if (n.includes("agasalho")) return "agasalho";
+
+  if (n.includes("agasalho")) return n.includes("tectel") ? "agasalho-tectel" : "agasalho";
   if (n.includes("tunica"))   return gender === "m" ? "tunica-m" : "tunica-f";
+  // "camiseta" must be checked before "camisete" and "camisa"
+  if (n.includes("camiseta")) return "camiseta";
   if (n.includes("camisete")) return "camisete-f";
-  if (n.includes("camisa"))   return gender === "m" ? "camisa-m" : "camisete-f";
-  if (n.includes("saia"))     return "saia";
-  if (n.includes("calca"))    return "calca";
-  // Fallback: if sizes are numeric treat as pants
+  if (n.includes("camisa")) {
+    if (n.includes("bege")) return "camisa-bege";
+    return gender === "m" ? "camisa-m" : "camisete-f";
+  }
+  if (n.includes("saia"))  return "saia";
+  if (n.includes("calca")) return "calca";
+  // Fallback: numeric sizes → treat as pants
   if (availableSizes.some(s => /^\d+$/.test(s))) return "calca";
   return "generic";
 }
@@ -304,6 +368,10 @@ export function recommendSize(
     primary = matchChest(AGASALHO, body.chest, availableSizes, ease);
     bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
 
+  } else if (type === "agasalho-tectel") {
+    primary = matchChest(AGASALHO_TECTEL, body.chest, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+
   } else if (type === "camisete-f") {
     primary = matchChest(CAMISETE_F, body.chest, availableSizes, ease);
     bodyMeasurement = `Busto estimado: ~${Math.round(body.chest)} cm`;
@@ -311,6 +379,14 @@ export function recommendSize(
   } else if (type === "camisa-m") {
     primary = matchChest(CAMISA_M, body.chest, availableSizes, ease);
     bodyMeasurement = `Tórax estimado: ~${Math.round(body.chest)} cm`;
+
+  } else if (type === "camisa-bege") {
+    primary = matchChest(CAMISA_BEGE, body.chest, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+
+  } else if (type === "camiseta") {
+    primary = matchChest(CAMISETA_U, body.chest, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
 
   } else if (type === "saia") {
     primary = matchWaist(SAIA, body.halfWaist, availableSizes, ease);
