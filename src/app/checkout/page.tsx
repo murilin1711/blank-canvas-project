@@ -399,7 +399,7 @@ export default function CheckoutPage() {
       const { data: meData, error: meError } = await supabase.functions.invoke("melhor-envio-quote", {
         body: {
           destCep: cleanCep,
-          items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
+          items: items.map((i) => ({ productId: i.productId, price: i.price, quantity: i.quantity })),
         },
       });
       if (!meError && meData?.success && meData.options?.length > 0) {

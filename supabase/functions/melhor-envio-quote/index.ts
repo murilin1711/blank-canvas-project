@@ -118,11 +118,64 @@ serve(async (req) => {
     }
 
     const totalQuantity = (items || []).reduce((sum: number, i: any) => sum + (i.quantity || 1), 0) || 1;
-    const weight = Math.max(0.3 * totalQuantity, 0.3);
-    const height = Math.min(5 + (totalQuantity - 1) * 2, 50);
-    const width = 30;
-    const length = 25;
     const totalValue = (items || []).reduce((sum: number, i: any) => sum + (i.price || 50) * (i.quantity || 1), 0) || 50;
+
+    // Try to fetch real product dimensions from DB
+    const productIds = (items || [])
+      .map((i: any) => i.productId)
+      .filter((id: any) => typeof id === "number" && !isNaN(id));
+
+    let weight: number;
+    let height: number;
+    let width: number;
+    let length: number;
+
+    if (productIds.length > 0) {
+      const { data: productRows } = await supabase
+        .from("products")
+        .select("id, weight_g, pkg_height_cm, pkg_width_cm, pkg_length_cm")
+        .in("id", productIds);
+
+      const productMap: Record<number, any> = {};
+      (productRows || []).forEach((p: any) => { productMap[p.id] = p; });
+
+      let totalWeightG = 0;
+      let maxHeight = 0;
+      let maxWidth = 0;
+      let maxLength = 0;
+      let hasRealDimensions = false;
+
+      for (const item of (items || [])) {
+        const qty = item.quantity || 1;
+        const prod = productMap[item.productId];
+        if (prod?.weight_g) {
+          totalWeightG += prod.weight_g * qty;
+          hasRealDimensions = true;
+        }
+        if (prod?.pkg_height_cm) maxHeight = Math.max(maxHeight, prod.pkg_height_cm);
+        if (prod?.pkg_width_cm) maxWidth = Math.max(maxWidth, prod.pkg_width_cm);
+        if (prod?.pkg_length_cm) maxLength = Math.max(maxLength, prod.pkg_length_cm);
+      }
+
+      if (hasRealDimensions) {
+        weight = Math.max(totalWeightG / 1000, 0.1);
+        height = maxHeight > 0 ? Math.min(maxHeight * totalQuantity, 50) : Math.min(5 + (totalQuantity - 1) * 2, 50);
+        width = maxWidth > 0 ? maxWidth : 30;
+        length = maxLength > 0 ? maxLength : 25;
+      } else {
+        // Fallback: no dimensions registered yet
+        weight = Math.max(0.3 * totalQuantity, 0.3);
+        height = Math.min(5 + (totalQuantity - 1) * 2, 50);
+        width = 30;
+        length = 25;
+      }
+    } else {
+      // No productIds provided — legacy fallback
+      weight = Math.max(0.3 * totalQuantity, 0.3);
+      height = Math.min(5 + (totalQuantity - 1) * 2, 50);
+      width = 30;
+      length = 25;
+    }
 
     const calcBody = {
       from: { postal_code: STORE_CEP },

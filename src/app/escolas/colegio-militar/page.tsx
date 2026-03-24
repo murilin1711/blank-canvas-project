@@ -669,7 +669,7 @@ export default function LojaEstiloOsklen() {
             <div className="mt-4">
               <div className="text-sm font-medium mb-2">Escolha o tamanho</div>
               <div className="flex gap-2">
-                {["PP", "P", "M", "G", "GG"].map((s) => (
+                {modalProduct.sizes.map((s) => (
                   <button
                     key={s}
                     onClick={() => setModalSelectedSize(s)}

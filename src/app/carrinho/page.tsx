@@ -63,7 +63,7 @@ export default function CarrinhoPage() {
         .invoke("melhor-envio-quote", {
           body: {
             destCep: cleanCep,
-            items: items.map((i) => ({ price: i.price, quantity: i.quantity })),
+            items: items.map((i) => ({ productId: i.productId, price: i.price, quantity: i.quantity })),
           },
         })
         .catch((e: unknown) => ({ data: null, error: e }));

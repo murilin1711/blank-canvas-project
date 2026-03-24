@@ -29,6 +29,10 @@ interface ProductFormData {
   similar_products: number[];
   allows_embroidery: boolean;
   free_shipping: boolean;
+  weight_g: string;
+  pkg_height_cm: string;
+  pkg_width_cm: string;
+  pkg_length_cm: string;
 }
 
 interface ProductFormModalProps {
@@ -66,6 +70,10 @@ export default function ProductFormModal({
         similar_products: editingProduct.similar_products || [],
         allows_embroidery: editingProduct.allows_embroidery || false,
         free_shipping: editingProduct.free_shipping || false,
+        weight_g: editingProduct.weight_g != null ? String(editingProduct.weight_g) : "",
+        pkg_height_cm: editingProduct.pkg_height_cm != null ? String(editingProduct.pkg_height_cm) : "",
+        pkg_width_cm: editingProduct.pkg_width_cm != null ? String(editingProduct.pkg_width_cm) : "",
+        pkg_length_cm: editingProduct.pkg_length_cm != null ? String(editingProduct.pkg_length_cm) : "",
       };
     }
     return {
@@ -80,6 +88,10 @@ export default function ProductFormModal({
       similar_products: [],
       allows_embroidery: false,
       free_shipping: false,
+      weight_g: "",
+      pkg_height_cm: "",
+      pkg_width_cm: "",
+      pkg_length_cm: "",
     };
   };
 
@@ -273,6 +285,10 @@ export default function ProductFormModal({
         similar_products: form.similar_products,
         allows_embroidery: form.allows_embroidery,
         free_shipping: form.free_shipping,
+        weight_g: form.weight_g ? parseInt(form.weight_g) : null,
+        pkg_height_cm: form.pkg_height_cm ? parseInt(form.pkg_height_cm) : null,
+        pkg_width_cm: form.pkg_width_cm ? parseInt(form.pkg_width_cm) : null,
+        pkg_length_cm: form.pkg_length_cm ? parseInt(form.pkg_length_cm) : null,
       };
 
       if (editingProduct) {
@@ -786,6 +802,62 @@ export default function ProductFormModal({
                 Limpar seleção
               </button>
             )}
+          </div>
+
+          {/* Shipping dimensions */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📦 Dimensões para frete
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Usado para calcular o frete real. Deixe vazio para usar estimativas padrão.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Peso (g)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.weight_g}
+                  onChange={(e) => setForm({ ...form, weight_g: e.target.value })}
+                  placeholder="Ex: 400"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Altura (cm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.pkg_height_cm}
+                  onChange={(e) => setForm({ ...form, pkg_height_cm: e.target.value })}
+                  placeholder="Ex: 5"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Largura (cm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.pkg_width_cm}
+                  onChange={(e) => setForm({ ...form, pkg_width_cm: e.target.value })}
+                  placeholder="Ex: 30"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Comprimento (cm)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.pkg_length_cm}
+                  onChange={(e) => setForm({ ...form, pkg_length_cm: e.target.value })}
+                  placeholder="Ex: 25"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Free shipping toggle */}
