@@ -7,6 +7,7 @@ import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
 import Home from '@/app/page';
+import { ColegioMilitarPreloader } from '@/components/ColegioMilitarPreloader';
 
 const SobrePage = lazy(() => import('@/app/sobre/page'));
 const AuthPage = lazy(() => import('@/app/auth/page'));
@@ -38,6 +39,7 @@ function App() {
         <CartProvider>
           <FavoritesProvider>
             <ScrollToTop />
+            <ColegioMilitarPreloader />
             <Suspense fallback={null}>
             <Routes>
               {/* Admin route without header */}
