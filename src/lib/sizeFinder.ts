@@ -251,11 +251,11 @@ function estimateBody(
   let waist: number;
 
   if (g === "m") {
-    chest = 96 + (bmi - 22) * 1.65 + (altura - 175) * 0.2;
-    waist = 76 + (bmi - 22) * 2.6;
+    chest = 99 + (bmi - 22) * 2.2 + (altura - 175) * 0.2;
+    waist = 74 + (bmi - 22) * 1.8;
   } else {
-    chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.2;
-    waist = 68 + (bmi - 21) * 2.3;
+    chest = 90 + (bmi - 21) * 2.2 + (altura - 165) * 0.2;
+    waist = 68 + (bmi - 21) * 2.0;
   }
 
   // Body type adjustment (±1 size in most cases):
@@ -326,11 +326,11 @@ function genericLetterSize(
   const score = bmi + adj + fitAdj;
 
   let target: string;
-  if (score < 18.5)     target = "PP";
-  else if (score < 21)  target = "P";
-  else if (score < 24)  target = "M";
-  else if (score < 27)  target = "G";
-  else if (score < 30)  target = "GG";
+  if (score < 19)       target = "PP";
+  else if (score < 22)  target = "P";
+  else if (score < 27)  target = "M";
+  else if (score < 30)  target = "G";
+  else if (score < 33)  target = "GG";
   else                  target = "EXGG";
 
   if (availableSizes.includes(target)) return target;
