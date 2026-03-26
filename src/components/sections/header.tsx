@@ -5,9 +5,11 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { getOptimizedImageUrl } from '@/lib/utils';
+import { useLoading } from '@/contexts/LoadingContext';
 
 const Header = () => {
   const navigate = useNavigate();
+  const { navigateWithLoading } = useLoading();
   const { itemCount } = useCart();
   const { user, signOut } = useAuth();
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
@@ -464,13 +466,15 @@ const Header = () => {
                           {mobileSubmenuOpen === "Escolas" && (
                             <ul className="pl-6 mt-2 space-y-2">
                               <li>
-                                <Link
-                                  to="/escolas/colegio-militar"
-                                  onClick={() => setMobileMenuOpen(false)}
+                                <button
+                                  onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    navigateWithLoading('/escolas/colegio-militar');
+                                  }}
                                   className="block text-[#2e3091] font-bold text-[15px] hover:underline"
                                 >
                                   Colégio Militar
-                                </Link>
+                                </button>
                               </li>
                             </ul>
                           )}
@@ -567,12 +571,15 @@ const Header = () => {
               >
                 {item === "Escolas" ? (
                   <div className="flex flex-col items-center gap-4">
-                    <Link
-                      to="/escolas/colegio-militar"
+                    <button
+                      onClick={() => {
+                        setActiveSubmenu(null);
+                        navigateWithLoading('/escolas/colegio-militar');
+                      }}
                       className="text-[#2e3091] font-bold text-lg hover:underline"
                     >
                       Colégio Militar
-                    </Link>
+                    </button>
                   </div>
                 ) : item === "Uniformes Empresariais" ? (
                   <div className="flex flex-col items-center gap-4">

@@ -8,6 +8,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
 import Home from '@/app/page';
 import { ColegioMilitarPreloader } from '@/components/ColegioMilitarPreloader';
+import { LoadingProvider } from '@/contexts/LoadingContext';
 
 const SobrePage = lazy(() => import('@/app/sobre/page'));
 const AuthPage = lazy(() => import('@/app/auth/page'));
@@ -35,10 +36,11 @@ const LinhaPersonalizacaoPage = lazy(() => import('@/app/personalizacao/linha/pa
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CartProvider>
-          <FavoritesProvider>
-            <ScrollToTop />
+      <LoadingProvider>
+        <AuthProvider>
+          <CartProvider>
+            <FavoritesProvider>
+              <ScrollToTop />
             <ColegioMilitarPreloader />
             <Suspense fallback={null}>
             <Routes>
@@ -77,10 +79,11 @@ function App() {
               } />
             </Routes>
             </Suspense>
-            <Toaster position="top-right" richColors />
-          </FavoritesProvider>
-        </CartProvider>
-      </AuthProvider>
+              <Toaster position="top-right" richColors />
+            </FavoritesProvider>
+          </CartProvider>
+        </AuthProvider>
+      </LoadingProvider>
     </BrowserRouter>
   );
 }
