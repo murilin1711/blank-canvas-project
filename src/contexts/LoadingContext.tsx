@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 interface LoadingContextType {
@@ -11,19 +11,23 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function LoadingProvider({ children }: { children: ReactNode }) {
   const [showLoading, setShowLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const prevPathname = useRef(location.pathname);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Dispara automaticamente em qualquer troca de rota
+  useEffect(() => {
+    if (prevPathname.current !== location.pathname) {
+      prevPathname.current = location.pathname;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setShowLoading(true);
+      timerRef.current = setTimeout(() => setShowLoading(false), 2000);
+    }
+  }, [location.pathname]);
+
+  // Mantém compatibilidade com quem já usa navigateWithLoading
   const navigateWithLoading = useCallback((to: string) => {
-    // 1. Mostrar a tela de carregamento instantaneamente
-    setShowLoading(true);
-
-    // 2. Esperar exatos 2000 milissegundos para realizar a navegação no React Router
-    // Isso ocorrerá no exato instante (80% de 2.5s) em que a logo começa a dar o super zoom final na fase de saída.
-    // O React Router muda a página invisivelmente no fundo, e o AnimatePresence da LoadingScreen ativa o exit={{opacity: 0}}
-    setTimeout(() => {
-      navigate(to);
-      setShowLoading(false);
-    }, 2000);
-    
+    navigate(to);
   }, [navigate]);
 
   return (
