@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { ArrowRight } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
@@ -15,38 +16,32 @@ const linhas = [
     id: "fire-eletrica",
     name: "Linha Fire - Elétrica",
     description: "Uniformes especializados para profissionais que trabalham com risco elétrico e combate a incêndios",
-    image: fireImage,
-  },
+    image: fireImage },
   {
     id: "industrial",
     name: "Linha Industrial / Construção Civil",
     description: "Vestuário resistente e seguro para ambientes industriais e obras",
-    image: construcaoCivilImage,
-  },
+    image: construcaoCivilImage },
   {
     id: "social-administrativo",
     name: "Linha Social / Administrativo",
     description: "Elegância e profissionalismo para escritórios e ambientes corporativos",
-    image: socialImage,
-  },
+    image: socialImage },
   {
     id: "militar-seguranca",
     name: "Linha Militar / Segurança / Trânsito",
     description: "Uniformes táticos e de alta visibilidade para forças de segurança",
-    image: militarImage,
-  },
+    image: militarImage },
   {
     id: "hospitalar-clinica",
     name: "Linha Hospitalar / Clínica",
     description: "Vestimentas práticas e higiênicas para profissionais da saúde",
-    image: hospitalarImage,
-  },
+    image: hospitalarImage },
   {
     id: "restaurante-hotelaria",
     name: "Linha Restaurante / Hotelaria",
     description: "Uniformes sofisticados para gastronomia e hospitalidade",
-    image: restauranteHotelImage,
-  },
+    image: restauranteHotelImage },
 ];
 
 export default function EmpresarialPage() {

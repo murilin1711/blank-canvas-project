@@ -73,8 +73,8 @@ const CAMISA_M: ChestRow[] = [
 /**
  * Camisa Social Bege Unissex – Largura × 2 = full circumference.
  * 10:43×2=86 | 12:45×2=90 | 14:48×2=96 | PP:51×2=102
- * P:54×2=108 | M:58×2=116 | G:60×2=120 | GG:63×2=126
- * (EXG: medida não fornecida — tamanho omitido da tabela)
+ * P:54×2=108 | M:58×2=116 | G:60×2=120 | GG:63×2=126 | EXG:132
+ * (EXG largura 1,32 fornecida como circunferência completa = 132 cm)
  */
 const CAMISA_BEGE: ChestRow[] = [
   { size: "10",  chest: 86 },
@@ -85,6 +85,7 @@ const CAMISA_BEGE: ChestRow[] = [
   { size: "M",   chest: 116 },
   { size: "G",   chest: 120 },
   { size: "GG",  chest: 126 },
+  { size: "EXG", chest: 132 },
 ];
 
 /**
@@ -116,7 +117,24 @@ const SAIA: WaistRow[] = [
   { size: "46", halfWaist: 48 },
   { size: "48", halfWaist: 50 },
   { size: "50", halfWaist: 52 },
-  { size: "52", halfWaist: 54 }, // interpolated — measurement not provided
+  { size: "52", halfWaist: 54 },
+];
+
+/**
+ * Calça Tectel Marrom Unissex – Cintura = full circumference (cm); halfWaist = Cintura / 2.
+ * 10:100/2=50 | 12:108/2=54 | 14:120/2=60 | P:124/2=62
+ * M:132/2=66  | G:136/2=68  | GG:148/2=74 | EXG:152/2=76 | EXGG:154/2=77
+ */
+const CALCA_TECTEL: WaistRow[] = [
+  { size: "10",   halfWaist: 50 },
+  { size: "12",   halfWaist: 54 },
+  { size: "14",   halfWaist: 60 },
+  { size: "P",    halfWaist: 62 },
+  { size: "M",    halfWaist: 66 },
+  { size: "G",    halfWaist: 68 },
+  { size: "GG",   halfWaist: 74 },
+  { size: "EXG",  halfWaist: 76 },
+  { size: "EXGG", halfWaist: 77 },
 ];
 
 /** Calça Social Marrom – Cintura = half-waist (cm) */
@@ -178,6 +196,7 @@ const MIN_EASE: Record<string, number> = {
   "tunica-m":         2, // tunic masculino (slightly fitted)
   "saia":             1, // +1 prevents garment ≤ body after rounding
   "calca":            1, // same rounding safety: ~2-4 cm full-waist ease
+  "calca-tectel":     1, // elastic waistband — same rounding safety margin
 };
 
 // ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────
@@ -185,7 +204,7 @@ const MIN_EASE: Record<string, number> = {
 type ProductType =
   | "agasalho" | "agasalho-tectel"
   | "camisete-f" | "camisa-m" | "camisa-bege" | "camiseta"
-  | "saia" | "calca"
+  | "saia" | "calca" | "calca-tectel"
   | "tunica-f" | "tunica-m"
   | "generic";
 
@@ -210,7 +229,7 @@ function detectProductType(
     return gender === "m" ? "camisa-m" : "camisete-f";
   }
   if (n.includes("saia"))  return "saia";
-  if (n.includes("calca")) return "calca";
+  if (n.includes("calca")) return n.includes("tectel") ? "calca-tectel" : "calca";
   // Fallback: numeric sizes → treat as pants
   if (availableSizes.some(s => /^\d+$/.test(s))) return "calca";
   return "generic";
@@ -390,6 +409,10 @@ export function recommendSize(
 
   } else if (type === "saia") {
     primary = matchWaist(SAIA, body.halfWaist, availableSizes, ease);
+    bodyMeasurement = `Cintura estimada: ~${Math.round(body.waist)} cm`;
+
+  } else if (type === "calca-tectel") {
+    primary = matchWaist(CALCA_TECTEL, body.halfWaist, availableSizes, ease);
     bodyMeasurement = `Cintura estimada: ~${Math.round(body.waist)} cm`;
 
   } else if (type === "calca") {

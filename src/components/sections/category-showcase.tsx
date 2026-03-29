@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import camisetasPersonalizadas from '@/assets/camisetas-personalizadas.png';
 import uniformesEmpresariais from '@/assets/uniformes-empresariais.png';
 

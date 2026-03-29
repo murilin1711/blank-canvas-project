@@ -1,5 +1,6 @@
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,9 +64,7 @@ export default function CarrinhoPage() {
         .invoke("melhor-envio-quote", {
           body: {
             destCep: cleanCep,
-            items: items.map((i) => ({ productId: i.productId, price: i.price, quantity: i.quantity })),
-          },
-        })
+            items: items.map((i) => ({ productId: i.productId, price: i.price, quantity: i.quantity })) } })
         .catch((e: unknown) => ({ data: null, error: e }));
 
       // Checar ViaCEP primeiro (rápido ~200ms) — permite saída antecipada sem esperar ME
@@ -118,8 +117,7 @@ export default function CarrinhoPage() {
 
       setShippingOptions({
         juma: null,
-        melhorEnvio: melhorEnvioOptions,
-      });
+        melhorEnvio: melhorEnvioOptions });
     } catch (error) {
       console.error("Shipping calc error:", error);
       toast.error("Erro ao calcular frete. Tente novamente.");
@@ -137,8 +135,7 @@ export default function CarrinhoPage() {
         cep: cep.replace(/\D/g, ""),
         label: "Frete Grátis",
         type: "free",
-        allOptions: { juma: null, melhorEnvio: [] },
-      }));
+        allOptions: { juma: null, melhorEnvio: [] } }));
       if (user) {
         navigate("/checkout");
       } else {
@@ -153,8 +150,7 @@ export default function CarrinhoPage() {
       const shippingData: any = {
         selectedId: selectedShipping,
         price: getSelectedShippingPrice(),
-        cep: cep.replace(/\D/g, ""),
-      };
+        cep: cep.replace(/\D/g, "") };
       if (selectedShipping === "juma" && shippingOptions.juma) {
         shippingData.label = "Entrega Rápida (Juma)";
         shippingData.description = `${shippingOptions.juma.duration} • ${shippingOptions.juma.distance}`;
@@ -172,8 +168,7 @@ export default function CarrinhoPage() {
       }
       shippingData.allOptions = {
         juma: shippingOptions.juma,
-        melhorEnvio: shippingOptions.melhorEnvio,
-      };
+        melhorEnvio: shippingOptions.melhorEnvio };
       localStorage.setItem("checkout_shipping_selection", JSON.stringify(shippingData));
     }
 

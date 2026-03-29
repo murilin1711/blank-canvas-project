@@ -1,8 +1,9 @@
 "use client";
 
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { Link } from 'react-router-dom';
+
 
 const COOKIE_CONSENT_KEY = "osklen_cookie_consent_dismissed";
 

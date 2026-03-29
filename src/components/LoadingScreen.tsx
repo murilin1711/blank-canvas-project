@@ -23,7 +23,7 @@ export function LoadingScreen({ isVisible }: LoadingScreenProps) {
             initial={{ opacity: 0, scale: 0.5, rotateY: 90 }}
             animate={{ 
               opacity: [0, 1, 1, 0], 
-              scale: [0.5, 1.2, 1.2, 2.8], 
+              scale: [0.5, 1.2, 1.2, 1.2], 
               rotateY: [90, 0, 0, 0] 
             }}
             transition={{ 

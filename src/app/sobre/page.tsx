@@ -1,6 +1,7 @@
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { Award, Users, Clock, MapPin, CheckCircle, ArrowRight } from "lucide-react";
 import Footer from "@/components/sections/footer";
-import { Link } from "react-router-dom";
+
 import sobreHistoria from "@/assets/sobre-historia.jpeg";
 import sobreCostura from "@/assets/sobre-costura.png";
 
@@ -15,20 +16,16 @@ export default function SobrePage() {
   const values = [
     {
       title: "Qualidade Superior",
-      description: "Tecidos selecionados e acabamento impecável em cada peça",
-    },
+      description: "Tecidos selecionados e acabamento impecável em cada peça" },
     {
       title: "Compromisso com Prazos",
-      description: "Entrega pontual garantida para todas as instituições",
-    },
+      description: "Entrega pontual garantida para todas as instituições" },
     {
       title: "Atendimento Personalizado",
-      description: "Consultoria especializada para cada projeto de uniforme",
-    },
+      description: "Consultoria especializada para cada projeto de uniforme" },
     {
       title: "Tradição e Confiança",
-      description: "Mais de 4 décadas construindo relações duradouras",
-    },
+      description: "Mais de 4 décadas construindo relações duradouras" },
   ];
 
   return (

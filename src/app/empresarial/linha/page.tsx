@@ -1,4 +1,5 @@
-import { useParams, Link } from "react-router-dom";
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
+import { useParams } from "react-router-dom";
 import { ArrowLeft, MessageCircle, Clock } from "lucide-react";
 import Footer from "@/components/sections/footer";
 

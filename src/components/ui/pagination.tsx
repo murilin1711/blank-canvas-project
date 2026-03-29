@@ -1,9 +1,9 @@
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import * as React from "react"
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  MoreHorizontalIcon,
-} from "lucide-react"
+  MoreHorizontalIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -56,8 +56,7 @@ function PaginationLink({
       className={cn(
         buttonVariants({
           variant: isActive ? "outline" : "ghost",
-          size,
-        }),
+          size }),
         className
       )}
       {...props}
@@ -121,5 +120,4 @@ export {
   PaginationItem,
   PaginationPrevious,
   PaginationNext,
-  PaginationEllipsis,
-}
+  PaginationEllipsis }

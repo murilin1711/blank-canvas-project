@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import SimilarProducts from "@/components/sections/SimilarProducts";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { ShoeSizeTable } from "@/components/ShoeSizeTable";
+import { BoinaSizeTable } from "@/components/BoinaSizeTable";
 import ectomorphImg from "@/assets/body-types/ectomorph.png";
 import mesomorphImg from "@/assets/body-types/mesomorph.png";
 import endomorphImg from "@/assets/body-types/endomorph.png";
@@ -588,8 +589,9 @@ export default function ProductPage({
                 </div>
               )}
 
-              {/* Tabela de Medidas de Sapatos Condicional */}
+              {/* Tabela de Medidas Condicional */}
               <ShoeSizeTable productName={productName} />
+              <BoinaSizeTable productName={productName} />
 
               {/* Botões de ação */}
               <div className="mt-6 flex flex-col sm:flex-row gap-3">

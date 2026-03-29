@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { ArrowRight } from "lucide-react";
 import Footer from "@/components/sections/footer";
 
@@ -13,26 +14,22 @@ const linhas = [
     id: "religiosa",
     name: "Linha Religiosa",
     description: "Camisetas personalizadas com temas religiosos para crisma, catequese, retiros e eventos religiosos",
-    image: religiosaImage,
-  },
+    image: religiosaImage },
   {
     id: "esportiva",
     name: "Linha Esportiva",
     description: "Camisetas para equipes, times e eventos esportivos com tecidos leves e respiráveis",
-    image: esportivaImage,
-  },
+    image: esportivaImage },
   {
     id: "eventos-escolares",
     name: "Linha Eventos Escolares",
     description: "Camisetas para formaturas, datas comemorativas e eventos institucionais",
-    image: eventosEscolaresImage,
-  },
+    image: eventosEscolaresImage },
   {
     id: "eventos-corporativos",
     name: "Linha Eventos Corporativos",
     description: "Camisetas para ações promocionais, eventos internos e datas comemorativas empresariais",
-    image: eventosCorporativosImage,
-  },
+    image: eventosCorporativosImage },
 ];
 
 export default function PersonalizacaoPage() {

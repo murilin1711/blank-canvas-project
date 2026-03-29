@@ -1,5 +1,6 @@
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { useEffect, useRef } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, Package, ArrowRight, ShoppingBag, Home } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import CheckoutFooter from "@/components/sections/checkout-footer";
@@ -41,14 +42,12 @@ export default function CheckoutSucessoPage() {
           ...defaults,
           particleCount,
           origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-          colors: ['#2e3091', '#4f46e5', '#7c3aed', '#06b6d4', '#10b981'],
-        });
+          colors: ['#2e3091', '#4f46e5', '#7c3aed', '#06b6d4', '#10b981'] });
         confetti({
           ...defaults,
           particleCount,
           origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-          colors: ['#2e3091', '#4f46e5', '#7c3aed', '#06b6d4', '#10b981'],
-        });
+          colors: ['#2e3091', '#4f46e5', '#7c3aed', '#06b6d4', '#10b981'] });
       }, 250);
 
       return () => clearInterval(interval);

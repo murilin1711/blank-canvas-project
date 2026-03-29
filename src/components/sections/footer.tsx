@@ -1,7 +1,8 @@
 "use client";
 
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import React from "react";
-import { Link } from "react-router-dom";
+
 import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 
 interface FooterLink {
@@ -27,30 +28,26 @@ const Footer = () => {
         { label: "Termos e condições", href: "#" },
         { label: "Privacidade & Segurança", href: "#" },
         
-      ],
-    },
+      ] },
     {
       title: "Minha conta",
       links: [
         { label: "Meus pedidos", href: "/meus-pedidos", isInternal: true },
         { label: "Meus dados", href: "#" },
         { label: "Meu perfil", href: "#" },
-      ],
-    },
+      ] },
     {
       title: "Fale conosco",
       links: [
         
         { label: "Fale conosco", href: "#" },
-      ],
-    },
+      ] },
     {
       title: "Redes sociais",
       links: [
         { label: "Instagram", href: "https://www.instagram.com/goiasminas/", isExternal: true },
         { label: "Email", href: "mailto:suporte@goiasminas.com", isExternal: true },
-      ],
-    },
+      ] },
   ];
 
   const linkClassName = "inline-block text-foreground text-sm bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition-shadow";

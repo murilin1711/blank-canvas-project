@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { AnimatedLink as Link } from '@/components/AnimatedLink';
+import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, User, Heart, ShoppingCart, Menu, X, Package, LogOut } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
