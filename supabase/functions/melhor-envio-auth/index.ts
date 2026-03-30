@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br";
+const MELHOR_ENVIO_API = "https://melhorenvio.com.br";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br/api/v2";
+const MELHOR_ENVIO_API = "https://www.melhorenvio.com.br/api/v2";
 const STORE_CEP = "75020020";
 
 async function getValidToken(supabase: any): Promise<string> {
