@@ -174,7 +174,7 @@ serve(async (req) => {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+          "User-Agent": "GM Minas samuelclodes@gmail.com",
         },
         body: JSON.stringify(publicBody),
       });
