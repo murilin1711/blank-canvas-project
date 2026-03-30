@@ -60,6 +60,7 @@ export default function ProductPage({
   basePrice,
   allowsEmbroidery = false,
   freeShipping = false,
+  showSizeFinder = true,
 }: ProductPageProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
@@ -454,6 +455,7 @@ export default function ProductPage({
                 <span className="text-sm font-medium text-gray-900">
                   Escolha o tamanho
                 </span>
+                {showSizeFinder && (
                 <button
                   onClick={() => {
                     setOpenFitFinder(true);
@@ -463,6 +465,7 @@ export default function ProductPage({
                 >
                   Qual meu tamanho ideal?
                 </button>
+                )}
               </div>
               <div className="flex gap-2 flex-wrap">
                 {sizes.map((size) => {
@@ -627,7 +630,7 @@ export default function ProductPage({
          FIT FINDER (PAINEL LATERAL)
       ========================= */}
       <AnimatePresence>
-        {openFitFinder && (
+        {showSizeFinder && openFitFinder && (
           <>
             <motion.div
               initial={{ opacity: 0 }}

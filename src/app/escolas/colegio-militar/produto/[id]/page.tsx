@@ -137,6 +137,7 @@ export default function DynamicProductPage() {
       variations={productVariations}
       allowsEmbroidery={product.allows_embroidery || false}
       freeShipping={product.free_shipping || false}
+      showSizeFinder={product.show_size_finder !== false}
     />
   );
 }

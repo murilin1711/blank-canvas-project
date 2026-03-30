@@ -31,7 +31,9 @@ import {
   Clock,
   Image,
   GripVertical,
-  Bike
+  Bike,
+  Printer,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -184,6 +186,14 @@ export default function AdminPage() {
   // Product edit states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
+
+  // Label modal states
+  const [labelOrder, setLabelOrder] = useState<Order | null>(null);
+  const [labelServices, setLabelServices] = useState<any[]>([]);
+  const [labelLoadingQuote, setLabelLoadingQuote] = useState(false);
+  const [labelSelectedService, setLabelSelectedService] = useState<number | null>(null);
+  const [labelGenerating, setLabelGenerating] = useState(false);
+  const [labelResult, setLabelResult] = useState<{ labelUrl: string | null; trackingCode: string | null } | null>(null);
 
   // Feedback edit states
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -525,6 +535,62 @@ export default function AdminPage() {
     } catch (err: any) {
       console.error("Juma dispatch error:", err);
       toast.error(`Erro ao chamar Juma: ${err.message}`);
+    }
+  };
+
+  const openLabelModal = async (order: Order) => {
+    setLabelOrder(order);
+    setLabelServices([]);
+    setLabelSelectedService(null);
+    setLabelResult(null);
+    setLabelLoadingQuote(true);
+
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+
+      const { data, error } = await supabase.functions.invoke("melhor-envio-label", {
+        body: { action: "quote", token, orderId: order.id },
+      });
+
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+
+      setLabelServices(data.options || []);
+      if (data.options?.length > 0) setLabelSelectedService(data.options[0].id);
+    } catch (err: any) {
+      toast.error(`Erro ao cotar frete: ${err.message}`);
+    } finally {
+      setLabelLoadingQuote(false);
+    }
+  };
+
+  const handleGenerateLabel = async () => {
+    if (!labelOrder || !labelSelectedService) return;
+
+    setLabelGenerating(true);
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+
+      const { data, error } = await supabase.functions.invoke("melhor-envio-label", {
+        body: { action: "generate", token, orderId: labelOrder.id, serviceId: labelSelectedService },
+      });
+
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+
+      setLabelResult({ labelUrl: data.labelUrl, trackingCode: data.trackingCode });
+      toast.success("Etiqueta gerada com sucesso!");
+
+      // Atualizar lista de pedidos localmente
+      setOrders(prev => prev.map(o =>
+        o.id === labelOrder.id
+          ? { ...o, status: "separating", shipping_address: { ...o.shipping_address, label_url: data.labelUrl, tracking_code: data.trackingCode, me_order_id: data.meOrderId } }
+          : o
+      ));
+    } catch (err: any) {
+      toast.error(`Erro ao gerar etiqueta: ${err.message}`);
+    } finally {
+      setLabelGenerating(false);
     }
   };
 
@@ -1422,15 +1488,37 @@ export default function AdminPage() {
                               </select>
                             </td>
                             <td className="px-6 py-4">
-                              {order.status === "separating" && order.shipping_address && (
-                                <button
-                                  onClick={() => handleJumaDispatch(order)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
-                                >
-                                  <Bike className="w-3.5 h-3.5" />
-                                  Chamar Juma
-                                </button>
-                              )}
+                              <div className="flex flex-col gap-1.5">
+                                {order.status === "separating" && order.shipping_address && (
+                                  <button
+                                    onClick={() => handleJumaDispatch(order)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
+                                  >
+                                    <Bike className="w-3.5 h-3.5" />
+                                    Chamar Juma
+                                  </button>
+                                )}
+                                {order.shipping > 0 && order.shipping_address?.cep && !order.shipping_address?.label_url && (
+                                  <button
+                                    onClick={() => openLabelModal(order)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                  >
+                                    <Printer className="w-3.5 h-3.5" />
+                                    Etiqueta ME
+                                  </button>
+                                )}
+                                {order.shipping_address?.label_url && (
+                                  <a
+                                    href={order.shipping_address.label_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                    Imprimir
+                                  </a>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -2334,6 +2422,165 @@ export default function AdminPage() {
                     <XCircle className="w-4 h-4" />
                     Rejeitar
                   </button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Label Modal - Melhor Envio */}
+      <AnimatePresence>
+        {labelOrder && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => { setLabelOrder(null); setLabelResult(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Etiqueta Melhor Envio
+                </h2>
+                <button
+                  onClick={() => { setLabelOrder(null); setLabelResult(null); }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 mb-4">
+                Pedido <span className="font-mono font-medium text-gray-700">#{labelOrder.id.slice(0, 8)}</span>
+              </p>
+
+              {/* Endereço de destino */}
+              {labelOrder.shipping_address && (
+                <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm text-gray-700">
+                  <p className="font-medium text-gray-900 mb-1">Destino</p>
+                  <p>{labelOrder.shipping_address.street}, {labelOrder.shipping_address.number}</p>
+                  {labelOrder.shipping_address.complement && <p>{labelOrder.shipping_address.complement}</p>}
+                  <p>{labelOrder.shipping_address.neighborhood} — {labelOrder.shipping_address.city}/{labelOrder.shipping_address.state}</p>
+                  <p className="font-mono text-xs mt-1">CEP {labelOrder.shipping_address.cep}</p>
+                </div>
+              )}
+
+              {/* Resultado gerado */}
+              {labelResult ? (
+                <div className="space-y-3">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                    <p className="font-medium text-green-800 mb-1">Etiqueta gerada!</p>
+                    {labelResult.trackingCode && (
+                      <p className="text-green-700">
+                        Rastreio: <span className="font-mono font-bold">{labelResult.trackingCode}</span>
+                      </p>
+                    )}
+                  </div>
+                  {labelResult.labelUrl ? (
+                    <a
+                      href={labelResult.labelUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Abrir e Imprimir Etiqueta
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center">
+                      Link de impressão será disponibilizado pelo Melhor Envio em instantes.
+                    </p>
+                  )}
+                  <button
+                    onClick={() => { setLabelOrder(null); setLabelResult(null); }}
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Serviços disponíveis */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Serviço de entrega
+                    </label>
+                    {labelLoadingQuote ? (
+                      <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                        Cotando serviços disponíveis...
+                      </div>
+                    ) : labelServices.length === 0 ? (
+                      <p className="text-sm text-red-500">Nenhum serviço disponível para este CEP.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {labelServices.map((svc) => (
+                          <label
+                            key={svc.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                              labelSelectedService === svc.id
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:bg-gray-50"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="service"
+                              value={svc.id}
+                              checked={labelSelectedService === svc.id}
+                              onChange={() => setLabelSelectedService(svc.id)}
+                              className="accent-blue-600"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">{svc.company} — {svc.name}</p>
+                              <p className="text-xs text-gray-500">{svc.deliveryDays} dias úteis</p>
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900">
+                              R$ {svc.price.toFixed(2).replace(".", ",")}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-amber-600 bg-amber-50 rounded-lg p-2">
+                    ⚠️ Ao gerar, o valor do frete será debitado do saldo no Melhor Envio.
+                  </p>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setLabelOrder(null)}
+                      className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleGenerateLabel}
+                      disabled={labelGenerating || !labelSelectedService || labelLoadingQuote}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {labelGenerating ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Gerando...
+                        </>
+                      ) : (
+                        <>
+                          <Printer className="w-4 h-4" />
+                          Gerar Etiqueta
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               )}
             </motion.div>

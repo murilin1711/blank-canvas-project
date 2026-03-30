@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br";
+const MELHOR_ENVIO_API = "https://melhorenvio.com.br";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -56,7 +56,7 @@ serve(async (req) => {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
         },
         body: JSON.stringify({
           grant_type: "authorization_code",
@@ -122,7 +122,7 @@ serve(async (req) => {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
         },
         body: JSON.stringify({
           grant_type: "refresh_token",

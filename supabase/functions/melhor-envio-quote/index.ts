@@ -9,7 +9,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const MELHOR_ENVIO_API = "https://sandbox.melhorenvio.com.br/api/v2";
+const MELHOR_ENVIO_API = "https://www.melhorenvio.com.br/api/v2";
 const STORE_CEP = "75020020";
 
 // Cache em memória do token — evita query no banco em instâncias quentes
@@ -56,7 +56,7 @@ async function getValidToken(supabase: any): Promise<string> {
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+      "User-Agent": "GenesisPoint samuelclodes@gmail.com",
     },
     body: JSON.stringify({
       grant_type: "refresh_token",
@@ -204,7 +204,7 @@ serve(async (req) => {
           Accept: "application/json",
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
-          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
         },
         body: JSON.stringify(calcBody),
       });
@@ -244,7 +244,7 @@ serve(async (req) => {
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
-          "User-Agent": "GenesisPoint contato@genesispoint.com.br",
+          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
         },
         body: JSON.stringify(publicBody),
       });
