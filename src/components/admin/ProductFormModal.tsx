@@ -29,6 +29,7 @@ interface ProductFormData {
   similar_products: number[];
   allows_embroidery: boolean;
   free_shipping: boolean;
+  show_size_finder: boolean;
   weight_g: string;
   pkg_height_cm: string;
   pkg_width_cm: string;
@@ -70,6 +71,7 @@ export default function ProductFormModal({
         similar_products: editingProduct.similar_products || [],
         allows_embroidery: editingProduct.allows_embroidery || false,
         free_shipping: editingProduct.free_shipping || false,
+        show_size_finder: editingProduct.show_size_finder !== false,
         weight_g: editingProduct.weight_g != null ? String(editingProduct.weight_g) : "",
         pkg_height_cm: editingProduct.pkg_height_cm != null ? String(editingProduct.pkg_height_cm) : "",
         pkg_width_cm: editingProduct.pkg_width_cm != null ? String(editingProduct.pkg_width_cm) : "",
@@ -88,6 +90,7 @@ export default function ProductFormModal({
       similar_products: [],
       allows_embroidery: false,
       free_shipping: false,
+      show_size_finder: true,
       weight_g: "",
       pkg_height_cm: "",
       pkg_width_cm: "",
@@ -285,6 +288,7 @@ export default function ProductFormModal({
         similar_products: form.similar_products,
         allows_embroidery: form.allows_embroidery,
         free_shipping: form.free_shipping,
+        show_size_finder: form.show_size_finder,
         weight_g: form.weight_g ? parseInt(form.weight_g) : null,
         pkg_height_cm: form.pkg_height_cm ? parseInt(form.pkg_height_cm) : null,
         pkg_width_cm: form.pkg_width_cm ? parseInt(form.pkg_width_cm) : null,
@@ -885,6 +889,20 @@ export default function ProductFormModal({
             <div>
               <span className="text-sm text-gray-700 font-medium">Permite bordado</span>
               <p className="text-xs text-gray-500">Cliente pode adicionar nome bordado na peça</p>
+            </div>
+          </label>
+
+          {/* Size Finder toggle */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.show_size_finder}
+              onChange={(e) => setForm({ ...form, show_size_finder: e.target.checked })}
+              className="w-5 h-5 accent-[#2e3091] rounded"
+            />
+            <div>
+              <span className="text-sm text-gray-700 font-medium">📏 Exibir "Qual meu tamanho ideal?"</span>
+              <p className="text-xs text-gray-500">Mostra o assistente de medidas na página do produto</p>
             </div>
           </label>
 

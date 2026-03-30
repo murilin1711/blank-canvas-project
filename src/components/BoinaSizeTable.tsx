@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import boinaMedidaImg from '@/assets/boina-medida.png';
 
 interface BoinaSizeTableProps {
   productName: string;
@@ -49,10 +50,14 @@ export function BoinaSizeTable({ productName }: BoinaSizeTableProps) {
             <h3 className="font-bold text-gray-900 text-lg mb-4 uppercase tracking-wider">
               Como medir o tamanho da boina
             </h3>
-            
-            {/* Foto Ilustrativa (placeholder, altere o src para usar a foto real se adicionada no projeto) */}
-            {/* <img src="/caminho-da-sua-foto.jpg" alt="Instruções" className="max-w-xs mb-4" /> */}
-            
+
+            {/* Imagem ilustrativa */}
+            <img
+              src={boinaMedidaImg}
+              alt="Como medir a cabeça para boina"
+              className="w-48 h-48 object-contain mx-auto mb-4 rounded-xl"
+            />
+
             <div className="flex items-start max-w-sm mx-auto text-left gap-3 bg-gray-50 p-4 rounded-xl">
               <span className="flex-shrink-0 font-bold text-lg bg-gray-900 text-white rounded-full w-8 h-8 flex items-center justify-center">
                 1

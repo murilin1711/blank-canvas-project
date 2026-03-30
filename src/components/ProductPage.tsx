@@ -42,6 +42,7 @@ interface ProductPageProps {
   basePrice?: number;
   allowsEmbroidery?: boolean;
   freeShipping?: boolean;
+  showSizeFinder?: boolean;
 }
 
 const EMBROIDERY_PRICE = 15.00;

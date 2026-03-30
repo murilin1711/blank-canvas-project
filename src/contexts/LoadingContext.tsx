@@ -15,13 +15,19 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
   const prevPathname = useRef(location.pathname);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Dispara automaticamente em qualquer troca de rota
+  // Rotas de produto onde a animação de loading não deve aparecer
+  const isProductRoute = (path: string) =>
+    /\/produto\/\d+/.test(path) || /\/produto\d+/.test(path);
+
+  // Dispara automaticamente em qualquer troca de rota (exceto produtos)
   useEffect(() => {
     if (prevPathname.current !== location.pathname) {
       prevPathname.current = location.pathname;
       if (timerRef.current) clearTimeout(timerRef.current);
-      setShowLoading(true);
-      timerRef.current = setTimeout(() => setShowLoading(false), 2000);
+      if (!isProductRoute(location.pathname)) {
+        setShowLoading(true);
+        timerRef.current = setTimeout(() => setShowLoading(false), 2000);
+      }
     }
   }, [location.pathname]);
 
