@@ -348,12 +348,16 @@ export type Database = {
           images: string[] | null
           is_active: boolean | null
           name: string
+          pkg_height_cm: number | null
+          pkg_length_cm: number | null
+          pkg_width_cm: number | null
           price: number
           school_slug: string
           similar_products: number[] | null
           sizes: string[] | null
           updated_at: string
           variations: Json | null
+          weight_g: number | null
         }
         Insert: {
           allows_embroidery?: boolean | null
@@ -366,12 +370,16 @@ export type Database = {
           images?: string[] | null
           is_active?: boolean | null
           name: string
+          pkg_height_cm?: number | null
+          pkg_length_cm?: number | null
+          pkg_width_cm?: number | null
           price: number
           school_slug: string
           similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
           variations?: Json | null
+          weight_g?: number | null
         }
         Update: {
           allows_embroidery?: boolean | null
@@ -384,12 +392,16 @@ export type Database = {
           images?: string[] | null
           is_active?: boolean | null
           name?: string
+          pkg_height_cm?: number | null
+          pkg_length_cm?: number | null
+          pkg_width_cm?: number | null
           price?: number
           school_slug?: string
           similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
           variations?: Json | null
+          weight_g?: number | null
         }
         Relationships: []
       }
