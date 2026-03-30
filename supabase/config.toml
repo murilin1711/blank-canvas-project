@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.melhor-envio-auth]
 verify_jwt = false
+
+[functions.melhor-envio-label]
+verify_jwt = false
