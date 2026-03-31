@@ -184,6 +184,14 @@ export default function AdminPage() {
   const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
 
+  // Label modal states
+  const [labelOrder, setLabelOrder] = useState<Order | null>(null);
+  const [labelServices, setLabelServices] = useState<any[]>([]);
+  const [labelLoadingQuote, setLabelLoadingQuote] = useState(false);
+  const [labelSelectedService, setLabelSelectedService] = useState<number | null>(null);
+  const [labelGenerating, setLabelGenerating] = useState(false);
+  const [labelResult, setLabelResult] = useState<{ labelUrl: string | null; trackingCode: string | null } | null>(null);
+
   // Product edit states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
