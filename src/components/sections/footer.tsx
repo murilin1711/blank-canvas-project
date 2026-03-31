@@ -152,8 +152,7 @@ const Footer = () => {
       title: "Minha conta",
       links: [
         { label: "Meus pedidos", href: "/meus-pedidos", isInternal: true },
-        { label: "Meus dados", href: "/auth", isInternal: true },
-        { label: "Meu perfil", href: "/auth", isInternal: true },
+        { label: "Meus dados", href: "/meus-dados", isInternal: true },
       ],
     },
     {

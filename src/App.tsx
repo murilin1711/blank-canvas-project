@@ -18,6 +18,7 @@ const CheckoutSucessoPage = lazy(() => import('@/app/checkout/sucesso/page'));
 const CheckoutCanceladoPage = lazy(() => import('@/app/checkout/cancelado/page'));
 const FavoritosPage = lazy(() => import('@/app/favoritos/page'));
 const MeusPedidosPage = lazy(() => import('@/app/meus-pedidos/page'));
+const MeusDadosPage = lazy(() => import('@/app/meus-dados/page'));
 const ColegioMilitarPage = lazy(() => import('@/app/escolas/colegio-militar/page'));
 const DynamicProductPage = lazy(() => import('@/app/escolas/colegio-militar/produto/[id]/page'));
 const Produto1Page = lazy(() => import('@/app/escolas/colegio-militar/produto1/page'));
@@ -62,6 +63,7 @@ function App() {
                     <Route path="/checkout/cancelado" element={<CheckoutCanceladoPage />} />
                     <Route path="/favoritos" element={<FavoritosPage />} />
                     <Route path="/meus-pedidos" element={<MeusPedidosPage />} />
+                    <Route path="/meus-dados" element={<MeusDadosPage />} />
                     <Route path="/escolas/colegio-militar" element={<ColegioMilitarPage />} />
                     <Route path="/escolas/colegio-militar/produto/:id" element={<DynamicProductPage />} />
                     <Route path="/escolas/colegio-militar/produto1" element={<Produto1Page />} />
