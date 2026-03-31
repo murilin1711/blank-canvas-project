@@ -72,12 +72,12 @@ serve(async (req) => {
 
       const userId = metadata.userId;
       const shippingAddress = JSON.parse(metadata.shippingAddress || "{}");
-      const items = JSON.parse(metadata.itemsJson || "[]");
+      const items = JSON.parse(metadata.items || "[]");
       const shipping = parseFloat(metadata.shipping || "0");
 
       // Calculate subtotal
       const subtotal = items.reduce(
-        (acc: number, item: any) => acc + item.price * item.qty,
+        (acc: number, item: any) => acc + item.price * item.quantity,
         0
       );
 
@@ -106,12 +106,12 @@ serve(async (req) => {
       // Create order items
       const orderItems = items.map((item: any) => ({
         order_id: order.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_image: item.img,
+        product_id: item.productId,
+        product_name: item.productName,
+        product_image: item.productImage || "",
         price: item.price,
         size: item.size,
-        quantity: item.qty,
+        quantity: item.quantity,
       }));
 
       const { error: itemsError } = await supabase

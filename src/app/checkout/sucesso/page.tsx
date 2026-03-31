@@ -55,10 +55,6 @@ export default function CheckoutSucessoPage() {
     }
   }, []);
 
-  const handleViewOrders = () => {
-    navigate("/meus-pedidos");
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background-tertiary">
       <main className="flex-1 flex items-center justify-center px-4 py-16 pt-[120px]">
@@ -91,13 +87,13 @@ export default function CheckoutSucessoPage() {
 
             {/* Action Buttons */}
             <div className="space-y-4">
-              <button
-                onClick={handleViewOrders}
+              <Link
+                to="/meus-pedidos"
                 className="w-full py-4 bg-[#2e3091] text-white font-medium rounded-full hover:bg-[#252a7a] transition-colors flex items-center justify-center gap-2"
               >
                 Ver Meus Pedidos
                 <ArrowRight className="w-4 h-4" />
-              </button>
+              </Link>
 
               <Link
                 to="/escolas/colegio-militar"
