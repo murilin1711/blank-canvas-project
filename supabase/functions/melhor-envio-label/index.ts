@@ -190,10 +190,19 @@ serve(async (req) => {
       const destCep = (addr.cep || "").replace(/\D/g, "");
       if (!destCep) throw new Error("CEP de destino não encontrado no pedido");
 
-      const meProfileRes = await meFetch("/me", meToken, { method: "GET" });
-      if (!meProfileRes.ok) throw new Error("Erro ao buscar perfil do Melhor Envio");
-      const meProfile = await meProfileRes.json();
-      const senderAddress = (meProfile.addresses || [])[0] || {};
+      let meProfile: any = {};
+      let senderAddress: any = {};
+      try {
+        const meProfileRes = await meFetch("/me", meToken, { method: "GET" });
+        if (meProfileRes.ok) {
+          meProfile = await meProfileRes.json();
+          senderAddress = (meProfile.addresses || [])[0] || {};
+        } else {
+          console.warn("GET /me falhou, usando fallback:", meProfileRes.status);
+        }
+      } catch (e) {
+        console.warn("Erro ao buscar perfil ME, usando fallback:", e);
+      }
 
       const totalQty = (order.order_items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
       const totalValue = (order.order_items || []).reduce((s: number, i: any) => s + (i.price || 50) * (i.quantity || 1), 0) || 50;
