@@ -57,6 +57,8 @@ interface BolsaUniformePayment {
   shipping_address?: any;
   notes: string | null;
   password: string | null;
+  order_id?: string | null;
+  shipping_amount?: number;
   created_at: string;
 }
 
