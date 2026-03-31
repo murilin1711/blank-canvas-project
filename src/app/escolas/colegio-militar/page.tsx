@@ -529,7 +529,7 @@ export default function LojaEstiloOsklen() {
           })}
         </div>
 
-        {queryProducts.length === 0 && (
+        {!loading && queryProducts.length === 0 && (
           <div className="py-16 text-center text-neutral-500">
             Nenhum produto encontrado.{" "}
             <button
