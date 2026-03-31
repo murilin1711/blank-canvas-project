@@ -99,6 +99,7 @@ serve(async (req) => {
         items: JSON.stringify(items.map(item => ({
           productId: item.productId,
           productName: item.productName,
+          productImage: item.productImage,
           price: item.price,
           size: item.size,
           quantity: item.quantity,
