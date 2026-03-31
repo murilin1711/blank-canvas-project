@@ -100,8 +100,14 @@ Deno.serve(async (req: Request) => {
       await supabase.from("feedbacks").insert({ user_id: '00000000-0000-0000-0000-000000000000', user_name: data.user_name, rating: data.rating, comment: data.comment, is_visible: true });
       result = { success: true };
     } else if (action === 'save_product') {
-      if (data.isNew) { await supabase.from("products").insert(data.product); }
-      else { const { id, ...p } = data.product; await supabase.from("products").update(p).eq("id", id); }
+      if (data.isNew) {
+        const { error: insertError } = await supabase.from("products").insert(data.product);
+        if (insertError) throw new Error(insertError.message);
+      } else {
+        const { id, ...p } = data.product;
+        const { error: updateError } = await supabase.from("products").update(p).eq("id", id);
+        if (updateError) throw new Error(updateError.message);
+      }
       result = { success: true };
     } else if (action === 'delete_product') {
       await supabase.from("products").delete().eq("id", data.id);
