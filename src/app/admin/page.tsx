@@ -1183,6 +1183,71 @@ export default function AdminPage() {
     setLoadingPaymentDetails(false);
   };
 
+  const openLabelModal = async (order: Order) => {
+    setLabelOrder(order);
+    setLabelServices([]);
+    setLabelSelectedService(null);
+    setLabelResult(null);
+    setLabelLoadingQuote(true);
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+      const { data, error } = await supabase.functions.invoke("melhor-envio-label", {
+        body: { action: "quote", token, orderId: order.id },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+      setLabelServices(data.options || []);
+      if (data.options?.length > 0) setLabelSelectedService(data.options[0].id);
+    } catch (err: any) {
+      toast.error(`Erro ao cotar frete: ${err.message}`);
+    } finally {
+      setLabelLoadingQuote(false);
+    }
+  };
+
+  const handleGenerateLabel = async () => {
+    if (!labelOrder || !labelSelectedService) return;
+    setLabelGenerating(true);
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+      const { data, error } = await supabase.functions.invoke("melhor-envio-label", {
+        body: { action: "generate", token, orderId: labelOrder.id, serviceId: labelSelectedService },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+      setLabelResult({ labelUrl: data.labelUrl, trackingCode: data.trackingCode });
+      toast.success("Etiqueta gerada com sucesso!");
+      setOrders(prev => prev.map(o =>
+        o.id === labelOrder.id
+          ? { ...o, status: "separating", shipping_address: { ...o.shipping_address, label_url: data.labelUrl, tracking_code: data.trackingCode, me_order_id: data.meOrderId } }
+          : o
+      ));
+    } catch (err: any) {
+      toast.error(`Erro ao gerar etiqueta: ${err.message}`);
+    } finally {
+      setLabelGenerating(false);
+    }
+  };
+
+  const openBolsaLabelModal = (payment: BolsaUniformePayment) => {
+    if (!payment.order_id) {
+      toast.error("Pedido ainda não foi criado. Aprove o pagamento primeiro.");
+      return;
+    }
+    const syntheticOrder: Order = {
+      id: payment.order_id,
+      user_id: payment.user_id,
+      subtotal: Number(payment.total_amount) || 0,
+      shipping: Number(payment.shipping_amount) || 0,
+      total: (Number(payment.total_amount) || 0) + (Number(payment.shipping_amount) || 0),
+      status: "paid",
+      payment_method: "bolsa_uniforme",
+      shipping_address: payment.shipping_address || {},
+      created_at: payment.created_at,
+    };
+    openLabelModal(syntheticOrder);
+  };
+
   const getPassword = (payment: BolsaUniformePayment): string => {
     // First check the password field
     if (payment.password) return payment.password;
