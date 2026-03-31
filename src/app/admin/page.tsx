@@ -47,9 +47,9 @@ interface BolsaUniformePayment {
   id: string;
   user_id: string;
   order_id?: string | null;
-  // Carregado apenas ao abrir “Ver detalhes” (evita payload gigante no list)
+  // Carregado apenas ao abrir "Ver detalhes" (evita payload gigante no list)
   qr_code_image?: string | null;
-  status: “pending” | “approved” | “rejected”;
+  status: "pending" | "approved" | "rejected";
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
