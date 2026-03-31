@@ -116,6 +116,15 @@ interface Product {
   sizes: string[] | null;
   variations: any[] | null;
   is_active: boolean;
+  free_shipping: boolean | null;
+  allows_embroidery: boolean | null;
+  show_size_finder: boolean | null;
+  similar_products: number[] | null;
+  weight_g: number | null;
+  pkg_height_cm: number | null;
+  pkg_width_cm: number | null;
+  pkg_length_cm: number | null;
+  display_order: number | null;
 }
 
 interface Profile {
