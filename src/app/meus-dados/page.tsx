@@ -16,20 +16,16 @@ interface Profile {
 export default function MeusDadosPage() {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<Profile>({ name: "", email: "", phone: "", cpf: "" });
   const [saving, setSaving] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
+    if (!loading && !user) navigate("/auth");
   }, [user, loading, navigate]);
 
   useEffect(() => {
     if (!user) return;
-
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
@@ -37,25 +33,14 @@ export default function MeusDadosPage() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (data) {
-        setProfile(data);
-        setForm({
-          name: data.name || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          cpf: data.cpf || "",
-        });
-      } else {
-        setForm({
-          name: user.user_metadata?.name || "",
-          email: user.email || "",
-          phone: "",
-          cpf: "",
-        });
-      }
+      setForm({
+        name: data?.name || user.user_metadata?.name || "",
+        email: data?.email || user.email || "",
+        phone: data?.phone || "",
+        cpf: data?.cpf || "",
+      });
       setLoadingProfile(false);
     };
-
     fetchProfile();
   }, [user]);
 
@@ -65,17 +50,9 @@ export default function MeusDadosPage() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          user_id: user.id,
-          name: form.name,
-          email: form.email,
-          phone: form.phone || null,
-          cpf: form.cpf || null,
-        }, { onConflict: "user_id" });
-
+        .upsert({ user_id: user.id, name: form.name, email: form.email, phone: form.phone || null, cpf: form.cpf || null }, { onConflict: "user_id" });
       if (error) throw error;
       toast.success("Dados salvos com sucesso!");
-      setProfile({ ...form });
     } catch {
       toast.error("Erro ao salvar dados.");
     } finally {
@@ -90,30 +67,33 @@ export default function MeusDadosPage() {
 
   if (loading || loadingProfile) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-      </div>
+      <main className="min-h-screen bg-gray-50 pt-[120px]">
+        <div className="max-w-lg mx-auto px-6 py-10">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-gray-200 rounded w-1/3" />
+            <div className="h-48 bg-gray-200 rounded" />
+          </div>
+        </div>
+      </main>
     );
   }
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f5f5f5] font-suisse">
-
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-12">
+    <main className="min-h-screen bg-gray-50 pt-[120px]">
+      <div className="max-w-lg mx-auto px-6 py-10">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-full bg-[#2A2826] flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-[#2e3091] flex items-center justify-center">
             <User className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Meus Dados</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Meus Dados</h1>
             <p className="text-sm text-gray-500">{user.email}</p>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
-          {/* Nome */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
               <User className="w-4 h-4 text-gray-400" />
@@ -123,12 +103,11 @@ export default function MeusDadosPage() {
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2A2826]/20 focus:border-[#2A2826]"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
               placeholder="Seu nome"
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
               <Mail className="w-4 h-4 text-gray-400" />
@@ -138,12 +117,11 @@ export default function MeusDadosPage() {
               type="email"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2A2826]/20 focus:border-[#2A2826]"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
               placeholder="seu@email.com"
             />
           </div>
 
-          {/* Telefone */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
               <Phone className="w-4 h-4 text-gray-400" />
@@ -153,12 +131,11 @@ export default function MeusDadosPage() {
               type="tel"
               value={form.phone || ""}
               onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2A2826]/20 focus:border-[#2A2826]"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
               placeholder="(62) 99999-9999"
             />
           </div>
 
-          {/* CPF */}
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
               <CreditCard className="w-4 h-4 text-gray-400" />
@@ -168,7 +145,7 @@ export default function MeusDadosPage() {
               type="text"
               value={form.cpf || ""}
               onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2A2826]/20 focus:border-[#2A2826]"
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
               placeholder="000.000.000-00"
             />
           </div>
@@ -176,7 +153,7 @@ export default function MeusDadosPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-[#2A2826] text-white rounded-xl font-medium hover:bg-[#3a3734] transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-3 bg-[#2e3091] text-white rounded-xl font-medium hover:bg-[#252a7a] transition-colors disabled:opacity-50"
           >
             {saving ? (
               <><Loader2 className="w-4 h-4 animate-spin" />Salvando...</>
@@ -193,9 +170,8 @@ export default function MeusDadosPage() {
           <LogOut className="w-4 h-4" />
           Sair da conta
         </button>
-      </main>
-
+      </div>
       <Footer />
-    </div>
+    </main>
   );
 }
