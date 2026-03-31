@@ -1494,7 +1494,7 @@ export default function AdminPage() {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex flex-col gap-1.5">
-                                {order.shipping > 0 && order.shipping_address?.cep && !order.shipping_address?.label_url && (
+                                {order.shipping_address?.cep && !order.shipping_address?.label_url && (
                                   <button
                                     onClick={() => openLabelModal(order)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
