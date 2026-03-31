@@ -1650,8 +1650,15 @@ export default function AdminPage() {
                                     >
                                       <MessageCircle className="w-3.5 h-3.5" />
                                       WhatsApp
-                                    </a>
-                                  </div>
+                                     </a>
+                                    {payment.status === 'approved' && (payment.shipping_amount || 0) > 0 && (
+                                      <button onClick={(e) => { e.stopPropagation(); openBolsaLabelModal(payment); }}
+                                        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5">
+                                        <Printer className="w-3.5 h-3.5" />
+                                        Emitir Etiqueta ME
+                                      </button>
+                                    )}
+                                   </div>
                                 </div>
                               </motion.div>
                             )}
