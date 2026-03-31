@@ -214,7 +214,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: meProfile.document || meProfile.company_document || "00000000000",
+          document: meProfile.document || meProfile.company_document || "04252011198",
           address: senderAddress.address || "Rua não cadastrada",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "S/N",
