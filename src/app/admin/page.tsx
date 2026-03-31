@@ -31,7 +31,6 @@ import {
   Clock,
   Image,
   GripVertical,
-  Bike,
   Printer
 } from "lucide-react";
 import { toast } from "sonner";
