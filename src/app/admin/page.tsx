@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -157,6 +157,7 @@ interface CustomerData {
 
 export default function AdminPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -341,6 +342,44 @@ export default function AdminPage() {
 
   const getAdminToken = () => {
     return sessionStorage.getItem('admin_token');
+  };
+
+  // Melhor Envio OAuth: detect callback code in URL and auto-exchange
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const meCode = params.get("code");
+    const meState = params.get("state");
+    if (!meCode || meState !== "auth") return;
+
+    // Remove params from URL without reload
+    window.history.replaceState({}, "", "/admin");
+
+    const exchangeToken = async () => {
+      try {
+        const redirectUri = `${window.location.origin}/admin`;
+        const { data, error } = await supabase.functions.invoke("melhor-envio-auth", {
+          body: { action: "exchange", code: meCode, redirect_uri: redirectUri },
+        });
+        if (error || data?.error) throw new Error(error?.message || data?.error);
+        toast.success("Melhor Envio autorizado com sucesso!");
+      } catch (err: any) {
+        toast.error(`Erro ao autorizar Melhor Envio: ${err.message}`);
+      }
+    };
+    exchangeToken();
+  }, [location.search]);
+
+  const handleMelhorEnvioAuth = async () => {
+    try {
+      const redirectUri = `${window.location.origin}/admin`;
+      const { data, error } = await supabase.functions.invoke("melhor-envio-auth", {
+        body: { action: "authorize_url", redirect_uri: redirectUri },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+      window.open(data.url, "_blank");
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message}`);
+    }
   };
 
   // Load section data separately
@@ -1389,7 +1428,14 @@ export default function AdminPage() {
               ))}
             </nav>
 
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 space-y-2">
+              <button
+                onClick={handleMelhorEnvioAuth}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors text-sm"
+              >
+                <Printer className="w-4 h-4" />
+                <span className="font-medium">Autorizar Melhor Envio</span>
+              </button>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"

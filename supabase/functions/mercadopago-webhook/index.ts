@@ -18,7 +18,16 @@ serve(async (req) => {
       throw new Error("MERCADO_PAGO_ACCESS_TOKEN not configured");
     }
 
-    const body = await req.json();
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      // Empty or non-JSON body (e.g. verification ping)
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
     console.log("[MERCADOPAGO-WEBHOOK] Received webhook:", JSON.stringify(body));
 
     // Mercado Pago sends different types of notifications
