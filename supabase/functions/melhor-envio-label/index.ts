@@ -214,7 +214,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: meProfile.document || meProfile.company_document || "00000000000",
+          document: meProfile.document || meProfile.company_document || "04252011198",
           address: senderAddress.address || "Rua não cadastrada",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "S/N",
@@ -228,7 +228,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: (profile?.cpf || "").replace(/\D/g, "") || "00000000000",
+          document: (profile?.cpf || "").replace(/\D/g, "") || "04252011198",
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
@@ -241,7 +241,7 @@ serve(async (req) => {
         products: (order.order_items || []).map((item: any) => ({
           name: item.product_name || "Uniforme",
           quantity: item.quantity || 1,
-          unitaryValue: item.price || 50,
+          unitary_value: item.price || 50,
         })),
         volumes: {
           height: Math.min(5 * totalQty, 50),
