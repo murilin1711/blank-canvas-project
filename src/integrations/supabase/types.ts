@@ -71,6 +71,7 @@ export type Database = {
           processed_by: string | null
           qr_code_image: string
           shipping_address: Json | null
+          shipping_amount: number
           status: string
           total_amount: number
           updated_at: string
@@ -90,6 +91,7 @@ export type Database = {
           processed_by?: string | null
           qr_code_image: string
           shipping_address?: Json | null
+          shipping_amount?: number
           status?: string
           total_amount: number
           updated_at?: string
@@ -109,6 +111,7 @@ export type Database = {
           processed_by?: string | null
           qr_code_image?: string
           shipping_address?: Json | null
+          shipping_amount?: number
           status?: string
           total_amount?: number
           updated_at?: string
@@ -353,6 +356,7 @@ export type Database = {
           pkg_width_cm: number | null
           price: number
           school_slug: string
+          show_size_finder: boolean
           similar_products: number[] | null
           sizes: string[] | null
           updated_at: string
@@ -375,6 +379,7 @@ export type Database = {
           pkg_width_cm?: number | null
           price: number
           school_slug: string
+          show_size_finder?: boolean
           similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
@@ -397,6 +402,7 @@ export type Database = {
           pkg_width_cm?: number | null
           price?: number
           school_slug?: string
+          show_size_finder?: boolean
           similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string

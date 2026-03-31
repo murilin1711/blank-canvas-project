@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS show_size_finder BOOLEAN NOT NULL DEFAULT true;
