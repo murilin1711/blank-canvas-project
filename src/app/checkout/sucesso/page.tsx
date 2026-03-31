@@ -6,7 +6,6 @@ import CheckoutFooter from "@/components/sections/checkout-footer";
 import confetti from "canvas-confetti";
 
 export default function CheckoutSucessoPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { clearCart } = useCart();
   const sessionId = searchParams.get("session_id");
