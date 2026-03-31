@@ -189,12 +189,18 @@ serve(async (req) => {
       const destCep = (addr.cep || "").replace(/\D/g, "");
       if (!destCep) throw new Error("CEP de destino não encontrado no pedido");
 
-      // 2. Buscar perfil do remetente (loja) no Melhor Envio
-      const meProfileRes = await meFetch("/me", meToken, { method: "GET" });
-      if (!meProfileRes.ok) throw new Error("Erro ao buscar perfil do Melhor Envio");
-      const meProfile = await meProfileRes.json();
-
-      const senderAddress = (meProfile.addresses || [])[0] || {};
+      // 2. Buscar perfil do remetente (loja) no Melhor Envio (com fallback)
+      let meProfile: any = {};
+      let senderAddress: any = {};
+      try {
+        const meProfileRes = await meFetch("/me", meToken, { method: "GET" });
+        if (meProfileRes.ok) {
+          meProfile = await meProfileRes.json();
+          senderAddress = (meProfile.addresses || [])[0] || {};
+        }
+      } catch {
+        // usa fallback abaixo
+      }
 
       // 3. Montar corpo do carrinho
       const totalQty = (order.order_items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
@@ -208,11 +214,11 @@ serve(async (req) => {
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
           document: meProfile.document || meProfile.company_document || "00000000000",
-          address: senderAddress.address || "Rua não cadastrada",
+          address: senderAddress.address || "Rua Guimaraes Natal",
           complement: senderAddress.complement || "",
-          number: senderAddress.number || "S/N",
-          district: senderAddress.district || "Centro",
-          city: senderAddress.city || "Anápolis",
+          number: senderAddress.number || "50",
+          district: senderAddress.district || "Setor Central",
+          city: senderAddress.city || "Anapolis",
           country_id: "BR",
           postal_code: STORE_CEP,
           note: "",
