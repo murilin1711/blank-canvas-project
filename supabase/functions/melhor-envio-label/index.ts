@@ -241,7 +241,7 @@ serve(async (req) => {
         products: (order.order_items || []).map((item: any) => ({
           name: item.product_name || "Uniforme",
           quantity: item.quantity || 1,
-          unitaryValue: item.price || 50,
+          unitary_value: item.price || 50,
         })),
         volumes: {
           height: Math.min(5 * totalQty, 50),
