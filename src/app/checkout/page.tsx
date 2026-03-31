@@ -4,7 +4,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import CheckoutFooter from "@/components/sections/checkout-footer";
-import { Check, Home, ChevronDown, CreditCard, Wallet, X, Truck, Zap, AlertCircle, MapPin } from "lucide-react";
+import { Check, Home, ChevronDown, CreditCard, Wallet, X, Truck, AlertCircle, MapPin } from "lucide-react";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
 import { StripeCustomPayment } from "@/components/StripeCustomPayment";
 import { MercadoPagoPixPayment } from "@/components/MercadoPagoPixPayment";
@@ -173,8 +173,7 @@ export default function CheckoutPage() {
   const [shippingMethod, setShippingMethod] = useState<string>(() => 
     loadSavedData("checkout_shipping", "economico")
   );
-  const [shippingPrices, setShippingPrices] = useState<{ economico: number; juma: number | null }>({ economico: 13.90, juma: null });
-  const [jumaAvailable, setJumaAvailable] = useState(false);
+  const [shippingPrices, setShippingPrices] = useState<{ economico: number }>({ economico: 13.90 });
   const [cartShippingOptions, setCartShippingOptions] = useState<any>(null);
 
   // Load shipping selection from cart page
@@ -186,10 +185,8 @@ export default function CheckoutPage() {
         setCartShippingData(data);
         setShippingMethod(data.selectedId);
         if (data.allOptions) {
-          // Remove Juma do cache do carrinho — Juma é exclusivo para Anápolis (bloqueado no checkout)
-          setCartShippingOptions({ ...data.allOptions, juma: null });
-          // Se a seleção salva era Juma, limpa para forçar nova escolha
-          if (data.selectedId === "juma") {
+          setCartShippingOptions({ melhorEnvio: data.allOptions.melhorEnvio ?? [] });
+          if (data.selectedId === "juma" || !data.selectedId?.startsWith("me-")) {
             setShippingMethod("");
           }
         }
@@ -256,15 +253,11 @@ export default function CheckoutPage() {
   const getShippingPrice = () => {
     if (hasFreeShipping || shippingMethod === "free") return 0;
     if (cartShippingData && cartShippingOptions) {
-      if (shippingMethod === "juma" && cartShippingOptions.juma) {
-        return cartShippingOptions.juma.price;
-      }
       if (shippingMethod.startsWith("me-")) {
         const meOption = cartShippingOptions.melhorEnvio?.find((o: any) => `me-${o.id}` === shippingMethod);
         if (meOption) return meOption.price;
       }
     }
-    if (shippingMethod === "juma" && shippingPrices.juma !== null) return shippingPrices.juma;
     return shippingPrices.economico;
   };
   const shipping = getShippingPrice();
@@ -273,13 +266,11 @@ export default function CheckoutPage() {
   const getShippingLabel = () => {
     if (hasFreeShipping || shippingMethod === "free") return "🚚 Frete Grátis";
     if (cartShippingOptions) {
-      if (shippingMethod === "juma" && cartShippingOptions.juma) return "Entrega Rápida (Juma)";
       if (shippingMethod.startsWith("me-")) {
         const meOption = cartShippingOptions.melhorEnvio?.find((o: any) => `me-${o.id}` === shippingMethod);
         if (meOption) return `${meOption.company} - ${meOption.name}`;
       }
     }
-    if (shippingMethod === "juma") return "Entrega Rápida (Juma)";
     return "Econômico";
   };
 
@@ -409,7 +400,7 @@ export default function CheckoutPage() {
       console.error("Melhor Envio quote error in checkout:", e);
     }
 
-    setCartShippingOptions({ juma: null, melhorEnvio: melhorEnvioOptions });
+    setCartShippingOptions({ melhorEnvio: melhorEnvioOptions });
 
     const selectionStillValid = melhorEnvioOptions.some((o: any) => `me-${o.id}` === shippingMethod);
     if (!selectionStillValid) {
@@ -962,31 +953,6 @@ export default function CheckoutPage() {
                               </div>
                             ) : (!hasFreeShipping && cartShippingOptions) ? (
                               <>
-                                {cartShippingOptions.juma && (
-                                  <label className="flex items-center justify-between cursor-pointer">
-                                    <div className="flex items-center gap-3">
-                                      <input
-                                        type="radio"
-                                        checked={shippingMethod === "juma"}
-                                        onChange={() => setShippingMethod("juma")}
-                                        className="w-5 h-5 accent-[#2e3091]"
-                                      />
-                                      <div className="flex items-center gap-2">
-                                        <Zap className="w-4 h-4 text-amber-500" />
-                                        <div>
-                                          <p className="text-body-sm font-medium text-text-primary">Entrega Rápida (Juma)</p>
-                                          <p className="text-caption text-text-muted">
-                                            {cartShippingOptions.juma.duration} • {cartShippingOptions.juma.distance}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <span className="text-body-sm font-medium text-text-primary">
-                                      R$ {cartShippingOptions.juma.price.toFixed(2).replace(".", ",")}
-                                    </span>
-                                  </label>
-                                )}
-
                                 {cartShippingOptions.melhorEnvio?.map((option: any) => (
                                   <label key={option.id} className="flex items-center justify-between cursor-pointer">
                                     <div className="flex items-center gap-3">
@@ -1019,7 +985,7 @@ export default function CheckoutPage() {
                                   </label>
                                 ))}
 
-                                {!cartShippingOptions.juma && cartShippingOptions.melhorEnvio?.length === 0 && (
+                                {cartShippingOptions.melhorEnvio?.length === 0 && (
                                   <p className="text-body-sm text-text-muted py-2">
                                     Nenhuma opção de frete disponível para este endereço.
                                   </p>

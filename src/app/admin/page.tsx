@@ -31,7 +31,6 @@ import {
   Clock,
   Image,
   GripVertical,
-  Bike,
   Printer,
   ExternalLink
 } from "lucide-react";
@@ -47,13 +46,15 @@ type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro
 interface BolsaUniformePayment {
   id: string;
   user_id: string;
+  order_id?: string | null;
   // Carregado apenas ao abrir “Ver detalhes” (evita payload gigante no list)
   qr_code_image?: string | null;
-  status: "pending" | "approved" | "rejected";
+  status: “pending” | “approved” | “rejected”;
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
   total_amount: number;
+  shipping_amount?: number;
   items?: any;
   shipping_address?: any;
   notes: string | null;
@@ -475,7 +476,14 @@ export default function AdminPage() {
     { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
   ];
 
+  const BOLSA_STATUSES = [
+    { value: 'pending',  label: 'Pendente',  color: 'bg-yellow-100 text-yellow-700' },
+    { value: 'approved', label: 'Aprovado',  color: 'bg-green-100 text-green-700'  },
+    { value: 'rejected', label: 'Rejeitado', color: 'bg-red-100 text-red-700'      },
+  ];
+
   const getStatusInfo = (status: string) => ORDER_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
+  const getBolsaStatusInfo = (status: string) => BOLSA_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
 
   const updateOrderStatus = async (id: string, status: string) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
@@ -500,43 +508,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleJumaDispatch = async (order: Order) => {
-    const confirmed = window.confirm(
-      `Confirma chamar motoboy Juma para o pedido #${order.id.slice(0, 8)}?`
-    );
-    if (!confirmed) return;
-
-    try {
-      const token = getAdminToken();
-      if (!token) { handleLogout(); return; }
-
-      const addr = order.shipping_address || {};
-      const { data, error } = await supabase.functions.invoke("juma-dispatch", {
-        body: {
-          token,
-          orderId: order.id,
-          deliveryAddress: {
-            street: addr.street || addr.rua || "",
-            number: addr.number || addr.numero || "S/N",
-            neighborhood: addr.neighborhood || addr.bairro || "",
-            city: addr.city || addr.cidade || "Anápolis",
-            state: addr.state || addr.estado || "GO",
-            recipientName: addr.recipientName || addr.nome || "Cliente",
-            recipientPhone: addr.recipientPhone || addr.telefone || "",
-          },
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-
-      toast.success(`Motoboy Juma solicitado! ${data.duration || ""}`);
-      updateOrderStatus(order.id, "shipped");
-    } catch (err: any) {
-      console.error("Juma dispatch error:", err);
-      toast.error(`Erro ao chamar Juma: ${err.message}`);
-    }
-  };
 
   const openLabelModal = async (order: Order) => {
     setLabelOrder(order);
@@ -596,7 +567,7 @@ export default function AdminPage() {
 
   const updatePaymentStatus = async (id: string, status: string) => {
     setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
-    
+
     try {
       const token = getAdminToken();
       if (!token) { handleLogout(); return; }
@@ -608,13 +579,38 @@ export default function AdminPage() {
       if (response.error || response.data?.error) {
         throw new Error(response.error?.message || response.data?.error);
       }
-      
-      toast.success("Status atualizado!");
+
+      // Se aprovado e um pedido foi criado, atualizar o order_id local
+      if (status === 'approved' && response.data?.orderId) {
+        setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, order_id: response.data.orderId } : p));
+      }
+
+      toast.success(status === 'approved' ? "Pagamento aprovado! Pedido criado." : "Status atualizado!");
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Erro ao atualizar pagamento");
       reloadSection('bolsa');
     }
+  };
+
+  const openBolsaLabelModal = (payment: BolsaUniformePayment) => {
+    if (!payment.order_id) {
+      toast.error("Pedido ainda não foi criado. Aprove o pagamento primeiro.");
+      return;
+    }
+    // Montar objeto Order mínimo — o edge function busca os dados completos via service role
+    const syntheticOrder: Order = {
+      id: payment.order_id,
+      user_id: payment.user_id,
+      subtotal: Number(payment.total_amount) || 0,
+      shipping: Number(payment.shipping_amount) || 0,
+      total: (Number(payment.total_amount) || 0) + (Number(payment.shipping_amount) || 0),
+      status: "paid",
+      payment_method: "bolsa_uniforme",
+      shipping_address: payment.shipping_address || {},
+      created_at: payment.created_at,
+    };
+    openLabelModal(syntheticOrder);
   };
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
@@ -806,8 +802,8 @@ export default function AdminPage() {
       }
 
       toast.success(isNew ? "Produto criado!" : "Produto atualizado!");
-      // Reload silently to get the real ID for new products (don't show error if this fails)
-      if (isNew) reloadSection('products', true);
+      // Reload to confirm the save and get updated data from DB
+      reloadSection('products', true);
     } catch (error) {
       console.error("Error saving product:", error);
       toast.error("Erro ao salvar produto");
@@ -1489,15 +1485,6 @@ export default function AdminPage() {
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex flex-col gap-1.5">
-                                {order.status === "separating" && order.shipping_address && (
-                                  <button
-                                    onClick={() => handleJumaDispatch(order)}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 transition-colors"
-                                  >
-                                    <Bike className="w-3.5 h-3.5" />
-                                    Chamar Juma
-                                  </button>
-                                )}
                                 {order.shipping > 0 && order.shipping_address?.cep && !order.shipping_address?.label_url && (
                                   <button
                                     onClick={() => openLabelModal(order)}
@@ -1597,9 +1584,9 @@ export default function AdminPage() {
                               value={payment.status}
                               onChange={(e) => { e.stopPropagation(); updatePaymentStatus(payment.id, e.target.value); }}
                               onClick={(e) => e.stopPropagation()}
-                              className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(payment.status).color}`}
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getBolsaStatusInfo(payment.status).color}`}
                             >
-                              {ORDER_STATUSES.map(s => (
+                              {BOLSA_STATUSES.map(s => (
                                 <option key={s.value} value={s.value}>{s.label}</option>
                               ))}
                             </select>
@@ -1653,7 +1640,7 @@ export default function AdminPage() {
                                     </div>
                                   </div>
 
-                                  <div className="mt-3 flex gap-2">
+                                  <div className="mt-3 flex flex-wrap gap-2">
                                     <a
                                       href={formatWhatsAppLink(payment.customer_phone)}
                                       target="_blank"
@@ -1663,6 +1650,15 @@ export default function AdminPage() {
                                       <MessageCircle className="w-3.5 h-3.5" />
                                       WhatsApp
                                     </a>
+                                    {payment.status === 'approved' && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openBolsaLabelModal(payment); }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                      >
+                                        <Printer className="w-3.5 h-3.5" />
+                                        Emitir Etiqueta ME
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               </motion.div>

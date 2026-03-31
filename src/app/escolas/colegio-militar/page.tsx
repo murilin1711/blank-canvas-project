@@ -37,6 +37,7 @@ type Product = {
   images: string[];
   category: string;
   sizes: string[];
+  free_shipping: boolean;
 };
 
 /* -------------------- Componente -------------------- */
@@ -76,6 +77,7 @@ export default function LojaEstiloOsklen() {
             : (p.image_url ? [p.image_url] : []),
           category: p.category || "Outros",
           sizes: p.sizes || ["P", "M", "G", "GG"],
+          free_shipping: p.free_shipping || false,
         }));
         setProducts(mapped);
         setQueryProducts(mapped);
@@ -317,6 +319,7 @@ export default function LojaEstiloOsklen() {
       size: modalSelectedSize,
       quantity: 1,
       schoolSlug: "colegio-militar",
+      freeShipping: modalProduct.free_shipping,
     });
     setOpenAddModal(false);
     setModalProduct(null);

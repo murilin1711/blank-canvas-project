@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
       // IMPORTANT: do not send qr_code_image in the list payload (it's a large base64 string)
       const { data: d } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("id, user_id, order_id, total_amount, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
+        .select("id, user_id, order_id, total_amount, shipping_amount, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
         .order("created_at", { ascending: true });
 
       result = { bolsaPayments: d || [] };
@@ -82,8 +82,65 @@ Deno.serve(async (req: Request) => {
       const { data: d } = await supabase.from("orders").select("total, created_at, status").order("created_at", { ascending: false });
       result = { orders: d || [] };
     } else if (action === 'update_payment_status') {
-      await supabase.from("bolsa_uniforme_payments").update({ status: data.status, processed_at: new Date().toISOString() }).eq("id", data.id);
-      result = { success: true };
+      const { error: payStatusError } = await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ status: data.status, processed_at: new Date().toISOString() })
+        .eq("id", data.id);
+      if (payStatusError) throw new Error(payStatusError.message);
+
+      // Quando aprovado: criar pedido + order_items e vincular ao pagamento
+      if (data.status === 'approved') {
+        const { data: payment } = await supabase
+          .from("bolsa_uniforme_payments")
+          .select("user_id, items, shipping_address, total_amount, shipping_amount")
+          .eq("id", data.id)
+          .maybeSingle();
+
+        if (payment) {
+          const shippingAmt = Number(payment.shipping_amount) || 0;
+          const subtotalAmt = Number(payment.total_amount) || 0;
+          const { data: newOrder, error: orderError } = await supabase
+            .from("orders")
+            .insert({
+              user_id: payment.user_id,
+              status: "paid",
+              payment_method: "bolsa_uniforme",
+              subtotal: subtotalAmt,
+              shipping: shippingAmt,
+              total: subtotalAmt + shippingAmt,
+              shipping_address: payment.shipping_address,
+            })
+            .select()
+            .single();
+
+          if (!orderError && newOrder) {
+            const rawItems: any[] = Array.isArray(payment.items) ? payment.items : [];
+            const orderItems = rawItems.map((item: any) => ({
+              order_id: newOrder.id,
+              product_id: item.productId || item.product_id || 0,
+              product_name: item.productName || item.product_name || "",
+              product_image: item.productImage || item.product_image || "",
+              price: item.price || 0,
+              size: item.size || "",
+              quantity: item.quantity || 1,
+            }));
+            if (orderItems.length > 0) {
+              await supabase.from("order_items").insert(orderItems);
+            }
+            await supabase
+              .from("bolsa_uniforme_payments")
+              .update({ order_id: newOrder.id })
+              .eq("id", data.id);
+            result = { success: true, orderId: newOrder.id };
+          } else {
+            result = { success: true };
+          }
+        } else {
+          result = { success: true };
+        }
+      } else {
+        result = { success: true };
+      }
     } else if (action === 'update_order_status') {
       await supabase.from("orders").update({ status: data.status, updated_at: new Date().toISOString() }).eq("id", data.id);
       result = { success: true };
@@ -100,8 +157,14 @@ Deno.serve(async (req: Request) => {
       await supabase.from("feedbacks").insert({ user_id: '00000000-0000-0000-0000-000000000000', user_name: data.user_name, rating: data.rating, comment: data.comment, is_visible: true });
       result = { success: true };
     } else if (action === 'save_product') {
-      if (data.isNew) { await supabase.from("products").insert(data.product); }
-      else { const { id, ...p } = data.product; await supabase.from("products").update(p).eq("id", id); }
+      if (data.isNew) {
+        const { error: insertError } = await supabase.from("products").insert(data.product);
+        if (insertError) throw new Error(insertError.message);
+      } else {
+        const { id, ...p } = data.product;
+        const { error: updateError } = await supabase.from("products").update(p).eq("id", id);
+        if (updateError) throw new Error(updateError.message);
+      }
       result = { success: true };
     } else if (action === 'delete_product') {
       await supabase.from("products").delete().eq("id", data.id);

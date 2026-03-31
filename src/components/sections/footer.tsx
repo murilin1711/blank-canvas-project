@@ -2,6 +2,7 @@
 
 import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { useState } from "react";
+import { MessageCircle, Mail, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -131,8 +132,12 @@ interface FooterSection {
   links: FooterLink[];
 }
 
+const WHATSAPP_CONTACT = "https://wa.me/5562991121586?text=Ol%C3%A1!%20Gostaria%20de%20entrar%20em%20contato%20com%20a%20GM%20Minas.";
+const EMAIL_CONTACT = "mailto:suporte@goiasminas.com";
+
 const Footer = () => {
   const [openPolicy, setOpenPolicy] = useState<keyof typeof POLICY_CONTENT | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   const footerSections: FooterSection[] = [
     {
@@ -147,8 +152,8 @@ const Footer = () => {
       title: "Minha conta",
       links: [
         { label: "Meus pedidos", href: "/meus-pedidos", isInternal: true },
-        { label: "Meus dados", href: "#" },
-        { label: "Meu perfil", href: "#" },
+        { label: "Meus dados", href: "/auth", isInternal: true },
+        { label: "Meu perfil", href: "/auth", isInternal: true },
       ],
     },
     {
@@ -242,11 +247,12 @@ const Footer = () => {
                   Fale conosco
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {footerSections[2].links.map((link) => (
-                    <a key={link.label} href={link.href} className={linkClassName}>
-                      {link.label}
-                    </a>
-                  ))}
+                  <button
+                    onClick={() => setShowContactModal(true)}
+                    className={linkClassName}
+                  >
+                    Fale conosco
+                  </button>
                 </div>
               </div>
             </div>
@@ -264,6 +270,50 @@ const Footer = () => {
       </footer>
 
       <PolicyModal policyKey={openPolicy} onClose={() => setOpenPolicy(null)} />
+
+      {/* Modal Fale Conosco */}
+      {showContactModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowContactModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-gray-900">Fale Conosco</h2>
+              <button
+                onClick={() => setShowContactModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-5">Escolha como prefere entrar em contato:</p>
+            <div className="flex flex-col gap-3">
+              <a
+                href={WHATSAPP_CONTACT}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setShowContactModal(false)}
+                className="flex items-center gap-3 px-4 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+                WhatsApp
+              </a>
+              <a
+                href={EMAIL_CONTACT}
+                onClick={() => setShowContactModal(false)}
+                className="flex items-center gap-3 px-4 py-3 bg-gray-100 text-gray-800 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                <Mail className="w-5 h-5" />
+                suporte@goiasminas.com
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
