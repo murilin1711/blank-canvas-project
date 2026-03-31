@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, Package, ArrowRight, ShoppingBag, Home } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import CheckoutFooter from "@/components/sections/checkout-footer";
