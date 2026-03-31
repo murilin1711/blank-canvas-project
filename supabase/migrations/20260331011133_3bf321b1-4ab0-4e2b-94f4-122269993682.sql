@@ -1,0 +1,1 @@
+ALTER TABLE public.bolsa_uniforme_payments ADD COLUMN IF NOT EXISTS shipping_amount NUMERIC NOT NULL DEFAULT 0;
