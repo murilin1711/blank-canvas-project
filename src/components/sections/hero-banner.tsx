@@ -250,12 +250,25 @@ const HeroBanner = () => {
                   <source src={slide.url} type="video/mp4" />
                 </video> :
 
-            <img
-              src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
-              className="h-full w-full object-cover"
-              alt="Banner slide"
-              loading={index === 0 ? 'eager' : 'lazy'}
-              fetchPriority={index === 0 ? 'high' : 'low'} />
+            <>
+              {isMobile && (
+                <div className="absolute inset-0 overflow-hidden">
+                  <img
+                    src={'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
+                    className="h-full w-full object-cover blur-2xl scale-110 opacity-70"
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+                </div>
+              )}
+              <img
+                src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
+                className={`relative z-10 h-full w-full ${isMobile ? 'object-contain' : 'object-cover'}`}
+                alt="Banner slide"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : 'low'} />
+            </>
 
             }
 
