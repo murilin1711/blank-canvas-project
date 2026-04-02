@@ -189,7 +189,7 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted, isMobile]);
 
   return (
-    <section className="relative w-full min-h-[100svh] overflow-hidden">
+    <section className="relative w-full aspect-[3/4] md:aspect-auto md:min-h-[100svh] overflow-hidden">
       
       {/* Background Videos - SEMPRE sem áudio */}
       <div className="absolute inset-0 z-0">
@@ -222,12 +222,12 @@ const HeroBanner = () => {
       {/* Slides Container */}
       <div
         id="hero-banner"
-        className="relative z-10 w-full h-full min-h-[100svh]"
+        className="relative z-10 w-full h-full"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}>
 
-        <div className="relative w-full h-full min-h-[100svh]">
+        <div className="relative w-full h-full">
           
           {slides.map((slide, index) =>
           <div
@@ -250,25 +250,12 @@ const HeroBanner = () => {
                   <source src={slide.url} type="video/mp4" />
                 </video> :
 
-            <>
-              {isMobile && (
-                <div className="absolute inset-0 overflow-hidden">
-                  <img
-                    src={'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
-                    className="h-full w-full object-cover blur-2xl scale-110 opacity-70"
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
-                </div>
-              )}
-              <img
-                src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
-                className={`relative z-10 h-full w-full ${isMobile ? 'object-contain' : 'object-cover'}`}
-                alt="Banner slide"
-                loading={index === 0 ? 'eager' : 'lazy'}
-                fetchPriority={index === 0 ? 'high' : 'low'} />
-            </>
+            <img
+              src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
+              className="h-full w-full object-cover"
+              alt="Banner slide"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'low'} />
 
             }
 
