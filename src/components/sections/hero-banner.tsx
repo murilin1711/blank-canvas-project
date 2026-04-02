@@ -189,7 +189,7 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted, isMobile]);
 
   return (
-    <section className="relative w-full aspect-[3/4] md:aspect-auto md:min-h-[100svh] overflow-hidden">
+    <section className="relative w-full aspect-[3/4] md:aspect-auto md:min-h-[100svh] overflow-hidden mt-[80px] md:mt-0">
       
       {/* Background Videos - SEMPRE sem áudio */}
       <div className="absolute inset-0 z-0">
