@@ -137,7 +137,7 @@ export function MercadoPagoPixPayment({
     const checkPayment = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("check-pix-payment", {
-          body: { paymentId: paymentData.paymentId },
+          body: { paymentId: paymentData.paymentId, orderId: paymentData.orderId },
         });
 
         if (error) {
@@ -180,7 +180,7 @@ export function MercadoPagoPixPayment({
     setIsCheckingPayment(true);
     try {
       const { data, error } = await supabase.functions.invoke("check-pix-payment", {
-        body: { paymentId: paymentData.paymentId },
+        body: { paymentId: paymentData.paymentId, orderId: paymentData.orderId },
       });
 
       if (error) {

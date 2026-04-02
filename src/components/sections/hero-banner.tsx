@@ -14,6 +14,7 @@ const slides = [
 {
   type: 'image' as const,
   url: bannerBolsaUniforme,
+  mobileUrl: '/banner-bolsa-uniforme-mobile.jpg',
   title: "",
   link: ""
 },
@@ -250,7 +251,7 @@ const HeroBanner = () => {
                 </video> :
 
             <img
-              src={slide.url}
+              src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
               className="h-full w-full object-cover"
               alt="Banner slide"
               loading={index === 0 ? 'eager' : 'lazy'}
