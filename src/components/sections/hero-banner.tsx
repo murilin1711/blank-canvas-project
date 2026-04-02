@@ -15,7 +15,6 @@ const slides = [
   type: 'image' as const,
   url: bannerBolsaUniforme,
   mobileUrl: '/banner-bolsa-uniforme-mobile.jpg',
-  mobileFit: 'contain',
   title: "",
   link: ""
 },
@@ -253,7 +252,7 @@ const HeroBanner = () => {
 
             <img
               src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
-              className={`h-full w-full ${isMobile && 'mobileFit' in slide && slide.mobileFit === 'contain' ? 'object-contain bg-black' : 'object-cover'}`}
+              className="h-full w-full object-cover"
               alt="Banner slide"
               loading={index === 0 ? 'eager' : 'lazy'}
               fetchPriority={index === 0 ? 'high' : 'low'} />
