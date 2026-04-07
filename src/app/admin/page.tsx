@@ -613,6 +613,34 @@ export default function AdminPage() {
     }
   };
 
+  const handleReprint = async (order: Order) => {
+    const token = getAdminToken();
+    if (!token) { handleLogout(); return; }
+
+    const toastId = toast.loading("Obtendo URL de impressão...");
+    try {
+      const { data, error } = await supabase.functions.invoke("melhor-envio-label", {
+        body: { action: "reprint", token, orderId: order.id },
+      });
+
+      if (error || data?.error) throw new Error(error?.message || data?.error);
+
+      // Atualiza label_url localmente
+      setOrders(prev => prev.map(o =>
+        o.id === order.id
+          ? { ...o, shipping_address: { ...o.shipping_address, label_url: data.labelUrl } }
+          : o
+      ));
+
+      toast.dismiss(toastId);
+      toast.success("URL atualizada!");
+      window.open(data.labelUrl, "_blank");
+    } catch (err: any) {
+      toast.dismiss(toastId);
+      toast.error(`Erro ao reimprimir: ${err.message}`);
+    }
+  };
+
   const updatePaymentStatus = async (id: string, status: string) => {
     setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
 
@@ -1549,16 +1577,14 @@ export default function AdminPage() {
                                     Etiqueta ME
                                   </button>
                                 )}
-                                {order.shipping_address?.label_url && (
-                                  <a
-                                    href={order.shipping_address.label_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                {order.shipping_address?.me_order_id && (
+                                  <button
+                                    onClick={() => handleReprint(order)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
                                   >
                                     <ExternalLink className="w-3.5 h-3.5" />
                                     Imprimir
-                                  </a>
+                                  </button>
                                 )}
                               </div>
                             </td>
@@ -2535,21 +2561,13 @@ export default function AdminPage() {
                       </p>
                     )}
                   </div>
-                  {labelResult.labelUrl ? (
-                    <a
-                      href={labelResult.labelUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      <Printer className="w-4 h-4" />
-                      Abrir e Imprimir Etiqueta
-                    </a>
-                  ) : (
-                    <p className="text-sm text-gray-500 text-center">
-                      Link de impressão será disponibilizado pelo Melhor Envio em instantes.
-                    </p>
-                  )}
+                  <button
+                    onClick={() => labelOrder && handleReprint(labelOrder)}
+                    className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Abrir e Imprimir Etiqueta
+                  </button>
                   <button
                     onClick={() => { setLabelOrder(null); setLabelResult(null); }}
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors"

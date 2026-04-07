@@ -302,13 +302,20 @@ serve(async (req) => {
         if (printRes.redirected) {
           labelUrl = printRes.url;
         } else {
-          const contentType = printRes.headers.get("content-type") || "";
-          if (contentType.includes("application/json")) {
+          // Sempre tenta parsear como JSON independente do content-type
+          // pois o ME às vezes retorna application/json com content-type errado
+          try {
             const printData = await printRes.json();
             labelUrl = printData?.url || printData?.link || null;
-          } else {
-            // É o PDF direto — construir URL de impressão autenticada para o admin usar
-            labelUrl = `${ME_API}/me/shipment/print?orders[]=${meOrderId}&mode=public`;
+          } catch {
+            // Se não for JSON, tenta extrair URL do texto
+            try {
+              const text = await printRes.text();
+              const match = text.match(/https?:\/\/[^\s"'<>]+/);
+              if (match) labelUrl = match[0];
+            } catch {
+              // não foi possível extrair URL
+            }
           }
         }
       }
@@ -333,7 +340,65 @@ serve(async (req) => {
       );
     }
 
-    return new Response(JSON.stringify({ error: "Ação inválida. Use: quote ou generate" }), {
+    // ── ACTION: reprint ───────────────────────────────────────────────────────
+    // Recupera (ou regenera) a URL de impressão de um pedido já gerado
+    if (action === "reprint") {
+      if (!orderId) throw new Error("orderId é obrigatório");
+
+      const { data: order } = await supabase
+        .from("orders")
+        .select("shipping_address")
+        .eq("id", orderId)
+        .single();
+
+      if (!order) throw new Error("Pedido não encontrado");
+
+      const meOrderId = order.shipping_address?.me_order_id;
+      if (!meOrderId) throw new Error("Etiqueta ainda não foi gerada para este pedido");
+
+      const printRes = await meFetch(
+        `/me/shipment/print?orders[]=${meOrderId}&mode=public`,
+        meToken,
+        { method: "GET" },
+      );
+
+      let labelUrl: string | null = null;
+      if (printRes.ok) {
+        if (printRes.redirected) {
+          labelUrl = printRes.url;
+        } else {
+          try {
+            const printData = await printRes.json();
+            labelUrl = printData?.url || printData?.link || null;
+          } catch {
+            try {
+              const text = await printRes.text();
+              const match = text.match(/https?:\/\/[^\s"'<>]+/);
+              if (match) labelUrl = match[0];
+            } catch {
+              // não foi possível extrair URL
+            }
+          }
+        }
+      }
+
+      if (!labelUrl) throw new Error("Não foi possível obter a URL de impressão. Verifique se a etiqueta ainda está disponível no Melhor Envio.");
+
+      // Atualizar label_url salva no pedido
+      await supabase
+        .from("orders")
+        .update({
+          shipping_address: { ...order.shipping_address, label_url: labelUrl },
+        })
+        .eq("id", orderId);
+
+      return new Response(
+        JSON.stringify({ success: true, labelUrl }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    return new Response(JSON.stringify({ error: "Ação inválida. Use: quote, generate ou reprint" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
