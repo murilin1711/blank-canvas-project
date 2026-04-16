@@ -2,37 +2,29 @@
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
-import bannerBolsaUniforme from '@/assets/banner-bolsa-uniforme.webp';
+import { supabase } from '@/integrations/supabase/client';
 
-const slides = [
-{
-  type: 'video' as const,
-  url: '/videos/hero-video.mp4',
-  title: "",
-  link: ""
-},
-{
-  type: 'image' as const,
-  url: bannerBolsaUniforme,
-  mobileUrl: '/banner-bolsa-uniforme-mobile.jpg',
-  title: "",
-  link: ""
-},
-{
-  type: 'image' as const,
-  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goiasminas-1765250868843.jpg?width=1920&height=1080&resize=cover',
-  title: "",
-  link: ""
-},
-{
-  type: 'image' as const,
-  url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/Uniforme-escolar-com-qualidade-e-conforto-Apresentamos-as-camisetas-da-Escola-Decisivo-Jun-1765250868958.jpg?width=1920&height=1080&resize=cover',
-  title: "",
-  link: ""
-}];
+interface Slide {
+  type: 'video' | 'image';
+  url: string;
+  mobileUrl?: string | null;
+  title: string;
+  link: string;
+}
+
+const FALLBACK_SLIDES: Slide[] = [
+  { type: 'video', url: '/videos/hero-video.mp4', title: '', link: '' },
+  {
+    type: 'image',
+    url: 'https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/goiasminas-1765250868843.jpg?width=1920&height=1080&resize=cover',
+    title: '',
+    link: '',
+  },
+];
 
 
 const HeroBanner = () => {
+  const [slides, setSlides] = useState<Slide[]>(FALLBACK_SLIDES);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -40,6 +32,28 @@ const HeroBanner = () => {
   const [isMobile, setIsMobile] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
+
+  // Fetch slides from Supabase
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('banner_slides')
+      .select('type, url, mobile_url, title, link')
+      .eq('is_active', true)
+      .order('display_order', { ascending: true })
+      .then(({ data, error }: { data: any[] | null; error: any }) => {
+        if (error || !data || data.length === 0) return;
+        setSlides(
+          data.map((s) => ({
+            type: s.type as 'video' | 'image',
+            url: s.url,
+            mobileUrl: s.mobile_url,
+            title: s.title || '',
+            link: s.link || '',
+          }))
+        );
+      });
+  }, []);
 
   // Detecta se é mobile
   useEffect(() => {

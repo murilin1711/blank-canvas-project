@@ -32,7 +32,8 @@ import {
   Image,
   GripVertical,
   Printer,
-  ExternalLink
+  ExternalLink,
+  Layers
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -40,8 +41,9 @@ import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 import ProductFormModal from "@/components/admin/ProductFormModal";
 import CategoryFilter from "@/components/admin/CategoryFilter";
 import CategoryManager from "@/components/admin/CategoryManager";
+import BannerManager from "@/components/admin/BannerManager";
 
-type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes";
+type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes" | "banner";
 
 interface BolsaUniformePayment {
   id: string;
@@ -184,6 +186,8 @@ export default function AdminPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<CustomerData[]>([]);
+  const [bannerSlides, setBannerSlides] = useState<any[]>([]);
+  const [loadingBanner, setLoadingBanner] = useState(false);
 
   // Modal states
   const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
@@ -426,7 +430,27 @@ export default function AdminPage() {
 
   // Reload specific section only (for optimistic updates)
   // silent: true = don't show error toast (used after successful save operations)
-  const reloadSection = async (section: 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers', silent = false) => {
+  const reloadSection = async (section: 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers' | 'banner', silent = false) => {
+    // Banner slides are loaded directly from Supabase, not via edge function
+    if (section === 'banner') {
+      setLoadingBanner(true);
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from('banner_slides')
+          .select('*')
+          .order('display_order', { ascending: true });
+        if (error) throw error;
+        setBannerSlides(data || []);
+      } catch (error) {
+        console.error('Error loading banner slides:', error);
+        if (!silent) toast.error('Erro ao carregar slides do banner.');
+      } finally {
+        setLoadingBanner(false);
+      }
+      return;
+    }
+
     const sectionMap = {
       bolsa: { action: 'get_bolsa_payments', setter: setBolsaPayments, key: 'bolsaPayments', loader: setLoadingBolsa },
       orders: { action: 'get_orders', setter: setOrders, key: 'orders', loader: setLoadingOrders },
@@ -435,9 +459,9 @@ export default function AdminPage() {
       customers: { action: 'get_customers', setter: setCustomers, key: 'customers', loader: setLoadingCustomers },
     };
 
-    const config = sectionMap[section];
+    const config = sectionMap[section as keyof typeof sectionMap];
     config.loader(true);
-    
+
     const token = getAdminToken();
     if (!token) {
       config.loader(false);
@@ -473,13 +497,14 @@ export default function AdminPage() {
   };
 
   // Map tab to section key
-  const tabToSection: Record<Tab, 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers' | null> = {
+  const tabToSection: Record<Tab, 'bolsa' | 'orders' | 'products' | 'feedbacks' | 'customers' | 'banner' | null> = {
     'pedidos': 'orders',
     'bolsa-uniforme': 'bolsa',
     'produtos': 'products',
     'feedbacks': 'feedbacks',
     'financeiro': 'orders', // Financeiro uses orders data
     'clientes': 'customers',
+    'banner': 'banner',
   };
 
   // Load section on demand when tab changes
@@ -1394,6 +1419,7 @@ export default function AdminPage() {
     { key: "feedbacks" as Tab, label: "Feedbacks", icon: Star },
     { key: "financeiro" as Tab, label: "Financeiro", icon: DollarSign },
     { key: "clientes" as Tab, label: "Clientes", icon: Users },
+    { key: "banner" as Tab, label: "Banner Home", icon: Layers },
   ];
 
   const financials = calculateFinancials();
@@ -2248,6 +2274,15 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Banner Tab */}
+          {activeTab === "banner" && (
+            <BannerManager
+              slides={bannerSlides}
+              loading={loadingBanner}
+              onRefresh={() => reloadSection('banner', true)}
+            />
           )}
         </main>
       </div>
