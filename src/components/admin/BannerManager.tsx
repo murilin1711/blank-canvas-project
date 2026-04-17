@@ -28,9 +28,8 @@ interface BannerSlide {
   type: "video" | "image";
   url: string;
   mobile_url: string | null;
-  title: string | null;
-  link: string | null;
   display_order: number;
+  interval_seconds: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -39,9 +38,8 @@ interface SlideForm {
   type: "video" | "image";
   url: string;
   mobile_url: string;
-  title: string;
-  link: string;
   display_order: number;
+  interval_seconds: number;
   is_active: boolean;
 }
 
@@ -49,9 +47,8 @@ const emptyForm = (): SlideForm => ({
   type: "image",
   url: "",
   mobile_url: "",
-  title: "",
-  link: "",
   display_order: 0,
+  interval_seconds: 5,
   is_active: true,
 });
 
@@ -84,9 +81,8 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
       type: slide.type,
       url: slide.url,
       mobile_url: slide.mobile_url || "",
-      title: slide.title || "",
-      link: slide.link || "",
       display_order: slide.display_order,
+      interval_seconds: slide.interval_seconds ?? 5,
       is_active: slide.is_active,
     });
     setShowModal(true);
@@ -138,9 +134,8 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
         type: form.type,
         url: form.url.trim(),
         mobile_url: form.mobile_url.trim() || null,
-        title: form.title.trim(),
-        link: form.link.trim(),
         display_order: form.display_order,
+        interval_seconds: form.interval_seconds,
         is_active: form.is_active,
       };
 
@@ -320,15 +315,12 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                     >
                       {slide.type === "video" ? "Vídeo" : "Imagem"}
                     </span>
-                    {slide.title && (
-                      <span className="text-sm font-medium text-gray-900 truncate">
-                        {slide.title}
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-gray-400 truncate mt-0.5">{slide.url}</p>
-                  {slide.link && (
-                    <p className="text-xs text-blue-500 truncate">Link: {slide.link}</p>
+                  {slide.type === "image" && (
+                    <p className="text-xs text-gray-400">
+                      ⏱ {slide.interval_seconds ?? 5}s
+                    </p>
                   )}
                 </div>
 
@@ -540,33 +532,28 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                   </div>
                 )}
 
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Título <span className="text-gray-400 font-normal">(opcional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                    placeholder="Texto exibido sobre o slide"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
-                  />
-                </div>
-
-                {/* Link */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Link <span className="text-gray-400 font-normal">(opcional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={form.link}
-                    onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
-                    placeholder="/escolas/colegio-militar"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
-                  />
-                </div>
+                {/* Timer (only for image slides) */}
+                {form.type === "image" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tempo no slide
+                    </label>
+                    <p className="text-xs text-gray-400 mb-2">Quantos segundos este slide fica visível antes de mudar.</p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={form.interval_seconds}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, interval_seconds: Math.max(1, Number(e.target.value)) }))
+                        }
+                        className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
+                      />
+                      <span className="text-sm text-gray-500">segundos</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Active toggle */}
                 <div className="flex items-center">
