@@ -39,7 +39,7 @@ interface SlideForm {
   url: string;
   mobile_url: string;
   display_order: number;
-  interval_seconds: number;
+  interval_seconds: string;
   is_active: boolean;
 }
 
@@ -48,7 +48,7 @@ const emptyForm = (): SlideForm => ({
   url: "",
   mobile_url: "",
   display_order: 0,
-  interval_seconds: 5,
+  interval_seconds: "5",
   is_active: true,
 });
 
@@ -82,7 +82,7 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
       url: slide.url,
       mobile_url: slide.mobile_url || "",
       display_order: slide.display_order,
-      interval_seconds: slide.interval_seconds ?? 5,
+      interval_seconds: String(slide.interval_seconds ?? 5),
       is_active: slide.is_active,
     });
     setShowModal(true);
@@ -135,7 +135,7 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
         url: form.url.trim(),
         mobile_url: form.mobile_url.trim() || null,
         display_order: form.display_order,
-        interval_seconds: form.interval_seconds,
+        interval_seconds: Math.max(1, parseInt(form.interval_seconds, 10) || 5),
         is_active: form.is_active,
       };
 
@@ -542,11 +542,10 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                     <div className="flex items-center gap-3">
                       <input
                         type="number"
-                        min={1}
-                        max={60}
+                        inputMode="numeric"
                         value={form.interval_seconds}
                         onChange={(e) =>
-                          setForm((f) => ({ ...f, interval_seconds: Math.max(1, Number(e.target.value)) }))
+                          setForm((f) => ({ ...f, interval_seconds: e.target.value }))
                         }
                         className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
                       />
