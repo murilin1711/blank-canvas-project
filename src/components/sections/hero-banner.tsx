@@ -140,7 +140,7 @@ const HeroBanner = () => {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative w-full aspect-[3/4] md:aspect-auto md:h-[65vh] overflow-hidden mt-[80px] md:mt-0">
+    <section className="relative w-full aspect-[3/4] md:aspect-[16/9] overflow-hidden mt-[80px] md:mt-0">
 
       {/* Background blur videos */}
       <div className="absolute inset-0 z-0">
