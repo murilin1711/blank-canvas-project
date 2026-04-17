@@ -139,8 +139,30 @@ const HeroBanner = () => {
   // Nothing to show yet
   if (slides.length === 0) return null;
 
+  const currentSlideData = slides[currentSlide];
+
   return (
-    <section className="relative w-full aspect-[3/4] md:aspect-auto md:h-[60vh] overflow-hidden mt-[80px] md:mt-0 md:bg-gray-50">
+    <section className="relative w-full overflow-hidden mt-[80px] md:mt-0">
+
+      {/* ── Height setters ──────────────────────────────────────────────
+          Mobile  → fixed aspect-[3/4] div (as before, looks great)
+          Desktop → transparent <img> with natural dimensions so the
+                    container height = image natural height at full width.
+                    Same src as the real slide → served from cache,
+                    no extra request.
+      ──────────────────────────────────────────────────────────────── */}
+      <div className="block md:hidden aspect-[3/4]" />
+      {currentSlideData.type === 'image' ? (
+        <img
+          key={`ph-${currentSlideData.url}`}
+          src={currentSlideData.url}
+          className="hidden md:block w-full opacity-0 pointer-events-none select-none"
+          aria-hidden="true"
+          alt=""
+        />
+      ) : (
+        <div className="hidden md:block aspect-video" />
+      )}
 
       {/* Background blur videos */}
       <div className="absolute inset-0 z-0">
@@ -197,7 +219,7 @@ const HeroBanner = () => {
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-contain md:object-contain"
+                    className="h-full w-full object-cover"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
