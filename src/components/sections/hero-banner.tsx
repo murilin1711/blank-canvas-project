@@ -140,7 +140,7 @@ const HeroBanner = () => {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative w-full aspect-[3/4] md:aspect-[16/9] overflow-hidden mt-[80px] md:mt-0">
+    <section className="relative w-full aspect-[3/4] md:aspect-[5/4] overflow-hidden mt-[80px] md:mt-0 md:bg-gray-50">
 
       {/* Background blur videos */}
       <div className="absolute inset-0 z-0">
@@ -197,7 +197,7 @@ const HeroBanner = () => {
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-contain md:object-contain"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
