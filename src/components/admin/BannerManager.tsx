@@ -12,6 +12,8 @@ import {
   Edit,
   Image,
   Video,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -188,6 +190,32 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
 
   const sorted = [...slides].sort((a, b) => a.display_order - b.display_order);
 
+  const handleMove = async (idx: number, direction: "up" | "down") => {
+    const targetIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+
+    const a = sorted[idx];
+    const b = sorted[targetIdx];
+
+    // Swap display_order values
+    const [orderA, orderB] = [a.display_order, b.display_order];
+
+    const { error: errA } = await db
+      .from("banner_slides")
+      .update({ display_order: orderB })
+      .eq("id", a.id);
+    const { error: errB } = await db
+      .from("banner_slides")
+      .update({ display_order: orderA })
+      .eq("id", b.id);
+
+    if (errA || errB) {
+      toast.error("Erro ao reordenar slides");
+    } else {
+      onRefresh();
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -234,12 +262,25 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                   slide.is_active ? "" : "opacity-50"
                 }`}
               >
-                {/* Order badge */}
-                <div className="flex items-center gap-1 text-gray-300 shrink-0">
-                  <GripVertical className="w-4 h-4" />
-                  <span className="text-xs font-mono text-gray-400 w-4 text-center">
-                    {idx + 1}
-                  </span>
+                {/* Order controls */}
+                <div className="flex flex-col items-center gap-0.5 shrink-0">
+                  <button
+                    onClick={() => handleMove(idx, "up")}
+                    disabled={idx === 0}
+                    className="p-0.5 rounded hover:bg-gray-100 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                    title="Mover para cima"
+                  >
+                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                  </button>
+                  <span className="text-xs font-mono text-gray-400 leading-none">{idx + 1}</span>
+                  <button
+                    onClick={() => handleMove(idx, "down")}
+                    disabled={idx === sorted.length - 1}
+                    className="p-0.5 rounded hover:bg-gray-100 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                    title="Mover para baixo"
+                  >
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  </button>
                 </div>
 
                 {/* Preview */}
@@ -511,36 +552,23 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                   />
                 </div>
 
-                {/* Order + Active */}
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Ordem</label>
-                    <input
-                      type="number"
-                      value={form.display_order}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, display_order: Number(e.target.value) }))
-                      }
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
-                    />
-                  </div>
-                  <div className="flex items-end pb-0.5">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                {/* Active toggle */}
+                <div className="flex items-center">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <div
+                      onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
+                      className={`relative w-10 h-6 rounded-full transition-colors ${
+                        form.is_active ? "bg-[#2e3091]" : "bg-gray-200"
+                      }`}
+                    >
                       <div
-                        onClick={() => setForm((f) => ({ ...f, is_active: !f.is_active }))}
-                        className={`relative w-10 h-6 rounded-full transition-colors ${
-                          form.is_active ? "bg-[#2e3091]" : "bg-gray-200"
+                        className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                          form.is_active ? "translate-x-5" : "translate-x-1"
                         }`}
-                      >
-                        <div
-                          className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                            form.is_active ? "translate-x-5" : "translate-x-1"
-                          }`}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Ativo</span>
-                    </label>
-                  </div>
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">Ativo</span>
+                  </label>
                 </div>
               </div>
 
