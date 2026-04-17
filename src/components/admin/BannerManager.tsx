@@ -14,6 +14,8 @@ import {
   Video,
   ChevronUp,
   ChevronDown,
+  Monitor,
+  Smartphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -427,23 +429,34 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                   </div>
                 </div>
 
-                {/* URL */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {form.type === "video" ? "URL do Vídeo" : "URL da Imagem"}
-                  </label>
-                  <div className="flex gap-2">
+                {/* URL fields */}
+                {form.type === "video" ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">URL do Vídeo</label>
                     <input
                       type="text"
                       value={form.url}
                       onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-                      placeholder={
-                        form.type === "video" ? "/videos/hero-video.mp4" : "https://..."
-                      }
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
+                      placeholder="/videos/hero-video.mp4"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
                     />
-                    {form.type === "image" && (
-                      <>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Desktop */}
+                    <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="w-4 h-4 text-[#2e3091]" />
+                        <span className="text-sm font-semibold text-gray-800">Computador</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={form.url}
+                          onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+                          placeholder="https://..."
+                          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
+                        />
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
@@ -462,69 +475,67 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={(e) =>
-                            handleUpload(e.target.files, "url", setUploading)
-                          }
+                          onChange={(e) => handleUpload(e.target.files, "url", setUploading)}
                         />
-                      </>
-                    )}
-                  </div>
-                  {form.url && form.type === "image" && (
-                    <div className="mt-2 w-full h-32 rounded-lg overflow-hidden bg-gray-100">
-                      <img
-                        src={form.url}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
+                      </div>
+                      {form.url && (
+                        <div className="w-full h-28 rounded-lg overflow-hidden bg-gray-100">
+                          <img
+                            src={form.url}
+                            alt="Preview desktop"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Mobile URL (only for images) */}
-                {form.type === "image" && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      URL Mobile{" "}
-                      <span className="text-gray-400 font-normal">(opcional)</span>
-                    </label>
-                    <p className="text-xs text-gray-400 mb-2">
-                      Versão da imagem otimizada para celular.
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={form.mobile_url}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, mobile_url: e.target.value }))
-                        }
-                        placeholder="https://..."
-                        className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => mobileFileInputRef.current?.click()}
-                        disabled={uploadingMobile}
-                        className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 shrink-0"
-                      >
-                        {uploadingMobile ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Upload className="w-4 h-4" />
-                        )}
-                        Upload
-                      </button>
-                      <input
-                        ref={mobileFileInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) =>
-                          handleUpload(e.target.files, "mobile_url", setUploadingMobile)
-                        }
-                      />
+                    {/* Mobile */}
+                    <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Smartphone className="w-4 h-4 text-[#2e3091]" />
+                        <span className="text-sm font-semibold text-gray-800">Celular</span>
+                        <span className="text-xs text-gray-400">(se não informado, usa a imagem do computador)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={form.mobile_url}
+                          onChange={(e) => setForm((f) => ({ ...f, mobile_url: e.target.value }))}
+                          placeholder="https://..."
+                          className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => mobileFileInputRef.current?.click()}
+                          disabled={uploadingMobile}
+                          className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 shrink-0"
+                        >
+                          {uploadingMobile ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
+                          Upload
+                        </button>
+                        <input
+                          ref={mobileFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleUpload(e.target.files, "mobile_url", setUploadingMobile)}
+                        />
+                      </div>
+                      {form.mobile_url && (
+                        <div className="w-24 h-36 rounded-lg overflow-hidden bg-gray-100 mx-auto">
+                          <img
+                            src={form.mobile_url}
+                            alt="Preview mobile"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
