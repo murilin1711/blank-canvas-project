@@ -177,13 +177,18 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
   };
 
   const handleToggleActive = async (slide: BannerSlide) => {
-    const { error } = await db
+    const newValue = !slide.is_active;
+    const { error, data } = await db
       .from("banner_slides")
-      .update({ is_active: !slide.is_active })
-      .eq("id", slide.id);
+      .update({ is_active: newValue })
+      .eq("id", slide.id)
+      .select();
     if (error) {
-      toast.error("Erro ao atualizar status");
+      console.error("Toggle error:", error);
+      toast.error(`Erro ao atualizar status: ${error.message}`);
     } else {
+      console.log("Toggle success:", data);
+      toast.success(newValue ? "Slide ativado" : "Slide desativado");
       onRefresh();
     }
   };
