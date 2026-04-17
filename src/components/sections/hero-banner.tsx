@@ -203,7 +203,7 @@ const HeroBanner = () => {
   }, [currentSlide, isMuted, isMobile]);
 
   return (
-    <section className="relative w-full aspect-[3/4] md:aspect-auto md:min-h-[100svh] overflow-hidden mt-[80px] md:mt-0">
+    <section className="relative w-full aspect-[3/4] md:aspect-auto md:h-screen overflow-hidden mt-[80px] md:mt-0">
       
       {/* Background Videos - SEMPRE sem áudio */}
       <div className="absolute inset-0 z-0">
@@ -264,12 +264,18 @@ const HeroBanner = () => {
                   <source src={slide.url} type="video/mp4" />
                 </video> :
 
-            <img
-              src={isMobile && 'mobileUrl' in slide && slide.mobileUrl ? slide.mobileUrl : slide.url}
-              className="h-full w-full object-cover"
-              alt="Banner slide"
-              loading={index === 0 ? 'eager' : 'lazy'}
-              fetchPriority={index === 0 ? 'high' : 'low'} />
+            <picture className="h-full w-full">
+              {slide.mobileUrl && (
+                <source media="(max-width: 767px)" srcSet={slide.mobileUrl} />
+              )}
+              <img
+                src={slide.url}
+                className="h-full w-full object-cover"
+                alt="Banner slide"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : 'low'}
+              />
+            </picture>
 
             }
 
