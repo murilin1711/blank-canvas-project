@@ -190,7 +190,7 @@ const HeroBanner = () => {
       {/* Slides */}
       <div
         id="hero-banner"
-        className="relative z-10 w-full h-full"
+        className="absolute inset-0 z-10"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
