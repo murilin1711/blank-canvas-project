@@ -139,55 +139,43 @@ const HeroBanner = () => {
   // Nothing to show yet
   if (slides.length === 0) return null;
 
-  const currentSlideData = slides[currentSlide];
-
   return (
-    <section className="relative w-full overflow-hidden mt-[80px] md:mt-0">
+    <section className="relative w-full aspect-[3/4] md:aspect-auto md:h-[500px] overflow-hidden mt-[80px] md:mt-0">
 
-      {/* ── Height setters ──────────────────────────────────────────────
-          Mobile  → fixed aspect-[3/4] div (as before, looks great)
-          Desktop → transparent <img> with natural dimensions so the
-                    container height = image natural height at full width.
-                    Same src as the real slide → served from cache,
-                    no extra request.
-      ──────────────────────────────────────────────────────────────── */}
-      <div className="block md:hidden aspect-[3/4]" />
-      {currentSlideData.type === 'image' ? (
-        <img
-          key={`ph-${currentSlideData.url}`}
-          src={currentSlideData.url}
-          className="hidden md:block w-full opacity-0 pointer-events-none select-none"
-          aria-hidden="true"
-          alt=""
-        />
-      ) : (
-        <div className="hidden md:block aspect-video" />
-      )}
-
-      {/* Background blur videos */}
+      {/* Background layer — blurred image/video fills any empty space */}
       <div className="absolute inset-0 z-0">
-        {slides.map((slide, index) =>
-          slide.type === 'video' ? (
-            <div
-              key={`bg-${index}`}
-              className={`absolute inset-0 transition-opacity duration-500 ${index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-            >
-              <video
-                ref={(el) => { bgVideoRefs.current[index] = el; }}
+        {slides.map((slide, index) => (
+          <div
+            key={`bg-${index}`}
+            className={`absolute inset-0 transition-opacity duration-500 ${index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          >
+            {slide.type === 'video' ? (
+              <>
+                <video
+                  ref={(el) => { bgVideoRefs.current[index] = el; }}
+                  className="w-full h-full object-cover blur-md scale-110"
+                  autoPlay loop muted playsInline
+                  preload={index === 0 ? 'metadata' : 'none'}
+                  aria-hidden="true"
+                >
+                  <source src={slide.url} type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
+              </>
+            ) : (
+              <img
+                src={slide.url}
                 className="w-full h-full object-cover blur-md scale-110"
-                autoPlay loop muted playsInline
-                preload={index === 0 ? 'metadata' : 'none'}
+                alt=""
                 aria-hidden="true"
-              >
-                <source src={slide.url} type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
-            </div>
-          ) : null
-        )}
+                loading={index === 0 ? 'eager' : 'lazy'}
+              />
+            )}
+          </div>
+        ))}
       </div>
 
-      {/* Slides */}
+      {/* Foreground slides */}
       <div
         id="hero-banner"
         className="absolute inset-0 z-10"
@@ -213,20 +201,19 @@ const HeroBanner = () => {
                   <source src={slide.url} type="video/mp4" />
                 </video>
               ) : (
-                <picture className="h-full w-full">
+                <picture className="h-full w-full block">
                   {slide.mobileUrl && (
                     <source media="(max-width: 767px)" srcSet={slide.mobileUrl} />
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover md:object-contain"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
                   />
                 </picture>
               )}
-              <div className="absolute inset-0 z-10 bg-black/5" />
             </div>
           ))}
 
