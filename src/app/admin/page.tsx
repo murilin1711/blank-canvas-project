@@ -33,7 +33,8 @@ import {
   GripVertical,
   Printer,
   ExternalLink,
-  Layers
+  Layers,
+  BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -42,8 +43,9 @@ import ProductFormModal from "@/components/admin/ProductFormModal";
 import CategoryFilter from "@/components/admin/CategoryFilter";
 import CategoryManager from "@/components/admin/CategoryManager";
 import BannerManager from "@/components/admin/BannerManager";
+import StockManager from "@/components/admin/StockManager";
 
-type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes" | "banner";
+type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes" | "banner" | "estoque";
 
 interface BolsaUniformePayment {
   id: string;
@@ -505,6 +507,7 @@ export default function AdminPage() {
     'financeiro': 'orders', // Financeiro uses orders data
     'clientes': 'customers',
     'banner': 'banner',
+    'estoque': 'products', // Estoque needs products data
   };
 
   // Load section on demand when tab changes
@@ -1420,6 +1423,7 @@ export default function AdminPage() {
     { key: "financeiro" as Tab, label: "Financeiro", icon: DollarSign },
     { key: "clientes" as Tab, label: "Clientes", icon: Users },
     { key: "banner" as Tab, label: "Banner Home", icon: Layers },
+    { key: "estoque" as Tab, label: "Estoque", icon: BarChart3 },
   ];
 
   const financials = calculateFinancials();
@@ -2283,6 +2287,10 @@ export default function AdminPage() {
               loading={loadingBanner}
               onRefresh={() => reloadSection('banner', true)}
             />
+          )}
+
+          {activeTab === "estoque" && (
+            <StockManager products={products} />
           )}
         </main>
       </div>
