@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Package, 
-  Users, 
-  Menu, 
-  X, 
-  Check, 
-  XCircle, 
+import {
+  Package,
+  Users,
+  Menu,
+  X,
+  Check,
+  XCircle,
   MessageCircle,
   RefreshCw,
   LogOut,
@@ -18,12 +18,14 @@ import {
   ChevronDown,
   ChevronUp,
   Bike,
+  BarChart3,
 } from "lucide-react";
+import StockManager from "@/components/admin/StockManager";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 
-type Tab = "pedidos" | "bolsa-uniforme" | "feedbacks" | "clientes";
+type Tab = "pedidos" | "bolsa-uniforme" | "feedbacks" | "clientes" | "estoque";
 
 interface BolsaUniformePayment {
   id: string;
@@ -113,6 +115,8 @@ export default function CaixaPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [customers, setCustomers] = useState<CustomerData[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // Modal states
   const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
@@ -260,19 +264,37 @@ export default function CaixaPage() {
     }
   };
 
-  const tabToSection: Record<Tab, 'bolsa' | 'orders' | 'feedbacks' | 'customers'> = {
+  const tabToSection: Record<Tab, 'bolsa' | 'orders' | 'feedbacks' | 'customers' | null> = {
     'pedidos': 'orders',
     'bolsa-uniforme': 'bolsa',
     'feedbacks': 'feedbacks',
     'clientes': 'customers',
+    'estoque': null,
+  };
+
+  const loadProducts = async () => {
+    if (loadedSections.has('products')) return;
+    setLoadingProducts(true);
+    const { data } = await supabase
+      .from('products')
+      .select('id, name, sizes, image_url, images, is_active')
+      .order('name');
+    if (data) setProducts(data);
+    setLoadingProducts(false);
+    setLoadedSections(prev => new Set(prev).add('products'));
   };
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    
+
     const section = tabToSection[activeTab];
-    
-    if (!loadedSections.has(section)) {
+
+    if (activeTab === 'estoque') {
+      loadProducts();
+      return;
+    }
+
+    if (section && !loadedSections.has(section)) {
       reloadSection(section);
       setLoadedSections(prev => new Set(prev).add(section));
     }
@@ -473,6 +495,7 @@ export default function CaixaPage() {
     { id: "bolsa-uniforme" as Tab, label: "Bolsa Uniforme", icon: CreditCard },
     { id: "feedbacks" as Tab, label: "Feedbacks", icon: Star },
     { id: "clientes" as Tab, label: "Clientes", icon: Users },
+    { id: "estoque" as Tab, label: "Estoque", icon: BarChart3 },
   ];
 
   return (
@@ -761,6 +784,17 @@ export default function CaixaPage() {
                 ))
               )}
             </div>
+          )}
+
+          {/* Estoque Tab */}
+          {activeTab === "estoque" && (
+            loadingProducts ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="w-8 h-8 animate-spin text-[#2e3091]" />
+              </div>
+            ) : (
+              <StockManager products={products} />
+            )
           )}
 
           {/* Clientes Tab */}
