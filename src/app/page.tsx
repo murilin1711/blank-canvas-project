@@ -10,7 +10,7 @@ import Footer from '@/components/sections/footer';
 export default function Home() {
   return (
     <main className="relative min-h-screen bg-white antialiased">
-      <div className="relative">
+      <div className="relative pt-[80px]">
         <HeroBanner />
         <div className="mt-8 lg:mt-12">
           <ProductCarousel />
