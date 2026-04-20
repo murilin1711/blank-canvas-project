@@ -186,10 +186,10 @@ const TUNICA_M: ChestRow[] = [
 // Extra room (cm) the garment must have beyond the estimated body measurement.
 
 const MIN_EASE: Record<string, number> = {
-  "agasalho":        10, // loose gabardine tracksuit jacket
-  "agasalho-tectel":  8, // sportswear jacket — slightly more fitted
-  "camisa-m":        10, // social shirt masculino
-  "camisa-bege":     10, // social shirt unissex
+  "agasalho":        14, // gabardine jacket — recalibrated for base-92 formula
+  "agasalho-tectel":  6, // tectel jacket
+  "camisa-m":        12, // social shirt masculino
+  "camisa-bege":     12, // social shirt unissex
   "camisete-f":       2, // fitted blouse feminino
   "camiseta":         4, // casual unissex t-shirt
   "tunica-f":         4, // semi-fitted tunic feminino
@@ -307,7 +307,7 @@ function estimateBody(
   let waist: number;
 
   if (g === "m") {
-    chest = 96 + (bmi - 22) * 1.65 + (altura - 175) * 0.2;
+    chest = 92 + (bmi - 22) * 1.65 + (altura - 175) * 0.2;
     waist = 76 + (bmi - 22) * 2.6;
   } else {
     chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.2;
