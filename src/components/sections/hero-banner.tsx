@@ -144,7 +144,6 @@ const HeroBanner = () => {
   if (bannerLoading) {
     return (
       <section className="relative w-full mt-[80px] h-[calc(100vh-80px)] bg-gray-200 animate-pulse">
-        <div className="absolute top-0 left-0 right-0 h-[43px] bg-white z-10" />
         <div className="absolute inset-0 bg-gradient-to-b from-gray-300/50 to-gray-200/50" />
       </section>
     );
@@ -154,9 +153,6 @@ const HeroBanner = () => {
 
   return (
     <section className="relative w-full overflow-hidden mt-[80px] h-[calc(100vh-80px)]">
-
-      {/* White overlay covering logo overflow area (80px–123px) */}
-      <div className="absolute top-0 left-0 right-0 h-[43px] bg-white z-20 pointer-events-none" />
 
       {/* Foreground slides */}
       <div
