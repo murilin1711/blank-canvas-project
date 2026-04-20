@@ -1271,6 +1271,19 @@ export default function CheckoutPage() {
                     </div>
                   ) : null}
 
+                  {/* === Sem frete: pedido recebido === */}
+                  {bolsaUniformeCompleted && shipping === 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Check className="w-6 h-6 text-green-600" />
+                      </div>
+                      <p className="font-semibold text-green-800 text-lg">Bolsa Uniforme recebido!</p>
+                      <p className="text-sm text-green-700 mt-2">
+                        Vamos analisar e confirmar seu pedido em breve. Você receberá uma confirmação por e-mail.
+                      </p>
+                    </div>
+                  )}
+
                   {/* === Etapa 2: Pagar o frete após Bolsa Uniforme === */}
                   {bolsaUniformeCompleted && shipping > 0 && (
                     showShippingStripe ? (
@@ -1474,13 +1487,14 @@ export default function CheckoutPage() {
                           items: items.length
                         });
 
+                        setShowBolsaUniformeModal(false);
                         if (shipping > 0) {
                           // Frete ainda precisa ser pago com outro método
-                          setShowBolsaUniformeModal(false);
                           setBolsaUniformeCompleted(true);
                         } else {
                           // Sem frete — pedido concluído
                           clearCart();
+                          setBolsaUniformeCompleted(true);
                         }
                       }
                     } catch (err) {
