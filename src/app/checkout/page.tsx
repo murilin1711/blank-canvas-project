@@ -1352,9 +1352,9 @@ export default function CheckoutPage() {
                               <Check className="w-5 h-5 text-green-600" />
                             </div>
                             <div>
-                              <p className="font-semibold text-green-800">Produtos confirmados via Bolsa Uniforme!</p>
+                              <p className="font-semibold text-green-800">Bolsa Uniforme recebido! Vamos analisar e confirmar seu pedido.</p>
                               <p className="text-sm text-green-700 mt-0.5">
-                                R$ {subtotal.toFixed(2).replace(".", ",")} cobertos. Agora pague o frete separadamente.
+                                Produtos no valor de R$ {subtotal.toFixed(2).replace(".", ",")} aguardando confirmação. O frete precisa ser pago separadamente.
                               </p>
                             </div>
                           </div>
