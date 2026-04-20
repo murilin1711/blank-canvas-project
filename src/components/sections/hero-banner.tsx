@@ -143,7 +143,7 @@ const HeroBanner = () => {
   // Skeleton apenas enquanto carrega
   if (bannerLoading) {
     return (
-      <section className="relative w-full mt-[80px] h-[calc(100vh-80px)] bg-gray-200 animate-pulse">
+      <section className="relative w-full mt-[123px] h-[calc(100vh-123px)] bg-gray-200 animate-pulse">
         <div className="absolute inset-0 bg-gradient-to-b from-gray-300/50 to-gray-200/50" />
       </section>
     );
@@ -152,7 +152,7 @@ const HeroBanner = () => {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative w-full overflow-hidden mt-[80px] h-[calc(100vh-80px)]">
+    <section className="relative w-full overflow-hidden mt-[123px] h-[calc(100vh-123px)]">
 
       {/* Foreground slides */}
       <div
