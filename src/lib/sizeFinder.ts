@@ -186,17 +186,17 @@ const TUNICA_M: ChestRow[] = [
 // Extra room (cm) the garment must have beyond the estimated body measurement.
 
 const MIN_EASE: Record<string, number> = {
-  "agasalho":        14, // gabardine jacket — recalibrated (was 22, over-recommended G)
-  "agasalho-tectel": 10, // tectel jacket — slightly more fitted
-  "camisa-m":        16, // social shirt masculino — recalibrated (was 10, under-recommended P)
-  "camisa-bege":     16, // social shirt unissex — same standard as camisa-m
-  "camisete-f":       4, // fitted blouse feminino
-  "camiseta":        10, // casual unissex t-shirt — recalibrated (was 4, under-recommended P)
-  "tunica-f":         6, // semi-fitted tunic feminino
-  "tunica-m":         6, // tunic masculino — recalibrated (was 2)
-  "saia":             2, // skirt
-  "calca":            2, // pants — rounding safety
-  "calca-tectel":     2, // elastic waistband
+  "agasalho":        10, // loose gabardine tracksuit jacket
+  "agasalho-tectel":  8, // sportswear jacket — slightly more fitted
+  "camisa-m":        10, // social shirt masculino
+  "camisa-bege":     10, // social shirt unissex
+  "camisete-f":       2, // fitted blouse feminino
+  "camiseta":         4, // casual unissex t-shirt
+  "tunica-f":         4, // semi-fitted tunic feminino
+  "tunica-m":         2, // tunic masculino
+  "saia":             1, // rounding safety
+  "calca":            1, // rounding safety
+  "calca-tectel":     1, // elastic waistband — rounding safety
 };
 
 // ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────
@@ -307,7 +307,7 @@ function estimateBody(
   let waist: number;
 
   if (g === "m") {
-    chest = 91 + (bmi - 22) * 1.4 + (altura - 175) * 0.2;
+    chest = 96 + (bmi - 22) * 1.65 + (altura - 175) * 0.2;
     waist = 76 + (bmi - 22) * 2.6;
   } else {
     chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.2;
