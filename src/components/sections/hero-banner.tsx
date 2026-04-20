@@ -244,25 +244,6 @@ const HeroBanner = () => {
             </div>
           ))}
 
-          {/* CTA Button */}
-          {slides.map((slide, index) => (
-            slide.ctaText && slide.link ? (
-              <div
-                key={`cta-${index}`}
-                className={`absolute z-20 bottom-[22%] left-[7%] md:bottom-[20%] md:left-[8%] transition-opacity duration-500 ${
-                  index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                <button
-                  onClick={() => navigate(slide.link)}
-                  className="border border-white text-white text-sm md:text-base font-medium px-5 py-2 md:px-7 md:py-2.5 rounded-sm hover:bg-white/10 transition-colors tracking-wide"
-                >
-                  {slide.ctaText}
-                </button>
-              </div>
-            ) : null
-          ))}
-
           {/* Mute button (video slides only) */}
           {slides[currentSlide]?.type === 'video' && (
             <button
