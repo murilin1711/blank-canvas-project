@@ -186,17 +186,17 @@ const TUNICA_M: ChestRow[] = [
 // Extra room (cm) the garment must have beyond the estimated body measurement.
 
 const MIN_EASE: Record<string, number> = {
-  "agasalho":        22, // loose gabardine tracksuit jacket (adjusted for manual sizes)
-  "agasalho-tectel":  8, // sportswear jacket (tectel — slightly more fitted)
-  "camisa-m":        10, // social shirt masculino
-  "camisa-bege":     10, // social shirt unissex (same fit standard)
-  "camisete-f":       2, // fitted blouse feminino
-  "camiseta":         4, // casual unissex t-shirt
-  "tunica-f":         4, // semi-fitted tunic feminino
-  "tunica-m":         2, // tunic masculino (slightly fitted)
-  "saia":             1, // +1 prevents garment ≤ body after rounding
-  "calca":            1, // same rounding safety: ~2-4 cm full-waist ease
-  "calca-tectel":     1, // elastic waistband — same rounding safety margin
+  "agasalho":        14, // gabardine jacket — recalibrated (was 22, over-recommended G)
+  "agasalho-tectel": 10, // tectel jacket — slightly more fitted
+  "camisa-m":        16, // social shirt masculino — recalibrated (was 10, under-recommended P)
+  "camisa-bege":     16, // social shirt unissex — same standard as camisa-m
+  "camisete-f":       4, // fitted blouse feminino
+  "camiseta":        10, // casual unissex t-shirt — recalibrated (was 4, under-recommended P)
+  "tunica-f":         6, // semi-fitted tunic feminino
+  "tunica-m":         6, // tunic masculino — recalibrated (was 2)
+  "saia":             2, // skirt
+  "calca":            2, // pants — rounding safety
+  "calca-tectel":     2, // elastic waistband
 };
 
 // ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────
@@ -219,19 +219,56 @@ function detectProductType(
 ): ProductType {
   const n = normalize(productName);
 
-  if (n.includes("agasalho")) return n.includes("tectel") ? "agasalho-tectel" : "agasalho";
-  if (n.includes("tunica"))   return gender === "m" ? "tunica-m" : "tunica-f";
-  // "camiseta" must be checked before "camisete" and "camisa"
-  if (n.includes("camiseta")) return "camiseta";
+  // Agasalho / conjunto / jaqueta / blusa de frio / moletom
+  if (
+    n.includes("agasalho") ||
+    n.includes("conjunto") ||
+    n.includes("jaqueta") ||
+    n.includes("moletom") ||
+    n.includes("blusa de frio")
+  ) {
+    return n.includes("tectel") ? "agasalho-tectel" : "agasalho";
+  }
+
+  // Túnica (antes de camisa/camiseta para evitar falso match)
+  if (n.includes("tunica") || n.includes("blusa")) {
+    return gender === "m" ? "tunica-m" : "tunica-f";
+  }
+
+  // Calça (antes de camiseta para evitar match em "camiseta de malha")
+  if (
+    n.includes("calca") ||
+    n.includes("bermuda") ||
+    n.includes("short") ||
+    n.includes("shorts")
+  ) {
+    return n.includes("tectel") ? "calca-tectel" : "calca";
+  }
+
+  // Saia
+  if (n.includes("saia")) return "saia";
+
+  // Camiseta (antes de camisete/camisa)
+  if (
+    n.includes("camiseta") ||
+    n.includes("camisao") ||
+    n.includes("polo")
+  ) return "camiseta";
+
+  // Camisete feminino
   if (n.includes("camisete")) return "camisete-f";
-  if (n.includes("camisa")) {
-    if (n.includes("bege")) return "camisa-bege";
+
+  // Camisa
+  if (n.includes("camisa") || n.includes("social")) {
+    if (n.includes("bege") || n.includes("unissex")) return "camisa-bege";
     return gender === "m" ? "camisa-m" : "camisete-f";
   }
-  if (n.includes("saia"))  return "saia";
-  if (n.includes("calca")) return n.includes("tectel") ? "calca-tectel" : "calca";
-  // Fallback: numeric sizes → treat as pants
-  if (availableSizes.some(s => /^\d+$/.test(s))) return "calca";
+
+  // Fallback: tamanhos numéricos → calça/saia
+  if (availableSizes.some(s => /^\d+$/.test(s))) {
+    return gender === "f" ? "saia" : "calca";
+  }
+
   return "generic";
 }
 
