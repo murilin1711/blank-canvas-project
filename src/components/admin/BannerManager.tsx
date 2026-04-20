@@ -32,6 +32,8 @@ interface BannerSlide {
   interval_seconds: number | null;
   is_active: boolean;
   created_at: string;
+  cta_text: string | null;
+  link: string | null;
 }
 
 interface SlideForm {
@@ -41,6 +43,8 @@ interface SlideForm {
   display_order: number;
   interval_seconds: string;
   is_active: boolean;
+  cta_text: string;
+  link: string;
 }
 
 const emptyForm = (): SlideForm => ({
@@ -50,6 +54,8 @@ const emptyForm = (): SlideForm => ({
   display_order: 0,
   interval_seconds: "5",
   is_active: true,
+  cta_text: "",
+  link: "",
 });
 
 interface BannerManagerProps {
@@ -84,6 +90,8 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
       display_order: slide.display_order,
       interval_seconds: String(slide.interval_seconds ?? 5),
       is_active: slide.is_active,
+      cta_text: slide.cta_text || "",
+      link: slide.link || "",
     });
     setShowModal(true);
   };
@@ -137,6 +145,8 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
         display_order: form.display_order,
         interval_seconds: Math.max(1, parseInt(form.interval_seconds, 10) || 5),
         is_active: form.is_active,
+        cta_text: form.cta_text.trim() || null,
+        link: form.link.trim() || null,
       };
 
       if (editingSlide) {
@@ -317,11 +327,16 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 truncate mt-0.5">{slide.url}</p>
-                  {slide.type === "image" && (
-                    <p className="text-xs text-gray-400">
-                      ⏱ {slide.interval_seconds ?? 5}s
-                    </p>
-                  )}
+                  <div className="flex items-center gap-3 mt-0.5">
+                    {slide.type === "image" && (
+                      <p className="text-xs text-gray-400">⏱ {slide.interval_seconds ?? 5}s</p>
+                    )}
+                    {slide.cta_text && (
+                      <span className="text-xs border border-gray-300 text-gray-500 px-2 py-0.5 rounded-sm">
+                        {slide.cta_text}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Actions */}
@@ -531,6 +546,42 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                     </div>
                   </div>
                 )}
+
+                {/* CTA Button */}
+                <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 mb-0.5">Botão CTA</p>
+                    <p className="text-xs text-gray-400">Botão sobreposto no banner. Deixe vazio para não exibir.</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Texto do botão</label>
+                    <input
+                      type="text"
+                      value={form.cta_text}
+                      onChange={(e) => setForm((f) => ({ ...f, cta_text: e.target.value }))}
+                      placeholder="Ex: Aproveitar agora"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Link de destino</label>
+                    <input
+                      type="text"
+                      value={form.link}
+                      onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
+                      placeholder="Ex: /escolas/colegio-militar"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
+                    />
+                  </div>
+                  {form.cta_text && (
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-xs text-gray-400">Prévia:</span>
+                      <span className="border border-gray-400 text-gray-700 text-xs font-medium px-4 py-1.5 rounded-sm tracking-wide">
+                        {form.cta_text}
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Timer (only for image slides) */}
                 {form.type === "image" && (

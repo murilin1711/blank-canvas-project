@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, TouchEvent } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Slide {
@@ -9,9 +10,12 @@ interface Slide {
   url: string;
   mobileUrl?: string | null;
   intervalSeconds: number;
+  ctaText: string;
+  link: string;
 }
 
 const HeroBanner = () => {
+  const navigate = useNavigate();
   const [slides, setSlides] = useState<Slide[]>([]);
   const [bannerLoading, setBannerLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -27,7 +31,7 @@ const HeroBanner = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('banner_slides')
-      .select('type, url, mobile_url, interval_seconds')
+      .select('type, url, mobile_url, interval_seconds, cta_text, link')
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .then(({ data, error }: { data: any[] | null; error: any }) => {
@@ -38,6 +42,8 @@ const HeroBanner = () => {
               url: s.url,
               mobileUrl: s.mobile_url,
               intervalSeconds: s.interval_seconds ?? 5,
+              ctaText: s.cta_text ?? '',
+              link: s.link ?? '',
             }))
           );
         }
@@ -224,6 +230,25 @@ const HeroBanner = () => {
                 </picture>
               )}
             </div>
+          ))}
+
+          {/* CTA Button */}
+          {slides.map((slide, index) => (
+            slide.ctaText && slide.link ? (
+              <div
+                key={`cta-${index}`}
+                className={`absolute z-20 bottom-[22%] left-[7%] md:bottom-[20%] md:left-[8%] transition-opacity duration-500 ${
+                  index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+              >
+                <button
+                  onClick={() => navigate(slide.link)}
+                  className="border border-white text-white text-sm md:text-base font-medium px-5 py-2 md:px-7 md:py-2.5 rounded-sm hover:bg-white/10 transition-colors tracking-wide"
+                >
+                  {slide.ctaText}
+                </button>
+              </div>
+            ) : null
           ))}
 
           {/* Mute button (video slides only) */}
