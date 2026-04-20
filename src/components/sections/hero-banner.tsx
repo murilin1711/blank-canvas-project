@@ -172,7 +172,7 @@ const HeroBanner = () => {
               {slide.type === 'video' ? (
                 <video
                   ref={(el) => { videoRefs.current[index] = el; }}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover object-top"
                   autoPlay loop muted={isMuted} playsInline
                   preload={index === 0 ? 'metadata' : 'none'}
                   onEnded={handleVideoEnd}
@@ -186,7 +186,7 @@ const HeroBanner = () => {
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-cover"
+                    className="h-full w-full object-cover object-top"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
