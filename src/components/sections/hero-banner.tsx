@@ -26,28 +26,38 @@ const HeroBanner = () => {
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
 
-  // Fetch slides from Supabase
+  // Fetch slides from Supabase — tenta com cta_text, cai para query sem ela se coluna não existir
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
-      .from('banner_slides')
+    const db = supabase as any;
+    const mapSlides = (data: any[], hasCta: boolean) =>
+      data.map((s) => ({
+        type: s.type as 'video' | 'image',
+        url: s.url,
+        mobileUrl: s.mobile_url,
+        intervalSeconds: s.interval_seconds ?? 5,
+        ctaText: hasCta ? (s.cta_text ?? '') : '',
+        link: s.link ?? '',
+      }));
+
+    db.from('banner_slides')
       .select('type, url, mobile_url, interval_seconds, cta_text, link')
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .then(({ data, error }: { data: any[] | null; error: any }) => {
         if (!error && data) {
-          setSlides(
-            data.map((s) => ({
-              type: s.type as 'video' | 'image',
-              url: s.url,
-              mobileUrl: s.mobile_url,
-              intervalSeconds: s.interval_seconds ?? 5,
-              ctaText: s.cta_text ?? '',
-              link: s.link ?? '',
-            }))
-          );
+          setSlides(mapSlides(data, true));
+          setBannerLoading(false);
+        } else {
+          // Fallback sem cta_text (migration ainda não aplicada)
+          db.from('banner_slides')
+            .select('type, url, mobile_url, interval_seconds, link')
+            .eq('is_active', true)
+            .order('display_order', { ascending: true })
+            .then(({ data: d2, error: e2 }: { data: any[] | null; error: any }) => {
+              if (!e2 && d2) setSlides(mapSlides(d2, false));
+              setBannerLoading(false);
+            });
         }
-        setBannerLoading(false);
       });
   }, []);
 
@@ -145,14 +155,16 @@ const HeroBanner = () => {
     };
   }, [currentSlide, isMuted, isMobile, slides]);
 
-  // Skeleton enquanto carrega
-  if (bannerLoading || slides.length === 0) {
+  // Skeleton apenas enquanto carrega
+  if (bannerLoading) {
     return (
       <section className="relative w-full aspect-[3/4] md:aspect-[37/25] mt-[80px] bg-gray-200 animate-pulse">
         <div className="absolute inset-0 bg-gradient-to-b from-gray-300/50 to-gray-200/50" />
       </section>
     );
   }
+
+  if (slides.length === 0) return null;
 
   return (
     <section className="relative w-full aspect-[3/4] md:aspect-[37/25] overflow-hidden mt-[80px]">
