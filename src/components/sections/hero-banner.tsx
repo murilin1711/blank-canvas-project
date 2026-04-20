@@ -21,7 +21,6 @@ const HeroBanner = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-  const bgVideoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const touchStartX = useRef<number>(0);
   const touchEndX = useRef<number>(0);
@@ -95,9 +94,7 @@ const HeroBanner = () => {
           currentVideo.play().catch(() => {});
         }
       }
-      const currentBgVideo = bgVideoRefs.current[currentSlide];
-      if (currentBgVideo) currentBgVideo.muted = true;
-    }
+}
   };
 
   const handleVideoEnd = () => {
@@ -121,20 +118,10 @@ const HeroBanner = () => {
     if (slides.length === 0) return;
 
     videoRefs.current.forEach((v) => { if (v) v.muted = isMuted; });
-    bgVideoRefs.current.forEach((v) => { if (v) v.muted = true; });
 
     if (slides[currentSlide]?.type === 'video') {
       const vid = videoRefs.current[currentSlide];
-      const bg  = bgVideoRefs.current[currentSlide];
-
-      if (vid && bg) {
-        vid.currentTime = 0; bg.currentTime = 0;
-        vid.muted = isMuted; bg.muted = true;
-        Promise.all([
-          vid.play().catch(() => {}),
-          bg.play().catch(() => {}),
-        ]);
-      } else if (vid) {
+      if (vid) {
         vid.currentTime = 0;
         vid.muted = isMuted;
         vid.play().catch(() => {
@@ -147,11 +134,9 @@ const HeroBanner = () => {
     }
 
     videoRefs.current.forEach((v, i) => { if (v && i !== currentSlide) { v.pause(); v.currentTime = 0; } });
-    bgVideoRefs.current.forEach((v, i) => { if (v && i !== currentSlide) { v.pause(); v.currentTime = 0; } });
 
     return () => {
       videoRefs.current.forEach((v) => { if (v) v.pause(); });
-      bgVideoRefs.current.forEach((v) => { if (v) v.pause(); });
     };
   }, [currentSlide, isMuted, isMobile, slides]);
 
@@ -168,39 +153,6 @@ const HeroBanner = () => {
 
   return (
     <section className="relative w-full overflow-hidden mt-[80px] h-[calc(100vh-80px)]">
-
-      {/* Background layer — blurred image/video fills any empty space */}
-      <div className="absolute inset-0 z-0">
-        {slides.map((slide, index) => (
-          <div
-            key={`bg-${index}`}
-            className={`absolute inset-0 transition-opacity duration-500 ${index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          >
-            {slide.type === 'video' ? (
-              <>
-                <video
-                  ref={(el) => { bgVideoRefs.current[index] = el; }}
-                  className="w-full h-full object-cover blur-md scale-110"
-                  autoPlay loop muted playsInline
-                  preload={index === 0 ? 'metadata' : 'none'}
-                  aria-hidden="true"
-                >
-                  <source src={slide.url} type="video/mp4" />
-                </video>
-                <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
-              </>
-            ) : (
-              <img
-                src={slide.url}
-                className="w-full h-full object-cover blur-md scale-110"
-                alt=""
-                aria-hidden="true"
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
-            )}
-          </div>
-        ))}
-      </div>
 
       {/* Foreground slides */}
       <div
@@ -220,7 +172,7 @@ const HeroBanner = () => {
               {slide.type === 'video' ? (
                 <video
                   ref={(el) => { videoRefs.current[index] = el; }}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-cover"
                   autoPlay loop muted={isMuted} playsInline
                   preload={index === 0 ? 'metadata' : 'none'}
                   onEnded={handleVideoEnd}
@@ -234,7 +186,7 @@ const HeroBanner = () => {
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-contain"
+                    className="h-full w-full object-cover"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
