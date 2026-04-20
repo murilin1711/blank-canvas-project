@@ -8,6 +8,26 @@ interface LoadingContextType {
 
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
+const SESSION_KEY = 'gm_anim_shown';
+const ANIMATE_PATHS = ['/', '/escolas/colegio-militar'];
+
+function getShownSet(): Set<string> {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markShown(path: string) {
+  try {
+    const set = getShownSet();
+    set.add(path);
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify([...set]));
+  } catch {}
+}
+
 export function LoadingProvider({ children }: { children: ReactNode }) {
   const [showLoading, setShowLoading] = useState(false);
   const navigate = useNavigate();
@@ -15,23 +35,28 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
   const prevPathname = useRef(location.pathname);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Rotas onde a animação de loading deve aparecer
-  const shouldAnimate = (path: string) =>
-    path === '/' || path === '/escolas/colegio-militar';
+  const tryShow = useCallback((path: string) => {
+    if (!ANIMATE_PATHS.includes(path)) return;
+    if (getShownSet().has(path)) return;
+    markShown(path);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setShowLoading(true);
+    timerRef.current = setTimeout(() => setShowLoading(false), 2000);
+  }, []);
 
-  // Dispara apenas ao entrar no Colégio Militar ou ao voltar para a página principal
+  // Animação no carregamento inicial
+  useEffect(() => {
+    tryShow(location.pathname);
+  }, []);
+
+  // Animação em navegações subsequentes
   useEffect(() => {
     if (prevPathname.current !== location.pathname) {
       prevPathname.current = location.pathname;
-      if (timerRef.current) clearTimeout(timerRef.current);
-      if (shouldAnimate(location.pathname)) {
-        setShowLoading(true);
-        timerRef.current = setTimeout(() => setShowLoading(false), 2000);
-      }
+      tryShow(location.pathname);
     }
-  }, [location.pathname]);
+  }, [location.pathname, tryShow]);
 
-  // Mantém compatibilidade com quem já usa navigateWithLoading
   const navigateWithLoading = useCallback((to: string) => {
     navigate(to);
   }, [navigate]);
