@@ -14,17 +14,17 @@ export function cn(...inputs: ClassValue[]) {
  * @param height - Optional desired height in pixels
  * @returns Optimized image URL
  */
-export function getOptimizedImageUrl(url: string, _width: number, _height?: number): string {
+export function getOptimizedImageUrl(url: string, width: number, height?: number): string {
   if (!url) return url;
-  
-  // Return original URL without any compression or transformation
-  // Strip any existing transformation query params if present
+
   if (url.includes('supabase.co/storage') || url.includes('supabase.in/storage')) {
     let cleanUrl = url.split('?')[0];
-    // Ensure we use /object/public/ (direct serving) not /render/image/
-    cleanUrl = cleanUrl.replace('/storage/v1/render/image/public/', '/storage/v1/object/public/');
-    return cleanUrl;
+    // Use render/image for Supabase transformations
+    cleanUrl = cleanUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+    const params = [`width=${width}`, 'quality=80'];
+    if (height) params.push(`height=${height}`, 'resize=cover');
+    return `${cleanUrl}?${params.join('&')}`;
   }
-  
+
   return url;
 }

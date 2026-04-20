@@ -38,7 +38,8 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from("favorites")
       .select("product_id, school_slug")
-      .eq("user_id", user.id);
+      .eq("user_id", user.id)
+      .limit(500);
 
     if (!error && data) {
       setFavorites(

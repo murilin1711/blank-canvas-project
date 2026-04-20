@@ -95,7 +95,8 @@ const TestimonialsSection = () => {
           .from('feedbacks')
           .select('id, user_name, rating, comment, created_at')
           .eq('is_visible', true)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(20);
 
         if (error) throw error;
 
