@@ -3,10 +3,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RefreshCw, Package, RotateCcw } from "lucide-react";
 
+interface VariationOption {
+  value: string;
+  price: number | null;
+  image?: string | null;
+}
+
+interface Variation {
+  id: string;
+  name: string;
+  options: (string | VariationOption)[];
+}
+
 interface Product {
   id: number;
   name: string;
   sizes: string[] | null;
+  variations: Variation[] | null;
   image_url: string | null;
   images: string[] | null;
   is_active: boolean;
@@ -22,8 +35,28 @@ interface StockManagerProps {
   products: Product[];
 }
 
+function getOptionValue(opt: string | VariationOption): string {
+  return typeof opt === "string" ? opt : opt.value;
+}
+
+function getProductSizes(product: Product): string[] {
+  // Prioriza a variação "Tamanho"/"Tamanhos" (igual ao ProductFormModal)
+  if (product.variations && product.variations.length > 0) {
+    const sizeVar = product.variations.find(
+      (v) => v.name.toLowerCase() === "tamanho" || v.name.toLowerCase() === "tamanhos"
+    );
+    if (sizeVar && sizeVar.options.length > 0) {
+      return sizeVar.options.map(getOptionValue);
+    }
+  }
+  // Fallback para o campo sizes
+  if (product.sizes && product.sizes.length > 0) return product.sizes;
+  return [];
+}
+
 export default function StockManager({ products }: StockManagerProps) {
   const [stock, setStock] = useState<Record<string, number>>({});
+  const [rawInputs, setRawInputs] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [globalSyncQty, setGlobalSyncQty] = useState<string>("");
@@ -47,6 +80,7 @@ export default function StockManager({ products }: StockManagerProps) {
         map[stockKey(row.product_id, row.size)] = row.quantity;
       });
       setStock(map);
+      setRawInputs({});
     }
     setLoading(false);
   }, []);
@@ -73,16 +107,34 @@ export default function StockManager({ products }: StockManagerProps) {
   };
 
   const handleQuantityChange = (productId: number, size: string, value: string) => {
-    const qty = parseInt(value, 10);
-    if (isNaN(qty) || qty < 0) return;
     const key = stockKey(productId, size);
-    setStock((prev) => ({ ...prev, [key]: qty }));
+    setRawInputs((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleQuantityBlur = (productId: number, size: string) => {
     const key = stockKey(productId, size);
-    const qty = stock[key] ?? 0;
-    upsertStock(productId, size, qty);
+    const raw = rawInputs[key];
+    if (raw === undefined) return; // não houve edição
+    const qty = parseInt(raw, 10);
+    const finalQty = isNaN(qty) || qty < 0 ? 0 : qty;
+    setRawInputs((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setStock((prev) => ({ ...prev, [key]: finalQty }));
+    upsertStock(productId, size, finalQty);
+  };
+
+  const getDisplayValue = (productId: number, size: string): string => {
+    const key = stockKey(productId, size);
+    if (key in rawInputs) return rawInputs[key];
+    return String(stock[key] ?? 0);
+  };
+
+  const getCommittedQty = (productId: number, size: string): number => {
+    const key = stockKey(productId, size);
+    return stock[key] ?? 0;
   };
 
   const handleGlobalSync = async () => {
@@ -96,7 +148,7 @@ export default function StockManager({ products }: StockManagerProps) {
     const rows: { product_id: number; size: string; quantity: number }[] = [];
 
     activeProducts.forEach((product) => {
-      (product.sizes ?? []).forEach((size) => {
+      getProductSizes(product).forEach((size) => {
         rows.push({ product_id: product.id, size, quantity: qty });
       });
     });
@@ -115,10 +167,9 @@ export default function StockManager({ products }: StockManagerProps) {
       toast.error("Erro ao sincronizar estoque global");
     } else {
       const newStock = { ...stock };
-      rows.forEach((r) => {
-        newStock[stockKey(r.product_id, r.size)] = qty;
-      });
+      rows.forEach((r) => { newStock[stockKey(r.product_id, r.size)] = qty; });
       setStock(newStock);
+      setRawInputs({});
       toast.success(`Estoque global sincronizado: ${qty} unidades por tamanho`);
       setGlobalSyncQty("");
     }
@@ -134,11 +185,8 @@ export default function StockManager({ products }: StockManagerProps) {
 
     setProductSyncing((prev) => ({ ...prev, [product.id]: true }));
 
-    const rows = (product.sizes ?? []).map((size) => ({
-      product_id: product.id,
-      size,
-      quantity: qty,
-    }));
+    const sizes = getProductSizes(product);
+    const rows = sizes.map((size) => ({ product_id: product.id, size, quantity: qty }));
 
     if (rows.length === 0) {
       toast.error("Produto sem tamanhos cadastrados");
@@ -154,10 +202,14 @@ export default function StockManager({ products }: StockManagerProps) {
       toast.error("Erro ao sincronizar estoque do produto");
     } else {
       const newStock = { ...stock };
+      const clearedRaw = { ...rawInputs };
       rows.forEach((r) => {
-        newStock[stockKey(r.product_id, r.size)] = qty;
+        const key = stockKey(r.product_id, r.size);
+        newStock[key] = qty;
+        delete clearedRaw[key];
       });
       setStock(newStock);
+      setRawInputs(clearedRaw);
       toast.success(`${product.name}: ${qty} unidades por tamanho`);
       setProductSyncQty((prev) => ({ ...prev, [product.id]: "" }));
     }
@@ -165,14 +217,13 @@ export default function StockManager({ products }: StockManagerProps) {
   };
 
   const activeProducts = products.filter(
-    (p) => p.is_active && p.sizes && p.sizes.length > 0
+    (p) => p.is_active && getProductSizes(p).length > 0
   );
 
-  const getProductImage = (p: Product) =>
-    p.images?.[0] ?? p.image_url ?? null;
+  const getProductImage = (p: Product) => p.images?.[0] ?? p.image_url ?? null;
 
   const totalItems = activeProducts.reduce((acc, p) => {
-    return acc + (p.sizes ?? []).reduce((s, size) => {
+    return acc + getProductSizes(p).reduce((s, size) => {
       return s + (stock[stockKey(p.id, size)] ?? 0);
     }, 0);
   }, 0);
@@ -255,6 +306,12 @@ export default function StockManager({ products }: StockManagerProps) {
         <div className="space-y-4">
           {activeProducts.map((product) => {
             const img = getProductImage(product);
+            const sizes = getProductSizes(product);
+            const productTotal = sizes.reduce(
+              (s, size) => s + (stock[stockKey(product.id, size)] ?? 0),
+              0
+            );
+
             return (
               <div
                 key={product.id}
@@ -276,12 +333,7 @@ export default function StockManager({ products }: StockManagerProps) {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{product.name}</p>
                     <p className="text-xs text-gray-400">
-                      {(product.sizes ?? []).length} tamanhos ·{" "}
-                      {(product.sizes ?? []).reduce(
-                        (s, size) => s + (stock[stockKey(product.id, size)] ?? 0),
-                        0
-                      )}{" "}
-                      unidades
+                      {sizes.length} tamanhos · {productTotal} unidades
                     </p>
                   </div>
 
@@ -292,20 +344,14 @@ export default function StockManager({ products }: StockManagerProps) {
                       min="0"
                       value={productSyncQty[product.id] ?? ""}
                       onChange={(e) =>
-                        setProductSyncQty((prev) => ({
-                          ...prev,
-                          [product.id]: e.target.value,
-                        }))
+                        setProductSyncQty((prev) => ({ ...prev, [product.id]: e.target.value }))
                       }
                       placeholder="Qtd"
                       className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-[#2e3091] text-sm"
                     />
                     <button
                       onClick={() => handleProductSync(product)}
-                      disabled={
-                        productSyncing[product.id] ||
-                        !productSyncQty[product.id]
-                      }
+                      disabled={productSyncing[product.id] || !productSyncQty[product.id]}
                       title="Sincronizar todos os tamanhos deste produto"
                       className="flex items-center gap-1.5 px-3 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 whitespace-nowrap"
                     >
@@ -321,9 +367,10 @@ export default function StockManager({ products }: StockManagerProps) {
 
                 {/* Tamanhos */}
                 <div className="flex flex-wrap gap-3">
-                  {(product.sizes ?? []).map((size) => {
+                  {sizes.map((size) => {
                     const key = stockKey(product.id, size);
-                    const qty = stock[key] ?? 0;
+                    const committedQty = getCommittedQty(product.id, size);
+                    const displayValue = getDisplayValue(product.id, size);
                     const isSaving = saving[key];
 
                     return (
@@ -337,13 +384,11 @@ export default function StockManager({ products }: StockManagerProps) {
                         <input
                           type="number"
                           min="0"
-                          value={qty}
-                          onChange={(e) =>
-                            handleQuantityChange(product.id, size, e.target.value)
-                          }
+                          value={displayValue}
+                          onChange={(e) => handleQuantityChange(product.id, size, e.target.value)}
                           onBlur={() => handleQuantityBlur(product.id, size)}
                           className={`w-16 text-center px-2 py-1.5 border rounded-lg text-sm font-medium focus:outline-none focus:border-[#2e3091] transition-colors ${
-                            qty === 0
+                            committedQty === 0
                               ? "border-red-200 bg-red-50 text-red-600"
                               : "border-gray-200 bg-white text-gray-900"
                           }`}
@@ -351,7 +396,7 @@ export default function StockManager({ products }: StockManagerProps) {
                         {isSaving && (
                           <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />
                         )}
-                        {qty === 0 && !isSaving && (
+                        {committedQty === 0 && !isSaving && (
                           <span className="text-[10px] text-red-400">Sem estoque</span>
                         )}
                       </div>

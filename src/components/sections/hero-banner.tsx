@@ -13,6 +13,7 @@ interface Slide {
 
 const HeroBanner = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
+  const [bannerLoading, setBannerLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
@@ -30,15 +31,17 @@ const HeroBanner = () => {
       .eq('is_active', true)
       .order('display_order', { ascending: true })
       .then(({ data, error }: { data: any[] | null; error: any }) => {
-        if (error || !data) return;
-        setSlides(
-          data.map((s) => ({
-            type: s.type as 'video' | 'image',
-            url: s.url,
-            mobileUrl: s.mobile_url,
-            intervalSeconds: s.interval_seconds ?? 5,
-          }))
-        );
+        if (!error && data) {
+          setSlides(
+            data.map((s) => ({
+              type: s.type as 'video' | 'image',
+              url: s.url,
+              mobileUrl: s.mobile_url,
+              intervalSeconds: s.interval_seconds ?? 5,
+            }))
+          );
+        }
+        setBannerLoading(false);
       });
   }, []);
 
@@ -136,8 +139,14 @@ const HeroBanner = () => {
     };
   }, [currentSlide, isMuted, isMobile, slides]);
 
-  // Nothing to show yet
-  if (slides.length === 0) return null;
+  // Skeleton enquanto carrega
+  if (bannerLoading || slides.length === 0) {
+    return (
+      <section className="relative w-full aspect-[3/4] md:aspect-[37/25] mt-[80px] bg-gray-200 animate-pulse">
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-300/50 to-gray-200/50" />
+      </section>
+    );
+  }
 
   return (
     <section className="relative w-full aspect-[3/4] md:aspect-[37/25] overflow-hidden mt-[80px]">

@@ -125,6 +125,7 @@ export default function CaixaPage() {
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
+  const [qrFullscreen, setQrFullscreen] = useState<string | null>(null);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -277,7 +278,7 @@ export default function CaixaPage() {
     setLoadingProducts(true);
     const { data } = await supabase
       .from('products')
-      .select('id, name, sizes, image_url, images, is_active')
+      .select('id, name, sizes, variations, image_url, images, is_active')
       .order('name');
     if (data) setProducts(data);
     setLoadingProducts(false);
@@ -932,11 +933,20 @@ export default function CaixaPage() {
                     <div>
                       <p className="text-sm text-gray-500 mb-2">QR Code</p>
                       {selectedPayment.qr_code_image ? (
-                        <img
-                          src={selectedPayment.qr_code_image}
-                          alt="QR Code"
-                          className="w-full max-w-[220px] rounded-lg border border-gray-200"
-                        />
+                        <button
+                          onClick={() => setQrFullscreen(selectedPayment.qr_code_image!)}
+                          className="block group relative"
+                          title="Ver em tela cheia"
+                        >
+                          <img
+                            src={selectedPayment.qr_code_image}
+                            alt="QR Code"
+                            className="w-full max-w-[220px] rounded-lg border border-gray-200 group-hover:opacity-90 transition-opacity"
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="bg-black/60 text-white text-xs px-2 py-1 rounded">Tela cheia</span>
+                          </span>
+                        </button>
                       ) : (
                         <div className="text-sm text-gray-500">QR code indisponível.</div>
                       )}
@@ -1005,6 +1015,39 @@ export default function CaixaPage() {
                   )}
                 </>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* QR Code Fullscreen */}
+      <AnimatePresence>
+        {qrFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4"
+            onClick={() => setQrFullscreen(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={qrFullscreen}
+                alt="QR Code"
+                className="max-w-[90vw] max-h-[90vh] rounded-2xl border-4 border-white"
+              />
+              <button
+                onClick={() => setQrFullscreen(null)}
+                className="absolute -top-4 -right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-700" />
+              </button>
             </motion.div>
           </motion.div>
         )}
