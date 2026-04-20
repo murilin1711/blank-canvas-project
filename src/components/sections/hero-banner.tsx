@@ -152,27 +152,31 @@ const HeroBanner = () => {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative w-full overflow-hidden h-[calc(100vh-80px)] bg-black">
+    <section className="relative w-full overflow-hidden md:h-[calc(100vh-80px)]">
 
-      {/* Foreground slides */}
+      {/* Slides */}
       <div
         id="hero-banner"
-        className="absolute inset-0 z-10"
+        className="relative w-full md:absolute md:inset-0 z-10"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative w-full h-full">
+        <div className="relative w-full md:h-full">
 
           {slides.map((slide, index) => (
             <div
               key={index}
-              className={`absolute inset-0 transition-opacity duration-500 ${index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+              className={`w-full md:absolute md:inset-0 md:transition-opacity md:duration-500 ${
+                index === currentSlide
+                  ? 'block md:opacity-100'
+                  : 'hidden md:block md:opacity-0 md:pointer-events-none'
+              }`}
             >
               {slide.type === 'video' ? (
                 <video
                   ref={(el) => { videoRefs.current[index] = el; }}
-                  className="h-full w-full object-contain md:object-cover md:object-top"
+                  className="w-full h-auto block md:h-full md:object-cover md:object-top"
                   autoPlay loop muted={isMuted} playsInline
                   preload={index === 0 ? 'metadata' : 'none'}
                   onEnded={handleVideoEnd}
@@ -180,13 +184,13 @@ const HeroBanner = () => {
                   <source src={slide.url} type="video/mp4" />
                 </video>
               ) : (
-                <picture className="h-full w-full block">
+                <picture className="block w-full md:h-full">
                   {slide.mobileUrl && (
                     <source media="(max-width: 767px)" srcSet={slide.mobileUrl} />
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-contain md:object-cover md:object-top"
+                    className="w-full h-auto block md:h-full md:object-cover md:object-top"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
@@ -212,7 +216,7 @@ const HeroBanner = () => {
 
           {/* Navigation dots */}
           {slides.length > 1 && (
-            <div className="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
+            <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
               {slides.map((_, index) => (
                 <button
                   key={index}
