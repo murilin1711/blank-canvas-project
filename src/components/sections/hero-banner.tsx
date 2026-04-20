@@ -97,7 +97,7 @@ const HeroBanner = () => {
                   />
                 )}
                 <img
-                  src={getOptimizedImageUrl(slide.url, 1600)}
+                  src={slide.url}
                   className="w-full h-auto block md:h-full md:object-cover md:object-top"
                   alt="Banner"
                   loading={index === 0 ? 'eager' : 'lazy'}
