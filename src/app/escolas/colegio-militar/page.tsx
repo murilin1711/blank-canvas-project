@@ -58,7 +58,7 @@ export default function LojaEstiloOsklen() {
       setLoading(true);
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, price, images, image_url, category, sizes, free_shipping, embroidery, variants, school_slug, display_order")
+        .select("id, name, price, images, image_url, category, sizes, free_shipping, allows_embroidery, variations, school_slug, display_order")
         .eq("school_slug", "colegio-militar")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
