@@ -152,7 +152,7 @@ const HeroBanner = () => {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative w-full overflow-hidden h-[calc(100vh-80px)]">
+    <section className="relative w-full overflow-hidden h-[calc(100vh-80px)] bg-black">
 
       {/* Foreground slides */}
       <div
@@ -172,7 +172,7 @@ const HeroBanner = () => {
               {slide.type === 'video' ? (
                 <video
                   ref={(el) => { videoRefs.current[index] = el; }}
-                  className="h-full w-full object-cover object-center md:object-top"
+                  className="h-full w-full object-contain md:object-cover md:object-top"
                   autoPlay loop muted={isMuted} playsInline
                   preload={index === 0 ? 'metadata' : 'none'}
                   onEnded={handleVideoEnd}
@@ -186,7 +186,7 @@ const HeroBanner = () => {
                   )}
                   <img
                     src={slide.url}
-                    className="h-full w-full object-cover object-center md:object-top"
+                    className="h-full w-full object-contain md:object-cover md:object-top"
                     alt="Banner"
                     loading={index === 0 ? 'eager' : 'lazy'}
                     fetchPriority={index === 0 ? 'high' : 'low'}
