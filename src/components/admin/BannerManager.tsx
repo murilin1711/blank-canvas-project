@@ -331,11 +331,6 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                     {slide.type === "image" && (
                       <p className="text-xs text-gray-400">⏱ {slide.interval_seconds ?? 5}s</p>
                     )}
-                    {slide.cta_text && (
-                      <span className="text-xs border border-gray-300 text-gray-500 px-2 py-0.5 rounded-sm">
-                        {slide.cta_text}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -546,42 +541,6 @@ export default function BannerManager({ slides, loading, onRefresh }: BannerMana
                     </div>
                   </div>
                 )}
-
-                {/* CTA Button */}
-                <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-800 mb-0.5">Botão CTA</p>
-                    <p className="text-xs text-gray-400">Botão sobreposto no banner. Deixe vazio para não exibir.</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Texto do botão</label>
-                    <input
-                      type="text"
-                      value={form.cta_text}
-                      onChange={(e) => setForm((f) => ({ ...f, cta_text: e.target.value }))}
-                      placeholder="Ex: Aproveitar agora"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Link de destino</label>
-                    <input
-                      type="text"
-                      value={form.link}
-                      onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
-                      placeholder="Ex: /escolas/colegio-militar"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
-                    />
-                  </div>
-                  {form.cta_text && (
-                    <div className="flex items-center gap-3 pt-1">
-                      <span className="text-xs text-gray-400">Prévia:</span>
-                      <span className="border border-gray-400 text-gray-700 text-xs font-medium px-4 py-1.5 rounded-sm tracking-wide">
-                        {form.cta_text}
-                      </span>
-                    </div>
-                  )}
-                </div>
 
                 {/* Timer (only for image slides) */}
                 {form.type === "image" && (
