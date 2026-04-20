@@ -307,18 +307,18 @@ function estimateBody(
   let waist: number;
 
   if (g === "m") {
-    chest = 92 + (bmi - 22) * 1.65 + (altura - 175) * 0.2;
+    chest = 92 + (bmi - 22) * 1.65 + (altura - 175) * 0.7;
     waist = 76 + (bmi - 22) * 2.6;
   } else {
-    chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.2;
+    chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.5;
     waist = 68 + (bmi - 21) * 2.3;
   }
 
-  // Body type adjustment (±1 size in most cases):
-  // Ectomorfo (justo):   lean frame → chest is relatively smaller for same BMI
-  // Endomorfo (oversize): stocky frame → waist is relatively larger for same BMI
+  // Body type adjustment:
+  // Ectomorfo: leaner frame, slightly smaller chest, slimmer waist
+  // Endomorfo: stockier frame, slightly larger chest, wider waist
   if (caimento === "justo") {
-    chest -= 2;
+    chest -= 1;
     waist -= 2;
   } else if (caimento === "oversize") {
     chest += 2;
