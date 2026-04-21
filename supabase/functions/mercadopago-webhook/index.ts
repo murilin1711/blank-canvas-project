@@ -125,6 +125,35 @@ serve(async (req) => {
 
     console.log("[MERCADOPAGO-WEBHOOK] Order updated to paid:", orderId);
 
+    // Envia email de confirmação
+    try {
+      const { data: fullOrder } = await supabase.from("orders").select("*, order_items(*)").eq("id", orderId).single();
+      const userRes = await supabase.auth.admin.getUserById(userId);
+      const userEmail = userRes.data?.user?.email;
+      const userName = userRes.data?.user?.user_metadata?.name || "";
+      if (userEmail && fullOrder) {
+        await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({
+            template: "order_confirmation",
+            to: userEmail,
+            data: {
+              orderId,
+              customerName: userName,
+              items: (fullOrder.order_items || []).map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+              subtotal: fullOrder.subtotal,
+              shipping: fullOrder.shipping,
+              total: fullOrder.total,
+              shippingAddress: fullOrder.shipping_address,
+            },
+          }),
+        });
+      }
+    } catch (emailErr) {
+      console.error("[MERCADOPAGO-WEBHOOK] Email failed (non-critical):", emailErr);
+    }
+
     // Track user activity
     await supabase.from("user_activities").insert({
       user_id: userId,

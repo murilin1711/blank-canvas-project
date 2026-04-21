@@ -143,6 +143,45 @@ Deno.serve(async (req: Request) => {
       }
     } else if (action === 'update_order_status') {
       await supabase.from("orders").update({ status: data.status, updated_at: new Date().toISOString() }).eq("id", data.id);
+
+      // Envia email de atualização de status
+      try {
+        const { data: order } = await supabase
+          .from("orders")
+          .select("*, order_items(*)")
+          .eq("id", data.id)
+          .single();
+
+        if (order?.user_id) {
+          const userRes = await supabase.auth.admin.getUserById(order.user_id);
+          const userEmail = userRes.data?.user?.email;
+          const userName = userRes.data?.user?.user_metadata?.name || "";
+          const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+          const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+          if (userEmail) {
+            const template = data.status === "delivered" ? "delivery" : "status_update";
+            await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+              body: JSON.stringify({
+                template,
+                to: userEmail,
+                data: {
+                  orderId: order.id,
+                  customerName: userName,
+                  status: data.status,
+                  items: (order.order_items || []).map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                  total: order.total,
+                },
+              }),
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error("Email status update failed (non-critical):", emailErr);
+      }
+
       result = { success: true };
     } else if (action === 'toggle_feedback_visibility') {
       await supabase.from("feedbacks").update({ is_visible: data.is_visible }).eq("id", data.id);

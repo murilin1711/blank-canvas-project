@@ -125,6 +125,34 @@ serve(async (req) => {
       }
 
       console.log("Order items created:", orderItems.length);
+
+      // Envia email de confirmação
+      try {
+        const userRes = await supabase.auth.admin.getUserById(userId);
+        const userEmail = userRes.data?.user?.email;
+        const userName = userRes.data?.user?.user_metadata?.name || "";
+        if (userEmail) {
+          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+            body: JSON.stringify({
+              template: "order_confirmation",
+              to: userEmail,
+              data: {
+                orderId: order.id,
+                customerName: userName,
+                items: orderItems.map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                subtotal,
+                shipping,
+                total: subtotal + shipping,
+                shippingAddress,
+              },
+            }),
+          });
+        }
+      } catch (emailErr) {
+        console.error("Email send failed (non-critical):", emailErr);
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
