@@ -126,6 +126,15 @@ serve(async (req) => {
 
       console.log("Order items created:", orderItems.length);
 
+      // Decrementa estoque
+      for (const item of orderItems) {
+        await supabase.rpc("decrement_stock", {
+          p_product_id: item.product_id,
+          p_size: item.size,
+          p_qty: item.quantity,
+        }).catch((e: any) => console.error("Stock decrement error:", e));
+      }
+
       // Envia email de confirmação
       try {
         const userRes = await supabase.auth.admin.getUserById(userId);

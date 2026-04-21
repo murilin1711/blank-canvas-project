@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { LoginRequiredModal } from "@/components/LoginRequiredModal";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import SimilarProducts from "@/components/sections/SimilarProducts";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { ShoeSizeTable } from "@/components/ShoeSizeTable";
@@ -85,6 +86,39 @@ export default function ProductPage({
   const otherVariations = variations.filter(v => 
     v.name.toLowerCase() !== 'tamanho' && v.name.toLowerCase() !== 'tamanhos'
   );
+  // Estoque por tamanho
+  const [stockMap, setStockMap] = useState<Record<string, number>>({});
+  const [stockLoaded, setStockLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!productId) { setStockLoaded(true); return; }
+    (supabase as any)
+      .from("product_stock")
+      .select("size, quantity")
+      .eq("product_id", productId)
+      .then(({ data }: { data: any[] | null }) => {
+        if (data) {
+          const map: Record<string, number> = {};
+          data.forEach((row) => { map[row.size] = row.quantity; });
+          setStockMap(map);
+        }
+        setStockLoaded(true);
+      });
+  }, [productId]);
+
+  const stockOf = (size: string): number | null =>
+    stockLoaded && size in stockMap ? stockMap[size] : null;
+
+  const isOutOfStock = (size: string) => {
+    const s = stockOf(size);
+    return s !== null && s === 0;
+  };
+
+  const isLowStock = (size: string) => {
+    const s = stockOf(size);
+    return s !== null && s > 0 && s <= 3;
+  };
+
   const [fitStep, setFitStep] = useState(1);
   const [altura, setAltura] = useState(175);
   const [peso, setPeso] = useState(74);
@@ -165,6 +199,10 @@ export default function ProductPage({
   const handleAddToCart = (goToCheckout: boolean = false) => {
     if (sizes && sizes.length > 0 && !selectedSize) {
       toast.error("Selecione um tamanho");
+      return;
+    }
+    if (selectedSize && isOutOfStock(selectedSize)) {
+      toast.error("Tamanho esgotado");
       return;
     }
     // Validate other variations
@@ -470,29 +508,40 @@ export default function ProductPage({
               <div className="flex gap-2 flex-wrap">
                 {sizes.map((size) => {
                   const selected = selectedSize === size;
-                  
+                  const outOfStock = isOutOfStock(size);
+                  const lowStock = isLowStock(size);
                   const sizeOption = sizeVariation?.options.find(opt => getOptionValue(opt) === size);
                   const optionImg = sizeOption ? getOptionImage(sizeOption) : null;
-                  
+
                   return (
-                    <button
-                      key={size}
-                      onClick={() => {
-                        setSelectedSize(size);
-                        if (optionImg) {
-                          const idx = images.findIndex(img => img === optionImg);
-                          if (idx >= 0) setActiveIndex(idx);
-                        }
-                      }}
-                      className={`px-4 py-2 rounded-md text-sm transition-all ${
-                        selected
-                          ? "bg-[#2e3091] text-white font-semibold shadow-md"
-                          : "bg-white text-gray-800 border border-gray-200 hover:shadow-md hover:border-[#2e3091]"
-                      }`}
-                      aria-pressed={selected}
-                    >
-                      {size}
-                    </button>
+                    <div key={size} className="relative">
+                      <button
+                        onClick={() => {
+                          if (outOfStock) return;
+                          setSelectedSize(size);
+                          if (optionImg) {
+                            const idx = images.findIndex(img => img === optionImg);
+                            if (idx >= 0) setActiveIndex(idx);
+                          }
+                        }}
+                        disabled={outOfStock}
+                        aria-pressed={selected}
+                        className={`px-4 py-2 rounded-md text-sm transition-all relative ${
+                          outOfStock
+                            ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed line-through"
+                            : selected
+                            ? "bg-[#2e3091] text-white font-semibold shadow-md"
+                            : "bg-white text-gray-800 border border-gray-200 hover:shadow-md hover:border-[#2e3091]"
+                        }`}
+                      >
+                        {size}
+                      </button>
+                      {lowStock && !outOfStock && (
+                        <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-[9px] font-bold px-1 rounded-full leading-4">
+                          {stockOf(size)}
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
               </div>

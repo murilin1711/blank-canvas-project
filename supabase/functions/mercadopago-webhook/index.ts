@@ -125,6 +125,15 @@ serve(async (req) => {
 
     console.log("[MERCADOPAGO-WEBHOOK] Order updated to paid:", orderId);
 
+    // Decrementa estoque
+    const { data: orderItemsForStock } = await supabase.from("order_items").select("product_id, size, quantity").eq("order_id", orderId);
+    if (orderItemsForStock) {
+      for (const item of orderItemsForStock) {
+        await supabase.rpc("decrement_stock", { p_product_id: item.product_id, p_size: item.size, p_qty: item.quantity })
+          .catch((e: any) => console.error("Stock decrement error:", e));
+      }
+    }
+
     // Envia email de confirmação
     try {
       const { data: fullOrder } = await supabase.from("orders").select("*, order_items(*)").eq("id", orderId).single();

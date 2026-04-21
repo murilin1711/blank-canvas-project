@@ -1175,7 +1175,25 @@ export default function CheckoutPage() {
                       </div>
 
                       <button
-                        onClick={() => {
+                        onClick={async () => {
+                          // Valida estoque antes de prosseguir
+                          const stockChecks = await Promise.all(
+                            items.map(async (item) => {
+                              const { data } = await (supabase as any)
+                                .from("product_stock")
+                                .select("quantity")
+                                .eq("product_id", item.productId)
+                                .eq("size", item.size.split(" | ")[0])
+                                .maybeSingle();
+                              if (data && data.quantity === 0) return item.productName;
+                              return null;
+                            })
+                          );
+                          const esgotados = stockChecks.filter(Boolean);
+                          if (esgotados.length > 0) {
+                            toast.error(`Produto esgotado: ${esgotados.join(", ")}. Remova do carrinho.`);
+                            return;
+                          }
                           if (paymentMethod === "stripe") {
                             setShowStripeCheckout(true);
                           } else if (paymentMethod === "pix") {

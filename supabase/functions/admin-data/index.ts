@@ -132,6 +132,12 @@ Deno.serve(async (req: Request) => {
               .update({ order_id: newOrder.id })
               .eq("id", data.id);
 
+            // Decrementa estoque
+            for (const item of orderItems) {
+              await supabase.rpc("decrement_stock", { p_product_id: item.product_id, p_size: item.size, p_qty: item.quantity })
+                .catch((e: any) => console.error("Stock decrement error:", e));
+            }
+
             // Envia email de confirmação do Bolsa Uniforme
             try {
               const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
