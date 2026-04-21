@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Bloquear rotas privadas
+Disallow: /admin
+Disallow: /caixa
+Disallow: /checkout
+Disallow: /carrinho
+Disallow: /meus-pedidos
+Disallow: /meus-dados
+Disallow: /auth
+
+Sitemap: https://goiasminas.com.br/sitemap.xml
