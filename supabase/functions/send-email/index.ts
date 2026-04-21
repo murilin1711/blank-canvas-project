@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM = "Goiás Minas Uniformes <suporte@goiasminas.com>";
-const LOGO = "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/document-uploads/ROTEIRO_EUROPA-removebg-preview-1765225025878.png";
+const LOGO = "https://goiasminas.com/logo-white.png";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
