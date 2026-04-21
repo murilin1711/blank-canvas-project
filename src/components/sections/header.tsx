@@ -1,7 +1,7 @@
 import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, User, Heart, ShoppingCart, Menu, X, Package, LogOut } from 'lucide-react';
+import { Search, User, Heart, ShoppingCart, Menu, X, Package, LogOut, Settings } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -267,6 +267,14 @@ const Header = () => {
                       <Heart className="w-4 h-4" />
                       Meus Favoritos
                     </Link>
+                    <Link
+                      to="/meus-dados"
+                      onClick={() => setAccountMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Meus Dados
+                    </Link>
                     <button
                       onClick={() => {
                         signOut();
@@ -363,6 +371,16 @@ const Header = () => {
                     <div className="flex items-center gap-3">
                       <Heart className="w-4 h-4" />
                       Meus Favoritos
+                    </div>
+                  </Link>
+                  <Link
+                    to="/meus-dados"
+                    onClick={() => setAccountMenuOpen(false)}
+                    className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings className="w-4 h-4" />
+                      Meus Dados
                     </div>
                   </Link>
                   <button

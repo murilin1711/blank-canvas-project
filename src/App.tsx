@@ -8,6 +8,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
 import Home from '@/app/page';
 import { LoadingProvider } from '@/contexts/LoadingContext';
+import { CookieConsent } from '@/components/CookieConsent';
 
 const SobrePage = lazy(() => import('@/app/sobre/page'));
 const AuthPage = lazy(() => import('@/app/auth/page'));
@@ -82,6 +83,7 @@ function App() {
             </Routes>
             </Suspense>
               <Toaster position="top-right" richColors />
+              <CookieConsent />
             </FavoritesProvider>
           </CartProvider>
         </AuthProvider>

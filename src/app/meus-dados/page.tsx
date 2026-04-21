@@ -6,6 +6,17 @@ import Footer from "@/components/sections/footer";
 import { User, Mail, Phone, CreditCard, LogOut, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+const maskPhone = (v: string) =>
+  v.replace(/\D/g, '').slice(0, 11)
+    .replace(/^(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+
+const maskCPF = (v: string) =>
+  v.replace(/\D/g, '').slice(0, 11)
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+
 interface Profile {
   name: string;
   email: string;
@@ -130,7 +141,7 @@ export default function MeusDadosPage() {
             <input
               type="tel"
               value={form.phone || ""}
-              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, phone: maskPhone(e.target.value) }))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
               placeholder="(62) 99999-9999"
             />
@@ -144,7 +155,7 @@ export default function MeusDadosPage() {
             <input
               type="text"
               value={form.cpf || ""}
-              onChange={(e) => setForm((f) => ({ ...f, cpf: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, cpf: maskCPF(e.target.value) }))}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2e3091]/20 focus:border-[#2e3091]"
               placeholder="000.000.000-00"
             />
