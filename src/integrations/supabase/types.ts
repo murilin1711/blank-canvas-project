@@ -56,6 +56,48 @@ export type Database = {
         }
         Relationships: []
       }
+      banner_slides: {
+        Row: {
+          created_at: string | null
+          cta_text: string | null
+          display_order: number | null
+          id: number
+          interval_seconds: number | null
+          is_active: boolean | null
+          link: string | null
+          mobile_url: string | null
+          title: string | null
+          type: string
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          cta_text?: string | null
+          display_order?: number | null
+          id?: number
+          interval_seconds?: number | null
+          is_active?: boolean | null
+          link?: string | null
+          mobile_url?: string | null
+          title?: string | null
+          type?: string
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          cta_text?: string | null
+          display_order?: number | null
+          id?: number
+          interval_seconds?: number | null
+          is_active?: boolean | null
+          link?: string | null
+          mobile_url?: string | null
+          title?: string | null
+          type?: string
+          url?: string
+        }
+        Relationships: []
+      }
       bolsa_uniforme_payments: {
         Row: {
           created_at: string
@@ -339,6 +381,38 @@ export type Database = {
         }
         Relationships: []
       }
+      product_stock: {
+        Row: {
+          id: number
+          product_id: number
+          quantity: number
+          size: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          product_id: number
+          quantity?: number
+          size: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          product_id?: number
+          quantity?: number
+          size?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           allows_embroidery: boolean | null
@@ -346,7 +420,7 @@ export type Database = {
           created_at: string
           description: string | null
           display_order: number | null
-          free_shipping: boolean | null
+          free_shipping: boolean
           id: number
           image_url: string | null
           images: string[] | null
@@ -357,7 +431,7 @@ export type Database = {
           pkg_width_cm: number | null
           price: number
           school_slug: string
-          show_size_finder: boolean | null
+          show_size_finder: boolean
           similar_products: number[] | null
           sizes: string[] | null
           updated_at: string
@@ -370,7 +444,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number | null
-          free_shipping?: boolean | null
+          free_shipping?: boolean
           id?: number
           image_url?: string | null
           images?: string[] | null
@@ -381,7 +455,7 @@ export type Database = {
           pkg_width_cm?: number | null
           price: number
           school_slug: string
-          show_size_finder?: boolean | null
+          show_size_finder?: boolean
           similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
@@ -394,7 +468,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_order?: number | null
-          free_shipping?: boolean | null
+          free_shipping?: boolean
           id?: number
           image_url?: string | null
           images?: string[] | null
@@ -405,7 +479,7 @@ export type Database = {
           pkg_width_cm?: number | null
           price?: number
           school_slug?: string
-          show_size_finder?: boolean | null
+          show_size_finder?: boolean
           similar_products?: number[] | null
           sizes?: string[] | null
           updated_at?: string
