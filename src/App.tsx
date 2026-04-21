@@ -32,6 +32,7 @@ const EmpresarialPage = lazy(() => import('@/app/empresarial/page'));
 const LinhaEmpresarialPage = lazy(() => import('@/app/empresarial/linha/page'));
 const PersonalizacaoPage = lazy(() => import('@/app/personalizacao/page'));
 const LinhaPersonalizacaoPage = lazy(() => import('@/app/personalizacao/linha/page'));
+const NotFoundPage = lazy(() => import('@/app/not-found/page'));
 
 function App() {
   return (
@@ -74,6 +75,7 @@ function App() {
                     <Route path="/empresarial/:linhaId" element={<LinhaEmpresarialPage />} />
                     <Route path="/personalizacao" element={<PersonalizacaoPage />} />
                     <Route path="/personalizacao/:linhaId" element={<LinhaPersonalizacaoPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </>
               } />
