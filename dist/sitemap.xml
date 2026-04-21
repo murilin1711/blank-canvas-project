@@ -3,35 +3,35 @@
 
   <!-- Página Principal -->
   <url>
-    <loc>https://goiasminas.com.br/</loc>
+    <loc>https://goiasminas.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <!-- Escolas -->
   <url>
-    <loc>https://goiasminas.com.br/escolas/colegio-militar</loc>
+    <loc>https://goiasminas.com/escolas/colegio-militar</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <!-- Empresarial -->
   <url>
-    <loc>https://goiasminas.com.br/empresarial</loc>
+    <loc>https://goiasminas.com/empresarial</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <!-- Personalização -->
   <url>
-    <loc>https://goiasminas.com.br/personalizacao</loc>
+    <loc>https://goiasminas.com/personalizacao</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <!-- Sobre -->
   <url>
-    <loc>https://goiasminas.com.br/sobre</loc>
+    <loc>https://goiasminas.com/sobre</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>

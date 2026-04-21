@@ -10,4 +10,4 @@ Disallow: /meus-pedidos
 Disallow: /meus-dados
 Disallow: /auth
 
-Sitemap: https://goiasminas.com.br/sitemap.xml
+Sitemap: https://goiasminas.com/sitemap.xml
