@@ -304,6 +304,7 @@ export default function CaixaPage() {
   const loadData = async () => {
     setLoadedSections(new Set());
     const section = tabToSection[activeTab];
+    if (!section) return;
     await reloadSection(section);
     setLoadedSections(new Set([section]));
   };
