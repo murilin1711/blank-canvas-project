@@ -131,6 +131,37 @@ Deno.serve(async (req: Request) => {
               .from("bolsa_uniforme_payments")
               .update({ order_id: newOrder.id })
               .eq("id", data.id);
+
+            // Envia email de confirmação do Bolsa Uniforme
+            try {
+              const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+              const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+              const userRes = await supabase.auth.admin.getUserById(payment.user_id);
+              const userEmail = userRes.data?.user?.email;
+              const userName = userRes.data?.user?.user_metadata?.name || "";
+              if (userEmail) {
+                await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                  body: JSON.stringify({
+                    template: "order_confirmation",
+                    to: userEmail,
+                    data: {
+                      orderId: newOrder.id,
+                      customerName: userName,
+                      items: orderItems.map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                      subtotal: subtotalAmt,
+                      shipping: shippingAmt,
+                      total: subtotalAmt + shippingAmt,
+                      shippingAddress: payment.shipping_address,
+                    },
+                  }),
+                });
+              }
+            } catch (emailErr) {
+              console.error("Bolsa Uniforme email failed (non-critical):", emailErr);
+            }
+
             result = { success: true, orderId: newOrder.id };
           } else {
             result = { success: true };
