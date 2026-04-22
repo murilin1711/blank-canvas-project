@@ -32,7 +32,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 function baseLayout(title: string, content: string): string {
   return `<!DOCTYPE html>
-<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml" style="color-scheme: light;">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -42,6 +42,7 @@ function baseLayout(title: string, content: string): string {
   <meta name="supported-color-schemes" content="light">
   <title>${title}</title>
   <style>
+    html { color-scheme: light !important; }
     :root { color-scheme: light !important; supported-color-schemes: light !important; }
     body { background-color: #f4f4f7 !important; }
     @media (prefers-color-scheme: dark) {
@@ -71,7 +72,7 @@ function baseLayout(title: string, content: string): string {
 
         <!-- Logo Header -->
         <tr>
-          <td class="header-cell" bgcolor="#2e3091" style="background:#2e3091;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
+          <td class="header-cell" bgcolor="#2e3091" style="background:#2e3091 !important;background-color:#2e3091 !important;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
             <img src="${LOGO}" alt="Goiás Minas Uniformes" class="logo-img" style="height:70px;width:auto;display:block;margin:0 auto;" />
             <p style="color:#ffffff;opacity:0.8;font-size:12px;margin:10px 0 0;letter-spacing:0.5px;">UNIFORMES ESCOLARES DE QUALIDADE</p>
           </td>
