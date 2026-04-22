@@ -11,25 +11,18 @@ interface Slide {
   link: string;
 }
 
-const FADE_MS = 280;
+const FADE_MS = 600;
 
 const HeroBanner = () => {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [bannerLoading, setBannerLoading] = useState(true);
-
-  // currentSlide → usado pelo timer e pelos dots
   const [currentSlide, setCurrentSlide] = useState(0);
-  // displayedSlide → o que é realmente renderizado (atrasa durante o fade)
-  const [displayedSlide, setDisplayedSlide] = useState(0);
-  // controla a opacidade do banner
-  const [visible, setVisible] = useState(true);
 
-  const transitioningRef = useRef(false);
-  const currentSlideRef  = useRef(0);
+  const lastTransitionRef = useRef(0);
+  const currentSlideRef   = useRef(0);
   const touchStartX = useRef<number>(0);
   const touchEndX   = useRef<number>(0);
 
-  // Fetch slides
   useEffect(() => {
     const db = supabase as any;
     db.from('banner_slides')
@@ -51,32 +44,16 @@ const HeroBanner = () => {
       });
   }, []);
 
-  // Transição limpa: fade out → troca → fade in
   const goToSlide = useCallback((next: number) => {
-    if (transitioningRef.current) return;
+    const now = Date.now();
+    if (now - lastTransitionRef.current < FADE_MS) return;
     if (next === currentSlideRef.current) return;
 
-    transitioningRef.current = true;
+    lastTransitionRef.current = now;
     currentSlideRef.current = next;
     setCurrentSlide(next);
-
-    // 1. Fade out
-    setVisible(false);
-
-    setTimeout(() => {
-      // 2. Troca o conteúdo (invisível)
-      setDisplayedSlide(next);
-
-      // 3. Fade in
-      setVisible(true);
-
-      setTimeout(() => {
-        transitioningRef.current = false;
-      }, FADE_MS + 50);
-    }, FADE_MS);
   }, []);
 
-  // Auto-advance
   useEffect(() => {
     if (slides.length <= 1) return;
     const ms = (slides[currentSlide]?.intervalSeconds ?? 5) * 1000;
@@ -86,7 +63,6 @@ const HeroBanner = () => {
     return () => clearTimeout(timer);
   }, [currentSlide, slides, goToSlide]);
 
-  // Touch swipe
   const handleTouchStart = (e: TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
     touchEndX.current   = e.touches[0].clientX;
@@ -111,26 +87,26 @@ const HeroBanner = () => {
 
   if (slides.length === 0) return null;
 
-  const slide = slides[displayedSlide];
-
   return (
-    <section className="relative w-full overflow-hidden md:h-[calc(100vh-80px)]">
-      {/* Wrapper com fade controlado por inline style — sem toggle de classes */}
-      <div
-        id="hero-banner"
-        style={{
-          opacity: visible ? 1 : 0,
-          transition: `opacity ${FADE_MS}ms ease-in-out`,
-        }}
-        className="relative w-full md:absolute md:inset-0 z-10"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div className="relative w-full md:h-full">
+    <section
+      className="relative w-full overflow-hidden md:h-[calc(100vh-80px)]"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Ghost image — mantém a altura da seção no mobile sem reflow */}
+      <picture aria-hidden className="block w-full md:hidden" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
+        {slides[0].mobileUrl && (
+          <source media="(max-width: 767px)" srcSet={getOptimizedImageUrl(slides[0].mobileUrl, 800)} />
+        )}
+        <img src={slides[0].url} className="w-full h-auto block" alt="" />
+      </picture>
 
-          {/* Um único slide renderizado por vez */}
-          <picture className="block w-full md:h-full">
+      {/* Camadas empilhadas — crossfade real sem piscar */}
+      {slides.map((slide, index) => {
+        const active = index === currentSlide;
+        const content = (
+          <picture className="block w-full h-full">
             {slide.mobileUrl && (
               <source
                 media="(max-width: 767px)"
@@ -141,31 +117,49 @@ const HeroBanner = () => {
               src={slide.url}
               className="w-full h-auto block md:h-full md:object-cover md:object-top"
               alt="Banner"
-              loading="eager"
-              fetchPriority="high"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'auto'}
             />
           </picture>
+        );
 
-          {/* Navigation dots */}
-          {slides.length > 1 && (
-            <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
-              {slides.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`h-3 rounded-full transition-all duration-300 ${
-                    index === currentSlide
-                      ? 'bg-white w-8'
-                      : 'bg-white/60 hover:bg-white/80 w-3'
-                  }`}
-                  aria-label={`Ir para slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          )}
+        return (
+          <div
+            key={index}
+            style={{
+              opacity: active ? 1 : 0,
+              transition: `opacity ${FADE_MS}ms ease-in-out`,
+              pointerEvents: active ? 'auto' : 'none',
+            }}
+            className="absolute inset-0 w-full h-full"
+          >
+            {slide.link ? (
+              <a href={slide.link} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                {content}
+              </a>
+            ) : content}
+          </div>
+        );
+      })}
 
+      {/* Navigation dots */}
+      {slides.length > 1 && (
+        <div className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
+          {slides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              style={{ transition: 'all 300ms ease' }}
+              className={`h-3 rounded-full ${
+                index === currentSlide
+                  ? 'bg-white w-8'
+                  : 'bg-white/60 hover:bg-white/80 w-3'
+              }`}
+              aria-label={`Ir para slide ${index + 1}`}
+            />
+          ))}
         </div>
-      </div>
+      )}
     </section>
   );
 };
