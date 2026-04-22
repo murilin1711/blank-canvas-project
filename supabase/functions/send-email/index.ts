@@ -8,9 +8,7 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const FROM = "Goiás Minas Uniformes <suporte@goiasminas.com>";
-const LOGO = "https://goiasminas.com/logo-white.png";
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const LOGO = "https://www.goiasminas.com/logo-white.png";
 
 const fmt = (n: number) => `R$ ${Number(n).toFixed(2).replace(".", ",")}`;
 
@@ -32,45 +30,69 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: "#ef4444",
 };
 
-// ─── Base layout ─────────────────────────────────────────────────────────────
-
 function baseLayout(title: string, content: string): string {
   return `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <title>${title}</title>
+  <style>
+    :root { color-scheme: light !important; supported-color-schemes: light !important; }
+    body { background-color: #f4f4f7 !important; }
+    @media (prefers-color-scheme: dark) {
+      body { background-color: #f4f4f7 !important; }
+      .wrapper { background-color: #f4f4f7 !important; }
+      .header-cell { background-color: #2e3091 !important; }
+      .content-cell { background-color: #ffffff !important; color: #111827 !important; }
+      .footer-cell { background-color: #f9f9fb !important; }
+      h1, h2, p { color: inherit !important; }
+    }
+    @media only screen and (max-width:600px) {
+      .wrapper { padding: 16px 8px !important; }
+      .container { width: 100% !important; }
+      .content-cell { padding: 24px 20px !important; }
+      .header-cell { padding: 24px 20px !important; }
+      .footer-cell { padding: 20px !important; }
+      .logo-img { height: 56px !important; }
+      .cta-btn { padding: 13px 24px !important; font-size: 13px !important; }
+      .item-img { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:32px 16px;">
+  <table width="100%" cellpadding="0" cellspacing="0" class="wrapper" style="background:#f4f4f7;padding:32px 16px;">
     <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+      <table width="100%" cellpadding="0" cellspacing="0" class="container" style="max-width:560px;">
 
         <!-- Logo Header -->
         <tr>
-          <td style="background:#2e3091;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
-            <img src="${LOGO}" alt="Goiás Minas Uniformes" style="height:70px;width:auto;display:block;margin:0 auto;" />
+          <td class="header-cell" bgcolor="#2e3091" style="background:#2e3091;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
+            <img src="${LOGO}" alt="Goiás Minas Uniformes" class="logo-img" style="height:70px;width:auto;display:block;margin:0 auto;" />
             <p style="color:#ffffff;opacity:0.8;font-size:12px;margin:10px 0 0;letter-spacing:0.5px;">UNIFORMES ESCOLARES DE QUALIDADE</p>
           </td>
         </tr>
 
         <!-- Content -->
         <tr>
-          <td style="background:#ffffff;padding:36px 32px;">
+          <td class="content-cell" bgcolor="#ffffff" style="background:#ffffff;padding:36px 32px;">
             ${content}
           </td>
         </tr>
 
         <!-- Footer -->
         <tr>
-          <td style="background:#f9f9fb;border-radius:0 0 16px 16px;border-top:1px solid #eee;padding:24px 32px;text-align:center;">
+          <td class="footer-cell" bgcolor="#f9f9fb" style="background:#f9f9fb;border-radius:0 0 16px 16px;border-top:1px solid #eee;padding:24px 32px;text-align:center;">
             <p style="color:#9ca3af;font-size:12px;margin:0;">
               Goiás Minas Uniformes &bull;
               <a href="mailto:suporte@goiasminas.com" style="color:#2e3091;text-decoration:none;">suporte@goiasminas.com</a>
             </p>
             <p style="color:#9ca3af;font-size:11px;margin:6px 0 0;">
-              © 2026 Goiás Minas Uniformes. Todos os direitos reservados.<br>
+              &copy; 2026 Goiás Minas Uniformes. Todos os direitos reservados.<br>
               <a href="https://goiasminas.com" style="color:#2e3091;text-decoration:none;">goiasminas.com</a>
             </p>
           </td>
@@ -85,7 +107,7 @@ function baseLayout(title: string, content: string): string {
 
 function ctaButton(text: string, url: string): string {
   return `<div style="text-align:center;margin:28px 0 8px;">
-    <a href="${url}" style="background:#2e3091;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:14px;font-weight:bold;display:inline-block;letter-spacing:0.3px;">${text}</a>
+    <a href="${url}" class="cta-btn" style="background:#2e3091;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:14px;font-weight:bold;display:inline-block;letter-spacing:0.3px;">${text}</a>
   </div>`;
 }
 
@@ -94,10 +116,10 @@ function itemsTable(items: any[]): string {
   const rows = items.map((item) => `
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle;">
-        ${item.product_image ? `<img src="${item.product_image}" alt="${item.product_name}" style="width:52px;height:52px;object-fit:cover;border-radius:8px;float:left;margin-right:12px;">` : ""}
+        ${item.product_image ? `<img src="${item.product_image}" alt="${item.product_name}" class="item-img" style="width:52px;height:52px;object-fit:cover;border-radius:8px;float:left;margin-right:12px;">` : ""}
         <div style="overflow:hidden;">
           <p style="margin:0;font-size:14px;font-weight:bold;color:#111827;">${item.product_name}</p>
-          <p style="margin:4px 0 0;font-size:12px;color:#6b7280;">Tamanho: ${item.size || "—"} &bull; Qtd: ${item.quantity}</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#6b7280;">Tamanho: ${item.size || "&mdash;"} &bull; Qtd: ${item.quantity}</p>
         </div>
       </td>
       <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;text-align:right;vertical-align:middle;white-space:nowrap;">
@@ -112,8 +134,6 @@ function itemsTable(items: any[]): string {
 function divider(): string {
   return `<hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;">`;
 }
-
-// ─── Templates ───────────────────────────────────────────────────────────────
 
 function orderConfirmationHtml(data: any): string {
   const { orderId, customerName, items = [], subtotal, shipping, total, shippingAddress } = data;
@@ -264,8 +284,6 @@ function abandonedCartHtml(data: any): string {
 
   return baseLayout("Você esqueceu algo no carrinho! - Goiás Minas Uniformes", content);
 }
-
-// ─── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
