@@ -48,11 +48,16 @@ function baseLayout(title: string, content: string): string {
     @media (prefers-color-scheme: dark) {
       body { background-color: #f4f4f7 !important; }
       .wrapper { background-color: #f4f4f7 !important; }
-      .header-cell { background-color: #2e3091 !important; }
+      .header-cell { background-color: #2e3091 !important; background: #2e3091 !important; }
       .content-cell { background-color: #ffffff !important; color: #111827 !important; }
       .footer-cell { background-color: #f9f9fb !important; }
       h1, h2, p { color: inherit !important; }
     }
+    u + .body .header-cell { background-color: #2e3091 !important; background: #2e3091 !important; }
+    u + .body .content-cell { background-color: #ffffff !important; }
+    u + .body .footer-cell { background-color: #f9f9fb !important; }
+    u + .body .cta-btn { background-color: #2e3091 !important; color: #ffffff !important; }
+    u + .body .wrapper { background-color: #f4f4f7 !important; }
     @media only screen and (max-width:600px) {
       .wrapper { padding: 16px 8px !important; }
       .container { width: 100% !important; }
@@ -65,51 +70,57 @@ function baseLayout(title: string, content: string): string {
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-  <table width="100%" cellpadding="0" cellspacing="0" class="wrapper" style="background:#f4f4f7;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="100%" cellpadding="0" cellspacing="0" class="container" style="max-width:560px;">
+<body class="body" style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;" bgcolor="#f4f4f7">
+  <table class="wrapper" width="100%" border="0" cellpadding="0" cellspacing="0" bgcolor="#f4f4f7" style="background-color:#f4f4f7;padding:32px 16px;">
+    <tr>
+      <td align="center" valign="top">
+        <table class="container" border="0" cellpadding="0" cellspacing="0" width="560" style="width:560px;max-width:560px;">
 
-        <!-- Logo Header -->
-        <tr>
-          <td class="header-cell" bgcolor="#2e3091" style="background:#2e3091 !important;background-color:#2e3091 !important;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
-            <img src="${LOGO}" alt="Goiás Minas Uniformes" class="logo-img" style="height:70px;width:auto;display:block;margin:0 auto;" />
-            <p style="color:#ffffff;opacity:0.8;font-size:12px;margin:10px 0 0;letter-spacing:0.5px;">UNIFORMES ESCOLARES DE QUALIDADE</p>
-          </td>
-        </tr>
+          <!-- Logo Header -->
+          <tr>
+            <td class="header-cell" bgcolor="#2e3091" style="background:#2e3091 !important;background-color:#2e3091 !important;border-radius:16px 16px 0 0;padding:28px 32px;text-align:center;">
+              <img class="logo-img" src="${LOGO}" alt="Goiás Minas Uniformes" width="140" height="70" border="0" style="height:70px;width:auto;max-width:200px;display:block;margin:0 auto;border:0;outline:none;text-decoration:none;" />
+              <p style="color:#ffffff !important;font-size:12px;margin:10px 0 0;letter-spacing:0.5px;font-family:Arial,Helvetica,sans-serif;">UNIFORMES ESCOLARES DE QUALIDADE</p>
+            </td>
+          </tr>
 
-        <!-- Content -->
-        <tr>
-          <td class="content-cell" bgcolor="#ffffff" style="background:#ffffff;padding:36px 32px;">
-            ${content}
-          </td>
-        </tr>
+          <!-- Content -->
+          <tr>
+            <td class="content-cell" bgcolor="#ffffff" style="background-color:#ffffff !important;padding:36px 32px;">
+              ${content}
+            </td>
+          </tr>
 
-        <!-- Footer -->
-        <tr>
-          <td class="footer-cell" bgcolor="#f9f9fb" style="background:#f9f9fb;border-radius:0 0 16px 16px;border-top:1px solid #eee;padding:24px 32px;text-align:center;">
-            <p style="color:#9ca3af;font-size:12px;margin:0;">
-              Goiás Minas Uniformes &bull;
-              <a href="mailto:suporte@goiasminas.com" style="color:#2e3091;text-decoration:none;">suporte@goiasminas.com</a>
-            </p>
-            <p style="color:#9ca3af;font-size:11px;margin:6px 0 0;">
-              &copy; 2026 Goiás Minas Uniformes. Todos os direitos reservados.<br>
-              <a href="https://goiasminas.com" style="color:#2e3091;text-decoration:none;">goiasminas.com</a>
-            </p>
-          </td>
-        </tr>
+          <!-- Footer -->
+          <tr>
+            <td class="footer-cell" bgcolor="#f9f9fb" style="background-color:#f9f9fb !important;border-radius:0 0 16px 16px;border-top:1px solid #eeeeee;padding:24px 32px;text-align:center;">
+              <p style="color:#9ca3af;font-size:12px;margin:0;font-family:Arial,Helvetica,sans-serif;">
+                Goiás Minas Uniformes &bull;
+                <a href="mailto:suporte@goiasminas.com" style="color:#2e3091;text-decoration:none;">suporte@goiasminas.com</a>
+              </p>
+              <p style="color:#9ca3af;font-size:11px;margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;">
+                &copy; 2026 Goiás Minas Uniformes. Todos os direitos reservados.<br>
+                <a href="https://goiasminas.com" style="color:#2e3091;text-decoration:none;">goiasminas.com</a>
+              </p>
+            </td>
+          </tr>
 
-      </table>
-    </td></tr>
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>`;
 }
 
 function ctaButton(text: string, url: string): string {
-  return `<div style="text-align:center;margin:28px 0 8px;">
-    <a href="${url}" class="cta-btn" style="background:#2e3091;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:14px;font-weight:bold;display:inline-block;letter-spacing:0.3px;">${text}</a>
-  </div>`;
+  return `<table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:28px 0 8px;">
+    <tr>
+      <td align="center">
+        <a class="cta-btn" href="${url}" style="background-color:#2e3091;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:50px;font-size:14px;font-weight:bold;display:inline-block;letter-spacing:0.3px;font-family:Arial,Helvetica,sans-serif;">${text}</a>
+      </td>
+    </tr>
+  </table>`;
 }
 
 function itemsTable(items: any[]): string {
@@ -117,19 +128,25 @@ function itemsTable(items: any[]): string {
   const rows = items.map((item) => `
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;vertical-align:middle;">
-        ${item.product_image ? `<img src="${item.product_image}" alt="${item.product_name}" class="item-img" style="width:52px;height:52px;object-fit:cover;border-radius:8px;float:left;margin-right:12px;">` : ""}
-        <div style="overflow:hidden;">
-          <p style="margin:0;font-size:14px;font-weight:bold;color:#111827;">${item.product_name}</p>
-          <p style="margin:4px 0 0;font-size:12px;color:#6b7280;">Tamanho: ${item.size || "&mdash;"} &bull; Qtd: ${item.quantity}</p>
-        </div>
-      </td>
-      <td style="padding:12px 0;border-bottom:1px solid #f3f4f6;text-align:right;vertical-align:middle;white-space:nowrap;">
-        <p style="margin:0;font-size:14px;font-weight:bold;color:#111827;">${fmt(item.price * item.quantity)}</p>
-        <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;">${fmt(item.price)} cada</p>
+        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+          <tr>
+            ${item.product_image ? `<td class="item-img" width="64" style="width:64px;vertical-align:middle;padding-right:12px;">
+              <img src="${item.product_image}" alt="${item.product_name}" width="52" height="52" border="0" style="width:52px;height:52px;border-radius:8px;display:block;border:0;" />
+            </td>` : ""}
+            <td style="vertical-align:middle;">
+              <p style="margin:0;font-size:14px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">${item.product_name}</p>
+              <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:Arial,Helvetica,sans-serif;">Tamanho: ${item.size || "—"} &bull; Qtd: ${item.quantity}</p>
+            </td>
+            <td style="text-align:right;vertical-align:middle;white-space:nowrap;padding-left:8px;">
+              <p style="margin:0;font-size:14px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">${fmt(item.price * item.quantity)}</p>
+              <p style="margin:4px 0 0;font-size:11px;color:#9ca3af;font-family:Arial,Helvetica,sans-serif;">${fmt(item.price)} cada</p>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>`).join("");
 
-  return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">${rows}</table>`;
+  return `<table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin:20px 0;">${rows}</table>`;
 }
 
 function divider(): string {

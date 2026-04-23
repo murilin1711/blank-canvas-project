@@ -211,6 +211,52 @@ const ProductCarousel = () => {
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
+
+            {/* Card CTA — Sua escola pode ser a próxima */}
+            <div className="flex-shrink-0 w-[280px] md:w-[300px] lg:w-[320px]">
+              <a
+                href="https://wa.me/5562991121586?text=Ol%C3%A1!%20Gostaria%20de%20saber%20mais%20sobre%20parceria%20para%20uniformes%20da%20minha%20escola."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block group h-full"
+              >
+                <div className="relative overflow-hidden rounded-2xl aspect-[3/4] flex flex-col items-center justify-center bg-gradient-to-b from-[#2e3091] to-[#1a1d6b] border-2 border-[#2e3091]/40 shadow-lg shadow-[#2e3091]/20 transition-all duration-500 group-hover:shadow-xl group-hover:shadow-[#2e3091]/30 group-hover:scale-[1.02] p-6 text-center">
+
+                  {/* Ícone */}
+                  <div className="w-16 h-16 rounded-full bg-white/15 flex items-center justify-center mb-5 group-hover:bg-white/25 transition-colors duration-300">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m8.66-10h-1M4.34 12h-1m15.07-6.07-.7.7M6.34 17.66l-.7.7m12.73 0-.7-.7M6.34 6.34l-.7-.7M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                    </svg>
+                  </div>
+
+                  {/* Texto */}
+                  <h3 className="text-xl font-bold text-white mb-3 leading-tight">
+                    Sua escola pode ser a próxima!
+                  </h3>
+                  <p className="text-white/75 text-sm leading-relaxed mb-8">
+                    Ofereça uniformes de qualidade para seus alunos. Entre em contato e faça parte da nossa rede de parceiros.
+                  </p>
+
+                  {/* Botão */}
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-[85%]">
+                    <span className="w-full flex items-center justify-center gap-2 bg-white text-[#2e3091] px-6 py-3 rounded-lg text-sm font-semibold transition-all group-hover:bg-[#f0f1ff] shadow-md">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                        <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.856L.054 23.617a.5.5 0 00.61.637l5.913-1.55A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.9 0-3.681-.528-5.198-1.443l-.372-.223-3.862 1.013 1.033-3.757-.244-.389A9.956 9.956 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                      </svg>
+                      Quero ser parceiro
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <h3 className="text-base font-medium text-[#2e3091] group-hover:text-[#1a1d6b] transition-colors">
+                    Seja nosso parceiro
+                  </h3>
+                </div>
+              </a>
+            </div>
+
           </div>
         </div>
       </div>
