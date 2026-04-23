@@ -206,6 +206,50 @@ serve(async (req) => {
       const totalQty = (order.order_items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
       const totalValue = (order.order_items || []).reduce((s: number, i: any) => s + (i.price || 50) * (i.quantity || 1), 0) || 50;
 
+      // Buscar dimensões reais dos produtos no banco
+      const productIds = (order.order_items || [])
+        .map((i: any) => i.product_id)
+        .filter((id: any) => id != null);
+
+      let volWeight = Math.max(0.3 * totalQty, 0.3);
+      let volHeight = Math.min(5 * totalQty, 50);
+      let volWidth = 30;
+      let volLength = 25;
+
+      if (productIds.length > 0) {
+        const { data: productRows } = await supabase
+          .from("products")
+          .select("id, weight_g, pkg_height_cm, pkg_width_cm, pkg_length_cm")
+          .in("id", productIds);
+
+        if (productRows && productRows.length > 0) {
+          const productMap: Record<number, any> = {};
+          productRows.forEach((p: any) => { productMap[p.id] = p; });
+
+          let totalWeightG = 0;
+          let stackedHeight = 0;
+          let maxWidth = 0;
+          let maxLength = 0;
+          let hasRealDimensions = false;
+
+          for (const item of (order.order_items || [])) {
+            const qty = item.quantity || 1;
+            const prod = productMap[item.product_id];
+            if (prod?.weight_g) { totalWeightG += prod.weight_g * qty; hasRealDimensions = true; }
+            if (prod?.pkg_height_cm) stackedHeight += prod.pkg_height_cm * qty;
+            if (prod?.pkg_width_cm) maxWidth = Math.max(maxWidth, prod.pkg_width_cm);
+            if (prod?.pkg_length_cm) maxLength = Math.max(maxLength, prod.pkg_length_cm);
+          }
+
+          if (hasRealDimensions) {
+            volWeight = Math.max(totalWeightG / 1000, 0.1);
+            volHeight = stackedHeight > 0 ? Math.min(stackedHeight, 50) : Math.min(5 * totalQty, 50);
+            volWidth = maxWidth > 0 ? maxWidth : 30;
+            volLength = maxLength > 0 ? maxLength : 25;
+          }
+        }
+      }
+
       const cartBody = {
         service: serviceId,
         agency: null,
@@ -243,10 +287,10 @@ serve(async (req) => {
           unitaryValue: item.price || 50,
         })),
         volumes: {
-          height: Math.min(5 * totalQty, 50),
-          width: 30,
-          length: 25,
-          weight: Math.max(0.3 * totalQty, 0.3),
+          height: volHeight,
+          width: volWidth,
+          length: volLength,
+          weight: volWeight,
         },
         options: {
           insurance_value: totalValue,
