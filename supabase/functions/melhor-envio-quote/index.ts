@@ -51,7 +51,7 @@ async function getValidToken(supabase: any): Promise<string> {
     throw new Error("Credenciais do Melhor Envio não configuradas");
   }
 
-  const refreshResponse = await fetch("https://sandbox.melhorenvio.com.br/oauth/token", {
+  const refreshResponse = await fetch("https://melhorenvio.com.br/oauth/token", {
     method: "POST",
     headers: {
       Accept: "application/json",
