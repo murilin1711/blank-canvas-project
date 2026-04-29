@@ -1,7 +1,7 @@
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getOptimizedImageUrl } from '@/lib/utils';
-import escolaEmBreve from '@/assets/escola-em-breve.png';
+import iconeEscolaVerde from '@/assets/icone-escola-verde.png';
 
 type Product = {
   id: number;
@@ -218,7 +218,7 @@ const ProductCarousel = () => {
               <div className="block h-full">
                 <div className="relative overflow-hidden rounded-2xl aspect-[3/4] flex flex-col items-center justify-center bg-gradient-to-b from-gray-100 to-gray-200 border border-gray-300 shadow-sm p-6 text-center">
                   <img
-                    src={escolaEmBreve}
+                    src={iconeEscolaVerde}
                     alt="Escola em breve"
                     className="w-24 h-24 object-contain mb-5"
                   />
