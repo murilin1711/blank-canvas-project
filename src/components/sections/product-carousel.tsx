@@ -1,6 +1,7 @@
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getOptimizedImageUrl } from '@/lib/utils';
+import escolaEmBreve from '@/assets/escola-em-breve.png';
 
 type Product = {
   id: number;
@@ -211,6 +212,32 @@ const ProductCarousel = () => {
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
+
+            {/* Card — Escola em breve */}
+            <div className="flex-shrink-0 w-[280px] md:w-[300px] lg:w-[320px]">
+              <div className="block h-full">
+                <div className="relative overflow-hidden rounded-2xl aspect-[3/4] flex flex-col items-center justify-center bg-gradient-to-b from-gray-100 to-gray-200 border border-gray-300 shadow-sm p-6 text-center">
+                  <img
+                    src={escolaEmBreve}
+                    alt="Escola em breve"
+                    className="w-24 h-24 object-contain mb-5"
+                  />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-3 leading-snug">
+                    Sua escola ainda não apareceu?
+                  </h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">
+                    Fique tranquilo, ela não foi esquecida.{' '}
+                    <br />
+                    Estamos adicionando novas escolas todos os dias.
+                  </p>
+                </div>
+                <div className="mt-4 text-center">
+                  <h3 className="text-base font-medium text-gray-500">
+                    Em breve
+                  </h3>
+                </div>
+              </div>
+            </div>
 
             {/* Card CTA — Sua escola pode ser a próxima */}
             <div className="flex-shrink-0 w-[280px] md:w-[300px] lg:w-[320px]">
