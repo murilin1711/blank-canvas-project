@@ -147,7 +147,7 @@ const ProductCard = ({ product }: { product: Product }) => {
 
           <div className="absolute inset-0 flex items-center justify-center p-6">
             <img
-              src={getOptimizedImageUrl(product.image1, 400)}
+              src={getOptimizedImageUrl(product.image1, 600)}
               alt={product.name}
               loading="lazy"
               className="object-contain w-full h-full transition-transform duration-700 group-hover:scale-105"

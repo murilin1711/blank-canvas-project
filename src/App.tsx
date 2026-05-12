@@ -6,10 +6,10 @@ import { CartProvider } from '@/contexts/CartContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
-import Home from '@/app/page';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { CookieConsent } from '@/components/CookieConsent';
 
+const HomePage = lazy(() => import('@/app/page'));
 const SobrePage = lazy(() => import('@/app/sobre/page'));
 const AuthPage = lazy(() => import('@/app/auth/page'));
 const CarrinhoPage = lazy(() => import('@/app/carrinho/page'));
@@ -43,7 +43,19 @@ function App() {
           <CartProvider>
             <FavoritesProvider>
               <ScrollToTop />
-<Suspense fallback={null}>
+<Suspense fallback={
+  <div className="min-h-screen bg-white">
+    <div className="h-[80px] bg-white border-b border-gray-100" />
+    <div className="animate-pulse">
+      <div className="w-full aspect-[16/7] bg-gray-200" />
+      <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-64 bg-gray-200 rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  </div>
+}>
             <Routes>
               {/* Admin route without header */}
               <Route path="/admin" element={<AdminPage />} />
@@ -54,7 +66,7 @@ function App() {
                 <>
                   <Header />
                   <Routes>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={<HomePage />} />
                     <Route path="/sobre" element={<SobrePage />} />
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/carrinho" element={<CarrinhoPage />} />

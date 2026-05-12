@@ -94,6 +94,9 @@ export default function SuppliersCarousel() {
               <img
                 src={supplier.logo}
                 alt={`Logo ${supplier.name}`}
+                loading="lazy"
+                width={140}
+                height={80}
                 className="w-full h-full object-contain transition-all duration-300"
               />
             </div>
