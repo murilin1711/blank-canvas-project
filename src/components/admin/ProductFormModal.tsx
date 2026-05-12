@@ -290,9 +290,9 @@ export default function ProductFormModal({
         free_shipping: form.free_shipping,
         show_size_finder: form.show_size_finder,
         weight_g: form.weight_g ? parseInt(form.weight_g) : null,
-        pkg_height_cm: form.pkg_height_cm ? parseInt(form.pkg_height_cm) : null,
-        pkg_width_cm: form.pkg_width_cm ? parseInt(form.pkg_width_cm) : null,
-        pkg_length_cm: form.pkg_length_cm ? parseInt(form.pkg_length_cm) : null,
+        pkg_height_cm: form.pkg_height_cm ? parseFloat(form.pkg_height_cm) : null,
+        pkg_width_cm: form.pkg_width_cm ? parseFloat(form.pkg_width_cm) : null,
+        pkg_length_cm: form.pkg_length_cm ? parseFloat(form.pkg_length_cm) : null,
       };
 
       if (editingProduct) {
