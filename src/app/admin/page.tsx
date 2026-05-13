@@ -44,6 +44,7 @@ import CategoryFilter from "@/components/admin/CategoryFilter";
 import CategoryManager from "@/components/admin/CategoryManager";
 import BannerManager from "@/components/admin/BannerManager";
 import StockManager from "@/components/admin/StockManager";
+import { getPackageLabel } from "@/lib/packing";
 
 type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes" | "banner" | "estoque";
 
@@ -1573,6 +1574,7 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Embalagem</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
@@ -1584,6 +1586,19 @@ export default function AdminPage() {
                             <td className="px-6 py-4 text-sm text-gray-900">{order.id.slice(0, 8)}...</td>
                             <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
                             <td className="px-6 py-4 text-sm text-gray-500">{order.order_items?.length || 0} itens</td>
+                            <td className="px-6 py-4">
+                              {(() => {
+                                const pkg = getPackageLabel(
+                                  (order.order_items || []).map(i => ({ productName: i.product_name, quantity: i.quantity })),
+                                  products
+                                );
+                                return (
+                                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${pkg.color}`}>
+                                    {pkg.label}
+                                  </span>
+                                );
+                              })()}
+                            </td>
                             <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
                             <td className="px-6 py-4">
                               <select

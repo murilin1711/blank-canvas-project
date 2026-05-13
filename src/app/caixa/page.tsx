@@ -24,6 +24,7 @@ import StockManager from "@/components/admin/StockManager";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import goiasMinasLogo from "@/assets/goias-minas-logo.png";
+import { getPackageLabel, type ProductDim } from "@/lib/packing";
 
 type Tab = "pedidos" | "bolsa-uniforme" | "feedbacks" | "clientes" | "estoque";
 
@@ -117,6 +118,7 @@ export default function CaixaPage() {
   const [customers, setCustomers] = useState<CustomerData[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [packingProducts, setPackingProducts] = useState<ProductDim[]>([]);
 
   // Modal states
   const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
@@ -298,6 +300,13 @@ export default function CaixaPage() {
     if (section && !loadedSections.has(section)) {
       reloadSection(section);
       setLoadedSections(prev => new Set(prev).add(section));
+    }
+
+    if (activeTab === 'pedidos' && packingProducts.length === 0) {
+      supabase
+        .from('products')
+        .select('name, category, pkg_height_cm, pkg_width_cm, pkg_length_cm')
+        .then(({ data }) => { if (data) setPackingProducts(data as ProductDim[]); });
     }
   }, [activeTab, isAuthenticated]);
 
@@ -638,6 +647,20 @@ export default function CaixaPage() {
                             <p className="font-medium">{formatCurrency(item.price)}</p>
                           </div>
                         ))}
+                        {(() => {
+                          const pkg = getPackageLabel(
+                            order.order_items.map(i => ({ productName: i.product_name, quantity: i.quantity })),
+                            packingProducts
+                          );
+                          return (
+                            <div className="pt-2 flex items-center gap-2">
+                              <Package className="w-3.5 h-3.5 text-gray-400" />
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pkg.color}`}>
+                                {pkg.label}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
