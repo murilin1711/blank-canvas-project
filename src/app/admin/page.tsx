@@ -1593,9 +1593,16 @@ export default function AdminPage() {
                                   products
                                 );
                                 return (
-                                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${pkg.color}`}>
-                                    {pkg.label}
-                                  </span>
+                                  <div className="flex flex-col gap-1">
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full w-fit ${pkg.color}`}>
+                                      {pkg.label}
+                                    </span>
+                                    {pkg.dims && (
+                                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                                        {pkg.dims.w} × {pkg.dims.l} × {pkg.dims.h} cm
+                                      </span>
+                                    )}
+                                  </div>
                                 );
                               })()}
                             </td>

@@ -653,11 +653,16 @@ export default function CaixaPage() {
                             packingProducts
                           );
                           return (
-                            <div className="pt-2 flex items-center gap-2">
+                            <div className="pt-2 flex items-center gap-2 flex-wrap">
                               <Package className="w-3.5 h-3.5 text-gray-400" />
                               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pkg.color}`}>
                                 {pkg.label}
                               </span>
+                              {pkg.dims && (
+                                <span className="text-xs text-gray-500">
+                                  {pkg.dims.w} × {pkg.dims.l} × {pkg.dims.h} cm
+                                </span>
+                              )}
                             </div>
                           );
                         })()}
