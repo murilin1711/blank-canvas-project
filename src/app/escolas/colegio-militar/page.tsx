@@ -76,7 +76,18 @@ export default function LojaEstiloOsklen() {
             ? p.images 
             : (p.image_url ? [p.image_url] : []),
           category: p.category || "Outros",
-          sizes: p.sizes || ["P", "M", "G", "GG"],
+          sizes: (() => {
+            const vars = (p.variations as any[]) || [];
+            const sizeVar = vars.find((v: any) =>
+              /tamanho|número|numero/i.test(v.name || "")
+            );
+            if (sizeVar?.options?.length > 0) {
+              return (sizeVar.options as any[]).map((o: any) =>
+                typeof o === "string" ? o : (o.value ?? String(o))
+              );
+            }
+            return p.sizes || ["P", "M", "G", "GG"];
+          })(),
           free_shipping: p.free_shipping || false,
         }));
         setProducts(mapped);
@@ -671,12 +682,12 @@ export default function LojaEstiloOsklen() {
 
             <div className="mt-4">
               <div className="text-sm font-medium mb-2">Escolha o tamanho</div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {modalProduct.sizes.map((s) => (
                   <button
                     key={s}
                     onClick={() => setModalSelectedSize(s)}
-                    className={`px-3 py-2 rounded border text-sm cursor-pointer ${
+                    className={`shrink-0 px-3 py-2 rounded border text-sm cursor-pointer ${
                       modalSelectedSize === s
                         ? "bg-[#2e3091] text-white border-[#2e3091]"
                         : "bg-neutral-50 border-neutral-200 hover:border-neutral-300"

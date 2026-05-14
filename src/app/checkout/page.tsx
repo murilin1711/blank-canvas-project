@@ -207,7 +207,13 @@ export default function CheckoutPage() {
   const [showPixPayment, setShowPixPayment] = useState(false);
 
   // Bolsa Uniforme split payment: produtos pagos → frete pendente
+  const BOLSA_LIMIT = 970;
+  const [bolsaCards, setBolsaCards] = useState<{qrCodeImage: string; password: string}[]>([]);
   const [bolsaUniformeCompleted, setBolsaUniformeCompleted] = useState(false);
+  const [showBolsaRemainderChoice, setShowBolsaRemainderChoice] = useState(false);
+  const [bolsaRemainderMethod, setBolsaRemainderMethod] = useState<"stripe" | "pix">("pix");
+  const [showBolsaRemainderStripe, setShowBolsaRemainderStripe] = useState(false);
+  const [showBolsaRemainderPix, setShowBolsaRemainderPix] = useState(false);
   const [shippingPaymentMethod, setShippingPaymentMethod] = useState<"stripe" | "pix">("pix");
   const [showShippingStripe, setShowShippingStripe] = useState(false);
   const [showShippingPix, setShowShippingPix] = useState(false);
@@ -262,6 +268,8 @@ export default function CheckoutPage() {
   };
   const shipping = getShippingPrice();
   const total = subtotal + shipping;
+  const bolsaRemainder = Math.max(0, subtotal - bolsaCards.length * BOLSA_LIMIT);
+  const bolsaRemainderTotal = bolsaRemainder + shipping;
 
   const getShippingLabel = () => {
     if (hasFreeShipping || shippingMethod === "free") return "🚚 Frete Grátis";
@@ -1010,7 +1018,7 @@ export default function CheckoutPage() {
               {/* Pagamento Step */}
               {currentStep === "pagamento" && (
                 <div>
-                  {!bolsaUniformeCompleted && !showStripeCheckout && !showPixPayment ? (
+                  {!bolsaUniformeCompleted && !showStripeCheckout && !showPixPayment && !showBolsaRemainderChoice ? (
                     <>
                       <h2 className="text-h3 font-medium text-text-primary mb-6">
                         Selecionar forma de pagamento
@@ -1157,7 +1165,16 @@ export default function CheckoutPage() {
                                     Sua senha do cartão
                                   </li>
                                 </ul>
-                                {shipping > 0 && (
+                                {subtotal > BOLSA_LIMIT && (
+                                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <p className="text-xs text-amber-700">
+                                      <span className="font-semibold">Limite de R$970,00 por cartão.</span>{" "}
+                                      A diferença de R$ {(subtotal - BOLSA_LIMIT).toFixed(2).replace(".", ",")} será paga com outro cartão Bolsa Uniforme ou outro método de pagamento.
+                                    </p>
+                                  </div>
+                                )}
+                                {subtotal <= BOLSA_LIMIT && shipping > 0 && (
                                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
                                     <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                                     <p className="text-xs text-amber-700">
@@ -1243,6 +1260,175 @@ export default function CheckoutPage() {
                       shipping={shipping}
                       onBack={() => setShowPixPayment(false)}
                     />
+
+                  ) : !bolsaUniformeCompleted && showBolsaRemainderChoice && !showBolsaRemainderStripe && !showBolsaRemainderPix ? (
+                    /* Escolha de pagamento da diferença após cartões BU */
+                    <div>
+                      <h2 className="text-h3 font-medium text-text-primary mb-6">Concluir pagamento</h2>
+
+                      {/* Cartões já adicionados */}
+                      <div className="space-y-3 mb-6">
+                        {bolsaCards.map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
+                            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <Check className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-green-800">
+                                Cartão Bolsa Uniforme #{i + 1} recebido
+                              </p>
+                              <p className="text-xs text-green-700">
+                                R$ {Math.min(BOLSA_LIMIT, subtotal - i * BOLSA_LIMIT).toFixed(2).replace(".", ",")} cobertos
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Valor faltante */}
+                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
+                        <p className="font-semibold text-amber-800 mb-1">
+                          Faltam R$ {bolsaRemainderTotal.toFixed(2).replace(".", ",")} para concluir
+                        </p>
+                        <p className="text-sm text-amber-700">
+                          {bolsaRemainder > 0 && `R$ ${bolsaRemainder.toFixed(2).replace(".", ",")} em produtos`}
+                          {bolsaRemainder > 0 && shipping > 0 && " + "}
+                          {shipping > 0 && `R$ ${shipping.toFixed(2).replace(".", ",")} de frete`}
+                        </p>
+                      </div>
+
+                      {/* Opção 1: Outro cartão BU */}
+                      <button
+                        onClick={() => setShowBolsaUniformeModal(true)}
+                        className="w-full border-2 border-[#2e3091] text-[#2e3091] py-4 rounded-full font-medium hover:bg-[#2e3091]/5 transition-colors mb-4 flex items-center justify-center gap-2"
+                      >
+                        <Wallet className="w-5 h-5" />
+                        + Adicionar outro cartão Bolsa Uniforme
+                      </button>
+
+                      {/* Divisor */}
+                      <div className="flex items-center gap-3 my-5">
+                        <hr className="flex-1 border-border-light" />
+                        <span className="text-sm text-text-muted whitespace-nowrap">ou pague a diferença com</span>
+                        <hr className="flex-1 border-border-light" />
+                      </div>
+
+                      {/* Opção 2: Stripe ou Pix */}
+                      <div className="space-y-3 mb-5">
+                        <label className={`block cursor-pointer rounded-2xl border-2 transition-all ${bolsaRemainderMethod === "stripe" ? "border-[#2e3091] bg-[#2e3091]/5" : "border-border-light hover:border-text-muted"}`}>
+                          <div className="p-4 flex items-center gap-3">
+                            <input
+                              type="radio"
+                              checked={bolsaRemainderMethod === "stripe"}
+                              onChange={() => setBolsaRemainderMethod("stripe")}
+                              className="w-5 h-5 accent-[#2e3091]"
+                            />
+                            <CreditCard className="w-5 h-5 text-[#2e3091]" />
+                            <span className="text-body-regular font-medium text-text-primary">Cartão de Crédito / Boleto</span>
+                          </div>
+                        </label>
+                        <label className={`block cursor-pointer rounded-2xl border-2 transition-all ${bolsaRemainderMethod === "pix" ? "border-[#2e3091] bg-[#2e3091]/5" : "border-border-light hover:border-text-muted"}`}>
+                          <div className="p-4 flex items-center gap-3">
+                            <input
+                              type="radio"
+                              checked={bolsaRemainderMethod === "pix"}
+                              onChange={() => setBolsaRemainderMethod("pix")}
+                              className="w-5 h-5 accent-[#2e3091]"
+                            />
+                            <img src={pixLogo} alt="Pix" className="h-5" />
+                            <span className="text-body-regular font-medium text-text-primary">Pix</span>
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium ml-auto">Aprovação imediata</span>
+                          </div>
+                        </label>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          if (bolsaRemainderMethod === "stripe") setShowBolsaRemainderStripe(true);
+                          else setShowBolsaRemainderPix(true);
+                        }}
+                        className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase"
+                      >
+                        {bolsaRemainderMethod === "stripe"
+                          ? `Pagar R$ ${bolsaRemainderTotal.toFixed(2).replace(".", ",")} com Cartão / Boleto`
+                          : `Pagar R$ ${bolsaRemainderTotal.toFixed(2).replace(".", ",")} com Pix`}
+                      </button>
+                    </div>
+
+                  ) : !bolsaUniformeCompleted && showBolsaRemainderStripe ? (
+                    /* Stripe para diferença BU */
+                    <div>
+                      <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-h3 font-medium text-text-primary">
+                          Pagar diferença — R$ {bolsaRemainderTotal.toFixed(2).replace(".", ",")}
+                        </h2>
+                        <button
+                          onClick={() => setShowBolsaRemainderStripe(false)}
+                          className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                          Voltar
+                        </button>
+                      </div>
+                      <div className="bg-background-primary rounded-2xl p-6 mb-6">
+                        <StripeCustomPayment
+                          items={items.map(item => ({
+                            productId: item.productId,
+                            productName: item.productName,
+                            productImage: item.productImage,
+                            price: item.price,
+                            size: item.size,
+                            quantity: item.quantity,
+                            schoolSlug: item.schoolSlug,
+                          }))}
+                          customerEmail={user?.email || ""}
+                          customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+                          shippingAddress={{
+                            cep: address.cep,
+                            street: address.street,
+                            number: address.number,
+                            complement: address.complement,
+                            neighborhood: address.neighborhood,
+                            city: address.city,
+                            state: address.state,
+                          }}
+                          shipping={0}
+                          userId={user?.id || ""}
+                          total={bolsaRemainderTotal}
+                        />
+                      </div>
+                    </div>
+
+                  ) : !bolsaUniformeCompleted && showBolsaRemainderPix ? (
+                    /* Pix para diferença BU */
+                    <MercadoPagoPixPayment
+                      items={items.map(item => ({
+                        productId: item.productId,
+                        productName: item.productName,
+                        productImage: item.productImage,
+                        price: item.price,
+                        size: item.size,
+                        quantity: item.quantity,
+                        schoolSlug: item.schoolSlug,
+                      }))}
+                      customerEmail={user?.email || ""}
+                      customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
+                      cpf={personal.cpf}
+                      total={bolsaRemainderTotal}
+                      userId={user?.id || ""}
+                      shippingAddress={{
+                        cep: address.cep,
+                        street: address.street,
+                        number: address.number,
+                        complement: address.complement,
+                        neighborhood: address.neighborhood,
+                        city: address.city,
+                        state: address.state,
+                      }}
+                      shipping={0}
+                      onBack={() => setShowBolsaRemainderPix(false)}
+                    />
+
                   ) : !bolsaUniformeCompleted ? (
                     /* Stripe Custom Payment Form */
                     <div>
@@ -1462,8 +1648,14 @@ export default function CheckoutPage() {
               {showBolsaUniformeModal && (
                 <BolsaUniformePayment
                   onComplete={async (data) => {
-                    console.log("Bolsa Uniforme payment data:", data);
-                    // Save to database
+                    const newCards = [...bolsaCards, data];
+                    setBolsaCards(newCards);
+
+                    const cardIndex = newCards.length - 1;
+                    const cardAmount = Math.min(BOLSA_LIMIT, subtotal - cardIndex * BOLSA_LIMIT);
+                    const newRemainder = Math.max(0, subtotal - newCards.length * BOLSA_LIMIT);
+                    const isLastCard = newRemainder === 0;
+
                     try {
                       const { error } = await supabase.from("bolsa_uniforme_payments" as any).insert({
                         user_id: user?.id,
@@ -1472,9 +1664,8 @@ export default function CheckoutPage() {
                         customer_name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Cliente",
                         customer_phone: personal.phone,
                         customer_email: user?.email,
-                        // Bolsa Uniforme cobre apenas os produtos (subtotal)
-                        total_amount: subtotal,
-                        shipping_amount: shipping,
+                        total_amount: cardAmount,
+                        shipping_amount: isLastCard ? shipping : 0,
                         items: items.map(item => ({
                           productId: item.productId,
                           productName: item.productName,
@@ -1495,24 +1686,29 @@ export default function CheckoutPage() {
                         },
                         status: "pending",
                       } as any);
+
                       if (error) {
                         console.error("Error saving bolsa uniforme payment:", error);
                       } else {
-                        await trackActivity("checkout_completed", `Finalizou produtos via Bolsa Uniforme - ${formatCurrency(subtotal)}`, {
-                          paymentMethod: "bolsa_uniforme",
-                          subtotal,
-                          shippingPending: shipping > 0,
-                          items: items.length
-                        });
-
                         setShowBolsaUniformeModal(false);
-                        if (shipping > 0) {
-                          // Frete ainda precisa ser pago com outro método
-                          setBolsaUniformeCompleted(true);
+
+                        if (!isLastCard) {
+                          setShowBolsaRemainderChoice(true);
                         } else {
-                          // Sem frete — pedido concluído
-                          clearCart();
-                          setBolsaUniformeCompleted(true);
+                          await trackActivity("checkout_completed", `Finalizou produtos via Bolsa Uniforme - ${formatCurrency(subtotal)}`, {
+                            paymentMethod: "bolsa_uniforme",
+                            subtotal,
+                            cardCount: newCards.length,
+                            shippingPending: shipping > 0,
+                            items: items.length
+                          });
+
+                          if (shipping > 0) {
+                            setBolsaUniformeCompleted(true);
+                          } else {
+                            clearCart();
+                            setBolsaUniformeCompleted(true);
+                          }
                         }
                       }
                     } catch (err) {

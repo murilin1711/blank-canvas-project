@@ -427,7 +427,7 @@ serve(async (req) => {
       height = dims.h;
       weight = weightKg;
 
-      console.log("Packing result:", { contentType, shoeCount, blocks: blocks.length, width, length, height, weight });
+      console.log("[ME-QUOTE] Packing result:", JSON.stringify({ contentType, shoeCount, blocks, dims: { width, length, height }, weight }, null, 2));
     } else {
       // Fallback: sem IDs de produto
       const totalQty = (items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
@@ -452,6 +452,8 @@ serve(async (req) => {
         },
       ],
     };
+
+    console.log("[ME-QUOTE] Payload enviado ao Melhor Envios:", JSON.stringify(calcBody, null, 2));
 
     // Tenta endpoint autenticado; fallback para público se WAF bloquear
     let response: Response;
