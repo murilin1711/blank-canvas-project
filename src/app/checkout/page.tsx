@@ -916,17 +916,20 @@ export default function CheckoutPage() {
                         <p className="text-caption text-text-muted mb-4">ENTREGA 1 DE 1</p>
 
                         {/* Product preview */}
-                        <div className="flex gap-3 mb-6">
-                          {items.slice(0, 1).map((item) => (
+                        <div className="flex flex-col gap-3 mb-6">
+                          {items.map((item) => (
                             <div key={`${item.productId}-${item.size}`} className="flex gap-3">
                               <img
                                 src={item.productImage}
                                 alt={item.productName}
-                                className="w-20 h-24 object-cover bg-background-secondary rounded"
+                                className="w-16 h-20 object-cover bg-background-secondary rounded flex-shrink-0"
                               />
                               <div>
                                 <p className="text-body-sm font-medium text-text-primary">
                                   {item.productName}
+                                </p>
+                                <p className="text-caption text-text-muted mt-1">
+                                  {item.size && `Tamanho: ${item.size}`}{item.quantity > 1 && ` • Qtd: ${item.quantity}`}
                                 </p>
                               </div>
                             </div>
