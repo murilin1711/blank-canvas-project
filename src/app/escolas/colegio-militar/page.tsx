@@ -37,6 +37,7 @@ type Product = {
   images: string[];
   category: string;
   sizes: string[];
+  variationName: string | null;
   free_shipping: boolean;
 };
 
@@ -78,15 +79,18 @@ export default function LojaEstiloOsklen() {
           category: p.category || "Outros",
           sizes: (() => {
             const vars = (p.variations as any[]) || [];
-            const sizeVar = vars.find((v: any) =>
-              /tamanho|número|numero/i.test(v.name || "")
-            );
-            if (sizeVar?.options?.length > 0) {
-              return (sizeVar.options as any[]).map((o: any) =>
+            const activeVar = vars.find((v: any) => v.options?.length > 0);
+            if (activeVar) {
+              return (activeVar.options as any[]).map((o: any) =>
                 typeof o === "string" ? o : (o.value ?? String(o))
               );
             }
-            return p.sizes || ["P", "M", "G", "GG"];
+            return p.sizes && p.sizes.length > 0 ? p.sizes : ["P", "M", "G", "GG"];
+          })(),
+          variationName: (() => {
+            const vars = (p.variations as any[]) || [];
+            const activeVar = vars.find((v: any) => v.options?.length > 0);
+            return activeVar ? activeVar.name : null;
           })(),
           free_shipping: p.free_shipping || false,
         }));
@@ -681,7 +685,9 @@ export default function LojaEstiloOsklen() {
             </div>
 
             <div className="mt-4">
-              <div className="text-sm font-medium mb-2">Escolha o tamanho</div>
+              <div className="text-sm font-medium mb-2">
+                Escolha {modalProduct.variationName ? `a ${modalProduct.variationName.toLowerCase()}` : "o tamanho"}
+              </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 {modalProduct.sizes.map((s) => (
                   <button
