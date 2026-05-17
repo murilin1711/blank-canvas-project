@@ -269,7 +269,8 @@ export default function CheckoutPage() {
   const shipping = getShippingPrice();
   const total = subtotal + shipping;
   const bolsaRemainder = Math.max(0, subtotal - bolsaCards.length * BOLSA_LIMIT);
-  const bolsaRemainderTotal = bolsaRemainder + shipping;
+  // Frete nunca é pago pelo Bolsa Uniforme — sempre cobrado à parte via Stripe/Pix
+  const bolsaRemainderTotal = bolsaRemainder;
 
   const getShippingLabel = () => {
     if (hasFreeShipping || shippingMethod === "free") return "🚚 Frete Grátis";
@@ -1173,7 +1174,8 @@ export default function CheckoutPage() {
                                     <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                                     <p className="text-xs text-amber-700">
                                       <span className="font-semibold">Limite de R$970,00 por cartão.</span>{" "}
-                                      A diferença de R$ {(subtotal - BOLSA_LIMIT).toFixed(2).replace(".", ",")} será paga com outro cartão Bolsa Uniforme ou outro método de pagamento.
+                                      A diferença de R$ {(subtotal - BOLSA_LIMIT).toFixed(2).replace(".", ",")} em produtos será paga com outro cartão Bolsa Uniforme ou outro método de pagamento.
+                                      {shipping > 0 && ` O frete de R$ ${shipping.toFixed(2).replace(".", ",")} é sempre pago à parte via Cartão ou Pix.`}
                                     </p>
                                   </div>
                                 )}
@@ -1291,13 +1293,13 @@ export default function CheckoutPage() {
                       {/* Valor faltante */}
                       <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 mb-6">
                         <p className="font-semibold text-amber-800 mb-1">
-                          Faltam R$ {bolsaRemainderTotal.toFixed(2).replace(".", ",")} para concluir
+                          Faltam R$ {bolsaRemainder.toFixed(2).replace(".", ",")} em produtos
                         </p>
-                        <p className="text-sm text-amber-700">
-                          {bolsaRemainder > 0 && `R$ ${bolsaRemainder.toFixed(2).replace(".", ",")} em produtos`}
-                          {bolsaRemainder > 0 && shipping > 0 && " + "}
-                          {shipping > 0 && `R$ ${shipping.toFixed(2).replace(".", ",")} de frete`}
-                        </p>
+                        {shipping > 0 && (
+                          <p className="text-sm text-amber-700 mt-1">
+                            + Frete de R$ {shipping.toFixed(2).replace(".", ",")} — pago à parte via Cartão ou Pix
+                          </p>
+                        )}
                       </div>
 
                       {/* Opção 1: Outro cartão BU */}
@@ -1353,8 +1355,8 @@ export default function CheckoutPage() {
                         className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase"
                       >
                         {bolsaRemainderMethod === "stripe"
-                          ? `Pagar R$ ${bolsaRemainderTotal.toFixed(2).replace(".", ",")} com Cartão / Boleto`
-                          : `Pagar R$ ${bolsaRemainderTotal.toFixed(2).replace(".", ",")} com Pix`}
+                          ? `Pagar R$ ${(bolsaRemainder + shipping).toFixed(2).replace(".", ",")} com Cartão / Boleto`
+                          : `Pagar R$ ${(bolsaRemainder + shipping).toFixed(2).replace(".", ",")} com Pix`}
                       </button>
                     </div>
 
@@ -1363,7 +1365,7 @@ export default function CheckoutPage() {
                     <div>
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="text-h3 font-medium text-text-primary">
-                          Pagar diferença — R$ {bolsaRemainderTotal.toFixed(2).replace(".", ",")}
+                          Pagar diferença — R$ {(bolsaRemainder + shipping).toFixed(2).replace(".", ",")}
                         </h2>
                         <button
                           onClick={() => setShowBolsaRemainderStripe(false)}
@@ -1395,9 +1397,9 @@ export default function CheckoutPage() {
                             city: address.city,
                             state: address.state,
                           }}
-                          shipping={0}
+                          shipping={shipping}
                           userId={user?.id || ""}
-                          total={bolsaRemainderTotal}
+                          total={bolsaRemainderTotal + shipping}
                         />
                       </div>
                     </div>
@@ -1417,7 +1419,7 @@ export default function CheckoutPage() {
                       customerEmail={user?.email || ""}
                       customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
                       cpf={personal.cpf}
-                      total={bolsaRemainderTotal}
+                      total={bolsaRemainderTotal + shipping}
                       userId={user?.id || ""}
                       shippingAddress={{
                         cep: address.cep,
@@ -1428,7 +1430,7 @@ export default function CheckoutPage() {
                         city: address.city,
                         state: address.state,
                       }}
-                      shipping={0}
+                      shipping={shipping}
                       onBack={() => setShowBolsaRemainderPix(false)}
                     />
 
@@ -1668,7 +1670,7 @@ export default function CheckoutPage() {
                         customer_phone: personal.phone,
                         customer_email: user?.email,
                         total_amount: cardAmount,
-                        shipping_amount: isLastCard ? shipping : 0,
+                        shipping_amount: 0,
                         items: items.map(item => ({
                           productId: item.productId,
                           productName: item.productName,
