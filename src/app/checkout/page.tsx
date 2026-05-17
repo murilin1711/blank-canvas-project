@@ -208,7 +208,8 @@ export default function CheckoutPage() {
 
   // Bolsa Uniforme split payment: produtos pagos → frete pendente
   const BOLSA_LIMIT = 970;
-  const [bolsaCards, setBolsaCards] = useState<{qrCodeImage: string; password: string}[]>([]);
+  const MAX_BU_CARDS = 3;
+  const [bolsaCards, setBolsaCards] = useState<{qrCodeImage: string; password: string; amount: number}[]>([]);
   const [bolsaUniformeCompleted, setBolsaUniformeCompleted] = useState(false);
   const [showBolsaRemainderChoice, setShowBolsaRemainderChoice] = useState(false);
   const [bolsaRemainderMethod, setBolsaRemainderMethod] = useState<"stripe" | "pix">("pix");
@@ -268,9 +269,11 @@ export default function CheckoutPage() {
   };
   const shipping = getShippingPrice();
   const total = subtotal + shipping;
-  const bolsaRemainder = Math.max(0, subtotal - bolsaCards.length * BOLSA_LIMIT);
+  const bolsaUsed = bolsaCards.reduce((sum, c) => sum + c.amount, 0);
+  const bolsaRemainder = Math.max(0, subtotal - bolsaUsed);
   // Frete nunca é pago pelo Bolsa Uniforme — sempre cobrado à parte via Stripe/Pix
   const bolsaRemainderTotal = bolsaRemainder;
+  const bolsaCurrentMax = Math.min(BOLSA_LIMIT, bolsaRemainder); // máximo para o próximo cartão
 
   const getShippingLabel = () => {
     if (hasFreeShipping || shippingMethod === "free") return "🚚 Frete Grátis";
@@ -1273,7 +1276,7 @@ export default function CheckoutPage() {
 
                       {/* Cartões já adicionados */}
                       <div className="space-y-3 mb-6">
-                        {bolsaCards.map((_, i) => (
+                        {bolsaCards.map((card, i) => (
                           <div key={i} className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
                             <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                               <Check className="w-4 h-4 text-green-600" />
@@ -1283,7 +1286,7 @@ export default function CheckoutPage() {
                                 Cartão Bolsa Uniforme #{i + 1} recebido
                               </p>
                               <p className="text-xs text-green-700">
-                                R$ {Math.min(BOLSA_LIMIT, subtotal - i * BOLSA_LIMIT).toFixed(2).replace(".", ",")} cobertos
+                                R$ {card.amount.toFixed(2).replace(".", ",")} cobertos
                               </p>
                             </div>
                           </div>
@@ -1302,14 +1305,16 @@ export default function CheckoutPage() {
                         )}
                       </div>
 
-                      {/* Opção 1: Outro cartão BU */}
-                      <button
-                        onClick={() => setShowBolsaUniformeModal(true)}
-                        className="w-full border-2 border-[#2e3091] text-[#2e3091] py-4 rounded-full font-medium hover:bg-[#2e3091]/5 transition-colors mb-4 flex items-center justify-center gap-2"
-                      >
-                        <Wallet className="w-5 h-5" />
-                        + Adicionar outro cartão Bolsa Uniforme
-                      </button>
+                      {/* Opção 1: Outro cartão BU (máx 3 cartões) */}
+                      {bolsaCards.length < MAX_BU_CARDS && (
+                        <button
+                          onClick={() => setShowBolsaUniformeModal(true)}
+                          className="w-full border-2 border-[#2e3091] text-[#2e3091] py-4 rounded-full font-medium hover:bg-[#2e3091]/5 transition-colors mb-4 flex items-center justify-center gap-2"
+                        >
+                          <Wallet className="w-5 h-5" />
+                          + Adicionar cartão #{bolsaCards.length + 1} de {MAX_BU_CARDS}
+                        </button>
+                      )}
 
                       {/* Divisor */}
                       <div className="flex items-center gap-3 my-5">
@@ -1652,13 +1657,16 @@ export default function CheckoutPage() {
               {/* Bolsa Uniforme Modal */}
               {showBolsaUniformeModal && (
                 <BolsaUniformePayment
+                  suggestedAmount={bolsaCurrentMax}
+                  maxAmount={bolsaCurrentMax}
+                  cardNumber={bolsaCards.length + 1}
                   onComplete={async (data) => {
                     const newCards = [...bolsaCards, data];
                     setBolsaCards(newCards);
 
-                    const cardIndex = newCards.length - 1;
-                    const cardAmount = Math.min(BOLSA_LIMIT, subtotal - cardIndex * BOLSA_LIMIT);
-                    const newRemainder = Math.max(0, subtotal - newCards.length * BOLSA_LIMIT);
+                    const cardAmount = data.amount;
+                    const newUsed = newCards.reduce((sum, c) => sum + c.amount, 0);
+                    const newRemainder = Math.max(0, subtotal - newUsed);
                     const isLastCard = newRemainder === 0;
 
                     try {
