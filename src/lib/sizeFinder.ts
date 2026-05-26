@@ -1,16 +1,55 @@
 /** Size finder: recommends garment size based on body measurements */
 
-export interface SizeRecommendation {
-  primary: string;
-  bodyMeasurement: string | null; // e.g. "Tórax estimado: ~99 cm"
+import type { BodyDominance } from './volumetry';
+export type { BodyDominance };
+
+// ─── PUBLIC INTERFACES ────────────────────────────────────────────────────────
+
+export interface BodyAdjustments {
+  toraxAdj: number;    // male = tórax; female = busto. clicks: -3 to +3
+  cinturaAdj: number;
+  quadrilAdj: number;
+  gluteoAdj: number;
+  coxaAdj: number;
 }
 
-// ─── GARMENT MEASUREMENT TABLES ───────────────────────────────────────────
-// All measurements in cm (original values × 100).
-//
+export const DEFAULT_ADJUSTMENTS: BodyAdjustments = {
+  toraxAdj: 0,
+  cinturaAdj: 0,
+  quadrilAdj: 0,
+  gluteoAdj: 0,
+  coxaAdj: 0,
+};
+
+export interface BodyMeasurements {
+  torax: number;    // tórax (m) or busto (f) — full circumference cm
+  cintura: number;
+  quadril: number;
+  coxa: number;
+  ombro: number;    // internal — not shown to user
+  braco: number;    // internal
+  gancho: number;   // internal
+}
+
+export type FitStatus = 'ideal' | 'levemente-justo' | 'apertado' | 'levemente-folgado' | 'folgado';
+
+export interface RegionFit {
+  label: string;
+  status: FitStatus;
+  ease: number;     // garment − body (cm)
+}
+
+export interface SizeRecommendation {
+  primary: string;
+  bodyMeasurement: string | null;  // e.g. "Tórax estimado: ~99 cm"
+  fits?: RegionFit[];
+}
+
+// ─── GARMENT MEASUREMENT TABLES ───────────────────────────────────────────────
+// All measurements in cm.
 // Tables are in SIZE ORDER (smallest → largest). Do NOT sort by measurement —
-// some products have measurement anomalies (PP chest > P chest from factory data);
-// the table order is the authoritative size order.
+// some products have factory anomalies (PP chest > P chest); table order is
+// the authoritative size order.
 
 interface ChestRow { size: string; chest: number }
 interface WaistRow { size: string; halfWaist: number }
@@ -74,7 +113,6 @@ const CAMISA_M: ChestRow[] = [
  * Camisa Social Bege Unissex – Largura × 2 = full circumference.
  * 10:43×2=86 | 12:45×2=90 | 14:48×2=96 | PP:51×2=102
  * P:54×2=108 | M:58×2=116 | G:60×2=120 | GG:63×2=126 | EXG:132
- * (EXG largura 1,32 fornecida como circunferência completa = 132 cm)
  */
 const CAMISA_BEGE: ChestRow[] = [
   { size: "10",  chest: 86 },
@@ -169,7 +207,7 @@ const TUNICA_F: ChestRow[] = [
 /**
  * Túnica Branca/Marrom Masculina – Largura = full circumference.
  * Factory anomaly: PP(100) > P(96). Table order defines size precedence.
- * Size "12" = child size (largura 0.92 = 92 cm full).
+ * Size "12" = child size (92 cm full).
  */
 const TUNICA_M: ChestRow[] = [
   { size: "12",   chest: 92 },
@@ -182,24 +220,26 @@ const TUNICA_M: ChestRow[] = [
   { size: "EXGG", chest: 132 },
 ];
 
-// ─── MINIMUM EASE PER PRODUCT TYPE ─────────────────────────────────────────
+// ─── MINIMUM EASE PER PRODUCT TYPE ────────────────────────────────────────────
 // Extra room (cm) the garment must have beyond the estimated body measurement.
+// Calibrated against the new body-estimation formulas (non-BMI).
+// Confirmed test cases: Samuel 175/82 kg, Eduardo 174/76 kg.
 
 const MIN_EASE: Record<string, number> = {
-  "agasalho":        14, // gabardine jacket — recalibrated for base-92 formula
+  "agasalho":        10, // structured gabardine jacket
   "agasalho-tectel":  6, // tectel jacket
-  "camisa-m":        12, // social shirt masculino
-  "camisa-bege":     12, // social shirt unissex
-  "camisete-f":       2, // fitted blouse feminino
-  "camiseta":         4, // casual unissex t-shirt
+  "camisa-m":         6, // social shirt masculino
+  "camisa-bege":      6, // social shirt unissex
+  "camisete-f":       0, // fitted blouse feminino
+  "camiseta":         2, // casual unissex t-shirt (modelagem pequena — sobe tamanho)
   "tunica-f":         4, // semi-fitted tunic feminino
-  "tunica-m":         2, // tunic masculino
+  "tunica-m":         2, // tunic masculino (ombro is real size driver — limitation)
   "saia":             1, // rounding safety
-  "calca":            1, // rounding safety
-  "calca-tectel":     1, // elastic waistband — rounding safety
+  "calca":            3, // military dress pants — match by cintura halfWaist
+  "calca-tectel":    23, // elastic tectel — large garment ease by design
 };
 
-// ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────
+// ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────────
 
 type ProductType =
   | "agasalho" | "agasalho-tectel"
@@ -209,7 +249,7 @@ type ProductType =
   | "generic";
 
 function normalize(s: string) {
-  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 function detectProductType(
@@ -219,7 +259,6 @@ function detectProductType(
 ): ProductType {
   const n = normalize(productName);
 
-  // Agasalho / conjunto / jaqueta / blusa de frio / moletom
   if (
     n.includes("agasalho") ||
     n.includes("conjunto") ||
@@ -230,12 +269,10 @@ function detectProductType(
     return n.includes("tectel") ? "agasalho-tectel" : "agasalho";
   }
 
-  // Túnica (antes de camisa/camiseta para evitar falso match)
   if (n.includes("tunica") || n.includes("blusa")) {
     return gender === "m" ? "tunica-m" : "tunica-f";
   }
 
-  // Calça (antes de camiseta para evitar match em "camiseta de malha")
   if (
     n.includes("calca") ||
     n.includes("bermuda") ||
@@ -245,26 +282,21 @@ function detectProductType(
     return n.includes("tectel") ? "calca-tectel" : "calca";
   }
 
-  // Saia
   if (n.includes("saia")) return "saia";
 
-  // Camiseta (antes de camisete/camisa)
   if (
     n.includes("camiseta") ||
     n.includes("camisao") ||
     n.includes("polo")
   ) return "camiseta";
 
-  // Camisete feminino
   if (n.includes("camisete")) return "camisete-f";
 
-  // Camisa
   if (n.includes("camisa") || n.includes("social")) {
     if (n.includes("bege") || n.includes("unissex")) return "camisa-bege";
     return gender === "m" ? "camisa-m" : "camisete-f";
   }
 
-  // Fallback: tamanhos numéricos → calça/saia
   if (availableSizes.some(s => /^\d+$/.test(s))) {
     return gender === "f" ? "saia" : "calca";
   }
@@ -272,84 +304,153 @@ function detectProductType(
   return "generic";
 }
 
-// ─── BODY MEASUREMENT ESTIMATION ──────────────────────────────────────────
-// Calibrated against Brazilian NBR 15800 sizing standard body ranges.
+// ─── BODY MEASUREMENT ESTIMATION ──────────────────────────────────────────────
+// Formulas calibrated against real test cases (Samuel 175/82, Eduardo 174/76).
+// Adjustment deltas per click (spec values, asymmetric +/−).
 
-function estimateBody(
+function applyAdj(
+  base: number,
+  clicks: number,
+  plusPerClick: number,
+  minusPerClick: number
+): number {
+  if (clicks >= 0) return base + clicks * plusPerClick;
+  return base - Math.abs(clicks) * minusPerClick;
+}
+
+// Deslocamentos de distribuição corporal (cm) sobre as estimativas base.
+// Preserva o resultado atual quando dominance = 'equilibrado'.
+const DOMINANCE_BODY_DELTA: Record<BodyDominance, {
+  torax: number; cintura: number; quadril: number; coxa: number;
+}> = {
+  tronco:      { torax:  5, cintura:  2, quadril: -3, coxa: -2 },
+  inferior:    { torax: -4, cintura:  2, quadril:  6, coxa:  4 },
+  equilibrado: { torax:  0, cintura:  0, quadril:  0, coxa:  0 },
+};
+
+export function estimateBody(
   altura: number,
   peso: number,
   gender: "m" | "f" | null,
-  caimento: "justo" | "regular" | "oversize" | null
-) {
-  const h = altura / 100;
-  const bmi = peso / (h * h);
+  adjustments: BodyAdjustments = DEFAULT_ADJUSTMENTS,
+  dominance: BodyDominance = 'equilibrado',
+): BodyMeasurements {
   const g = gender ?? "m";
+  const adj = adjustments;
+  const dom = DOMINANCE_BODY_DELTA[dominance];
 
-  //
-  // Male reference points at 175 cm (chest / waist):
-  //   BMI 20 → ~93 / ~72   (slim, PP range)
-  //   BMI 22 → ~96 / ~76   (lean, P range)
-  //   BMI 24 → ~100 / ~81  (average, M range)
-  //   BMI 27 → ~104 / ~89  (above average, M→G border)
-  //   BMI 29 → ~107 / ~94  (overweight, G→GG range)
-  //
-  // Female reference points at 165 cm (chest / waist):
-  //   BMI 19 → ~84 / ~63
-  //   BMI 21 → ~88 / ~68
-  //   BMI 23 → ~93 / ~73
-  //   BMI 25 → ~97 / ~78
-  //   BMI 27 → ~101 / ~83
-  //
-  // Height correction: taller people have larger frames at the same BMI.
-  // +0.2 cm per cm above/below reference height (175 m / 165 f).
-  //
-  let chest: number;
-  let waist: number;
+  let torax: number;
+  let cintura: number;
+  let quadril: number;
+  let coxa: number;
+  let ombro: number;
+  let braco: number;
+  let gancho: number;
 
   if (g === "m") {
-    chest = 92 + (bmi - 22) * 1.65 + (altura - 175) * 0.7;
-    waist = 76 + (bmi - 22) * 2.6;
+    // Base estimates
+    torax   = (altura * 0.53) + (peso * 0.11) + dom.torax;
+    cintura = (altura * 0.42) + (peso * 0.18) + dom.cintura;
+    quadril = (altura * 0.50) + (peso * 0.12) + dom.quadril;
+    coxa    = quadril * 0.58 + dom.coxa;
+    ombro   = torax * 0.46;
+    braco   = torax * 0.36;
+    gancho  = quadril * 0.30;
+
+    // Apply user adjustments
+    const toraxDelta = applyAdj(0, adj.toraxAdj, 4, 4);
+    torax   += toraxDelta;
+    ombro   += adj.toraxAdj * 2;
+    braco   += adj.toraxAdj * 1.5;
+
+    cintura += applyAdj(0, adj.cinturaAdj, 4, 4);
+
+    const quadrilDelta = applyAdj(0, adj.quadrilAdj, 5, 4);
+    quadril += quadrilDelta;
+    gancho  += adj.quadrilAdj * 1;
+
+    if (adj.gluteoAdj > 0) {
+      quadril += adj.gluteoAdj * 2;
+      gancho  += adj.gluteoAdj * 1;
+    } else {
+      quadril += adj.gluteoAdj * 2;
+    }
+
+    coxa += applyAdj(0, adj.coxaAdj, 4, 4);
+
   } else {
-    chest = 88 + (bmi - 21) * 2.2 + (altura - 165) * 0.5;
-    waist = 68 + (bmi - 21) * 2.3;
+    // Base estimates
+    torax   = (altura * 0.52) + (peso * 0.13) + dom.torax;
+    cintura = (altura * 0.40) + (peso * 0.17) + dom.cintura;
+    quadril = (altura * 0.54) + (peso * 0.15) + dom.quadril;
+    coxa    = quadril * 0.60 + dom.coxa;
+    ombro   = torax * 0.40;
+    braco   = torax * 0.28;
+    gancho  = quadril * 0.32;
+
+    // Apply user adjustments
+    const toraxDelta = applyAdj(0, adj.toraxAdj, 6, 5);
+    torax += toraxDelta;
+    braco += adj.toraxAdj * 1;
+
+    cintura += applyAdj(0, adj.cinturaAdj, 5, 5);
+
+    const quadrilDelta = applyAdj(0, adj.quadrilAdj, 7, 6);
+    quadril += quadrilDelta;
+    gancho  += adj.quadrilAdj * 2;
+
+    if (adj.gluteoAdj > 0) {
+      quadril += adj.gluteoAdj * 5;
+      gancho  += adj.gluteoAdj * 3;
+    } else {
+      quadril += adj.gluteoAdj * 4;
+    }
+
+    coxa += applyAdj(0, adj.coxaAdj, 5, 5);
   }
 
-  // Body type adjustment:
-  // Ectomorfo: leaner frame, slightly smaller chest, slimmer waist
-  // Endomorfo: stockier frame, slightly larger chest, wider waist
-  if (caimento === "justo") {
-    chest -= 1;
-    waist -= 2;
-  } else if (caimento === "oversize") {
-    chest += 2;
-    waist += 4;
-  }
-
-  chest = Math.max(78, Math.min(145, chest));
-  waist = Math.max(56, Math.min(130, waist));
-
-  return { chest, waist, halfWaist: waist / 2, bmi };
+  return {
+    torax:   Math.max(60, Math.min(160, Math.round(torax * 10) / 10)),
+    cintura: Math.max(50, Math.min(140, Math.round(cintura * 10) / 10)),
+    quadril: Math.max(60, Math.min(160, Math.round(quadril * 10) / 10)),
+    coxa:    Math.max(25, Math.min(100, Math.round(coxa * 10) / 10)),
+    ombro:   Math.max(30, Math.min(80,  Math.round(ombro * 10) / 10)),
+    braco:   Math.max(20, Math.min(60,  Math.round(braco * 10) / 10)),
+    gancho:  Math.max(15, Math.min(60,  Math.round(gancho * 10) / 10)),
+  };
 }
 
-// ─── SIZE MATCHING ─────────────────────────────────────────────────────────
+// ─── FIT STATUS ───────────────────────────────────────────────────────────────
+
+function easeToStatus(ease: number): FitStatus {
+  if (ease < 0)       return 'apertado';
+  if (ease < 3)       return 'levemente-justo';
+  if (ease <= 14)     return 'ideal';
+  if (ease <= 24)     return 'levemente-folgado';
+  return 'folgado';
+}
+
+// ─── SIZE MATCHING ─────────────────────────────────────────────────────────────
 // CRITICAL: iterate table in original order (= size order), NOT sorted by measurement.
-// Body measurement is rounded to integer to prevent floating-point boundary issues
-// (e.g., chest 102.3 vs garment 114 with ease 12 = 114.3 → rounds to 114, recommends M correctly).
+// halfBodyWaist is rounded before adding ease to prevent floating-point boundary issues.
 
 function matchChest(
   table: ChestRow[],
   bodyChest: number,
   availableSizes: string[],
   minEase: number
-): string | null {
+): { size: string | null; ease: number } {
   const rows = table.filter(r => availableSizes.includes(r.size));
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return { size: null, ease: 0 };
 
   const needed = Math.round(bodyChest) + minEase;
 
   const idx = rows.findIndex(r => r.chest >= needed);
-  if (idx === -1) return rows[rows.length - 1].size; // largest available
-  return rows[idx].size;
+  if (idx === -1) {
+    const last = rows[rows.length - 1];
+    return { size: last.size, ease: last.chest - bodyChest };
+  }
+  return { size: rows[idx].size, ease: rows[idx].chest - bodyChest };
 }
 
 function matchWaist(
@@ -357,119 +458,172 @@ function matchWaist(
   halfBodyWaist: number,
   availableSizes: string[],
   minEase: number
-): string | null {
+): { size: string | null; ease: number } {
   const rows = table.filter(r => availableSizes.includes(r.size));
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return { size: null, ease: 0 };
 
   const needed = Math.round(halfBodyWaist) + minEase;
 
   const idx = rows.findIndex(r => r.halfWaist >= needed);
-  if (idx === -1) return rows[rows.length - 1].size;
-  return rows[idx].size;
+  if (idx === -1) {
+    const last = rows[rows.length - 1];
+    return { size: last.size, ease: (last.halfWaist - halfBodyWaist) * 2 };
+  }
+  return { size: rows[idx].size, ease: (rows[idx].halfWaist - halfBodyWaist) * 2 };
 }
 
 // Generic letter-size fallback (used when product type is unrecognized)
 function genericLetterSize(
-  bmi: number,
+  body: BodyMeasurements,
   gender: "m" | "f" | null,
-  caimento: "justo" | "regular" | "oversize" | null,
   availableSizes: string[]
 ): string {
   const order = ["PPP", "PP", "P", "M", "G", "GG", "EXG", "EXGG"];
+  const torax = body.torax;
   const g = gender ?? "m";
-  const adj = g === "f" ? -0.5 : 0;
-  const fitAdj = caimento === "justo" ? -1 : caimento === "oversize" ? 1 : 0;
-  const score = bmi + adj + fitAdj;
 
   let target: string;
-  if (score < 18.5)     target = "PP";
-  else if (score < 21)  target = "P";
-  else if (score < 24)  target = "M";
-  else if (score < 27)  target = "G";
-  else if (score < 30)  target = "GG";
-  else                  target = "EXGG";
+  if (g === "m") {
+    if (torax < 90)       target = "PP";
+    else if (torax < 98)  target = "P";
+    else if (torax < 107) target = "M";
+    else if (torax < 115) target = "G";
+    else if (torax < 125) target = "GG";
+    else                  target = "EXGG";
+  } else {
+    if (torax < 83)       target = "PP";
+    else if (torax < 90)  target = "P";
+    else if (torax < 98)  target = "M";
+    else if (torax < 106) target = "G";
+    else if (torax < 115) target = "GG";
+    else                  target = "EXGG";
+  }
 
   if (availableSizes.includes(target)) return target;
   const idx = order.indexOf(target);
   for (let d = 1; d < order.length; d++) {
     if (idx + d < order.length && availableSizes.includes(order[idx + d])) return order[idx + d];
-    if (idx - d >= 0     && availableSizes.includes(order[idx - d])) return order[idx - d];
+    if (idx - d >= 0           && availableSizes.includes(order[idx - d])) return order[idx - d];
   }
   return availableSizes[0];
 }
 
-// ─── PUBLIC API ────────────────────────────────────────────────────────────
+// ─── PUBLIC API ────────────────────────────────────────────────────────────────
 
 export function recommendSize(
   productName: string,
   gender: "m" | "f" | null,
-  caimento: "justo" | "regular" | "oversize" | null,
   altura: number,
   peso: number,
-  availableSizes: string[]
+  availableSizes: string[],
+  adjustments: BodyAdjustments = DEFAULT_ADJUSTMENTS,
+  dominance: BodyDominance = 'equilibrado',
 ): SizeRecommendation {
   if (availableSizes.length === 0) {
     return { primary: "M", bodyMeasurement: null };
   }
 
   const type = detectProductType(productName, gender, availableSizes);
-  const body = estimateBody(altura, peso, gender, caimento);
+  const body = estimateBody(altura, peso, gender, adjustments, dominance);
   const ease = MIN_EASE[type] ?? 0;
 
   const chestLabel = gender === "f" ? "Busto estimado" : "Tórax estimado";
-  let primary: string | null = null;
+  let match: { size: string | null; ease: number } = { size: null, ease: 0 };
   let bodyMeasurement: string | null = null;
+  let fits: RegionFit[] | undefined;
 
   if (type === "agasalho") {
-    primary = matchChest(AGASALHO, body.chest, availableSizes, ease);
-    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+    match = matchChest(AGASALHO, body.torax, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: chestLabel.split(" ")[0], status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "agasalho-tectel") {
-    primary = matchChest(AGASALHO_TECTEL, body.chest, availableSizes, ease);
-    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+    match = matchChest(AGASALHO_TECTEL, body.torax, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: chestLabel.split(" ")[0], status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "camisete-f") {
-    primary = matchChest(CAMISETE_F, body.chest, availableSizes, ease);
-    bodyMeasurement = `Busto estimado: ~${Math.round(body.chest)} cm`;
+    match = matchChest(CAMISETE_F, body.torax, availableSizes, ease);
+    bodyMeasurement = `Busto estimado: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: "Busto", status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "camisa-m") {
-    primary = matchChest(CAMISA_M, body.chest, availableSizes, ease);
-    bodyMeasurement = `Tórax estimado: ~${Math.round(body.chest)} cm`;
+    match = matchChest(CAMISA_M, body.torax, availableSizes, ease);
+    bodyMeasurement = `Tórax estimado: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: "Tórax", status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "camisa-bege") {
-    primary = matchChest(CAMISA_BEGE, body.chest, availableSizes, ease);
-    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+    match = matchChest(CAMISA_BEGE, body.torax, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: chestLabel.split(" ")[0], status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "camiseta") {
-    primary = matchChest(CAMISETA_U, body.chest, availableSizes, ease);
-    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+    match = matchChest(CAMISETA_U, body.torax, availableSizes, ease);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: chestLabel.split(" ")[0], status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "saia") {
-    primary = matchWaist(SAIA, body.halfWaist, availableSizes, ease);
-    bodyMeasurement = `Cintura estimada: ~${Math.round(body.waist)} cm`;
+    match = matchWaist(SAIA, body.cintura / 2, availableSizes, ease);
+    bodyMeasurement = `Cintura estimada: ~${Math.round(body.cintura)} cm`;
+    fits = [
+      { label: "Cintura", status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "calca-tectel") {
-    primary = matchWaist(CALCA_TECTEL, body.halfWaist, availableSizes, ease);
-    bodyMeasurement = `Cintura estimada: ~${Math.round(body.waist)} cm`;
+    // Elastic waist — large garment ease by design; match by cintura
+    match = matchWaist(CALCA_TECTEL, body.cintura / 2, availableSizes, ease);
+    bodyMeasurement = `Cintura estimada: ~${Math.round(body.cintura)} cm`;
+    const quadrilEase = body.quadril > 0 ? match.ease - (body.quadril - body.cintura) : match.ease;
+    fits = [
+      { label: "Cintura", status: easeToStatus(match.ease), ease: match.ease },
+      { label: "Quadril", status: easeToStatus(quadrilEase), ease: quadrilEase },
+    ];
 
   } else if (type === "calca") {
-    primary = matchWaist(CALCA, body.halfWaist, availableSizes, ease);
-    bodyMeasurement = `Cintura estimada: ~${Math.round(body.waist)} cm`;
+    // Military dress pants — match by cintura halfWaist
+    match = matchWaist(CALCA, body.cintura / 2, availableSizes, ease);
+    bodyMeasurement = `Cintura estimada: ~${Math.round(body.cintura)} cm`;
+    // Quadril fit approximation (garment hip ≈ size×2 + delta)
+    const garmentHip = match.ease / 1 + body.cintura; // approximate
+    const quadrilEase = garmentHip - body.quadril;
+    fits = [
+      { label: "Cintura", status: easeToStatus(match.ease), ease: match.ease },
+      { label: "Quadril", status: easeToStatus(quadrilEase), ease: quadrilEase },
+    ];
 
   } else if (type === "tunica-f") {
-    primary = matchChest(TUNICA_F, body.chest, availableSizes, ease);
-    bodyMeasurement = `Busto estimado: ~${Math.round(body.chest)} cm`;
+    match = matchChest(TUNICA_F, body.torax, availableSizes, ease);
+    bodyMeasurement = `Busto estimado: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: "Busto", status: easeToStatus(match.ease), ease: match.ease },
+    ];
 
   } else if (type === "tunica-m") {
-    primary = matchChest(TUNICA_M, body.chest, availableSizes, ease);
-    bodyMeasurement = `Tórax estimado: ~${Math.round(body.chest)} cm`;
+    match = matchChest(TUNICA_M, body.torax, availableSizes, ease);
+    bodyMeasurement = `Tórax estimado: ~${Math.round(body.torax)} cm`;
+    fits = [
+      { label: "Tórax", status: easeToStatus(match.ease), ease: match.ease },
+    ];
   }
 
-  // Generic fallback for unrecognized product types
+  // Generic fallback
+  let primary = match.size;
   if (!primary) {
-    primary = genericLetterSize(body.bmi, gender, caimento, availableSizes);
-    bodyMeasurement = `${chestLabel}: ~${Math.round(body.chest)} cm`;
+    primary = genericLetterSize(body, gender, availableSizes);
+    bodyMeasurement = `${chestLabel}: ~${Math.round(body.torax)} cm`;
   }
 
-  return { primary, bodyMeasurement };
+  return { primary: primary!, bodyMeasurement, fits };
 }

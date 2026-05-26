@@ -4,7 +4,6 @@ import { recommendSize } from './src/lib/sizeFinder';
 const altura = 174;
 const peso = 81;
 const gender = 'm';
-const caimento = 'regular';
 
 const products = [
   { name: 'Camiseta bege manga curta', sizes: ['10', '12', '14', 'P', 'M', 'G', 'GG', 'EXGG'] },
@@ -17,6 +16,6 @@ const products = [
 ];
 
 products.forEach(p => {
-  const result = recommendSize(p.name, gender as "m"|"f", caimento as "regular", altura, peso, p.sizes);
+  const result = recommendSize(p.name, gender as "m"|"f", altura, peso, p.sizes);
   console.log(`${p.name} -> Size: ${result.primary}`);
 });

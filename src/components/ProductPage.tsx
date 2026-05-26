@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { recommendSize } from "@/lib/sizeFinder";
+import { recommendSize, estimateBody, DEFAULT_ADJUSTMENTS, type BodyAdjustments, type FitStatus, type BodyDominance } from "@/lib/sizeFinder";
+import { AvatarBody } from "@/components/AvatarBody";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Check, Heart, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/sections/footer";
 import { useCart } from "@/contexts/CartContext";
@@ -13,9 +14,8 @@ import SimilarProducts from "@/components/sections/SimilarProducts";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { ShoeSizeTable } from "@/components/ShoeSizeTable";
 import { BoinaSizeTable } from "@/components/BoinaSizeTable";
-import ectomorphImg from "@/assets/body-types/ectomorph.png";
-import mesomorphImg from "@/assets/body-types/mesomorph.png";
-import endomorphImg from "@/assets/body-types/endomorph.png";
+import maleIconImg from "@/assets/icons/male-icon.png";
+import femaleIconImg from "@/assets/icons/female-icon.png";
 
 // Tipos para variação com preço
 interface VariationOption {
@@ -122,8 +122,10 @@ export default function ProductPage({
   const [fitStep, setFitStep] = useState(1);
   const [altura, setAltura] = useState(175);
   const [peso, setPeso] = useState(74);
+  const [idade, setIdade] = useState(25);
   const [sexo, setSexo] = useState<"m" | "f" | null>(null);
-  const [caimento, setCaimento] = useState<"justo" | "regular" | "oversize" | null>(null);
+  const [adjustments, setAdjustments] = useState<BodyAdjustments>(DEFAULT_ADJUSTMENTS);
+  const [dominance, setDominance] = useState<BodyDominance>("equilibrado");
   const [showLoginModal, setShowLoginModal] = useState(false);
   
   // Embroidery states
@@ -275,8 +277,8 @@ export default function ProductPage({
   };
 
   const sizeResult = useMemo(
-    () => recommendSize(productName, sexo, caimento, altura, peso, sizes),
-    [productName, sexo, caimento, altura, peso, sizes]
+    () => recommendSize(productName, sexo, altura, peso, sizes, adjustments, dominance),
+    [productName, sexo, altura, peso, sizes, adjustments, dominance]
   );
   const recommended = sizeResult.primary;
   const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
@@ -498,6 +500,7 @@ export default function ProductPage({
                   onClick={() => {
                     setOpenFitFinder(true);
                     setFitStep(1);
+                    setAdjustments(DEFAULT_ADJUSTMENTS);
                   }}
                   className="text-sm text-[#2e3091] underline font-medium hover:text-[#252a7a]"
                 >
@@ -693,254 +696,441 @@ export default function ProductPage({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ duration: 0.38, ease: "easeInOut" }}
-              className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 p-6 flex flex-col shadow-2xl overflow-y-auto"
+              className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-50 flex flex-col shadow-2xl"
               role="dialog"
               aria-modal="true"
             >
-              {/* Progresso */}
-              <div className="h-1 w-full bg-gray-100 rounded mb-6 overflow-hidden">
+              {/* Barra de progresso */}
+              <div className="h-1 w-full bg-gray-100 flex-shrink-0">
                 <div
-                  className="h-full bg-[#2e3091] transition-all"
-                  style={{ width: `${(fitStep / 3) * 100}%` }}
+                  className="h-full bg-[#2e3091] transition-all duration-500"
+                  style={{ width: `${(fitStep / 4) * 100}%` }}
                 />
               </div>
 
-              {/* ETAPA 1: perfil (altura, peso, sexo) */}
+              <div className="flex-1 overflow-y-auto p-6 flex flex-col">
+
+              {/* ── ETAPA 1: Sexo ── */}
               {fitStep === 1 && (
                 <div className="flex flex-col gap-6 flex-1">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Seu perfil
-                  </h2>
                   <div>
-                    <label className="text-sm block mb-2 text-gray-700">
-                      Altura:{" "}
-                      <span className="font-medium text-gray-900">
-                        {altura} cm
-                      </span>
-                    </label>
-                    <input
-                      type="range"
-                      min={150}
-                      max={200}
-                      value={altura}
-                      onChange={(e) => setAltura(Number(e.target.value))}
-                      className="w-full accent-[#2e3091]"
-                    />
+                    <p className="text-xs font-semibold text-[#2e3091] uppercase tracking-widest mb-1">
+                      Provador Virtual
+                    </p>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      Descubra o tamanho ideal da peça
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                      Preencha as informações do Provador Virtual que a gente te ajuda a escolher o melhor tamanho pra você.
+                    </p>
                   </div>
-                  <div>
-                    <label className="text-sm block mb-2 text-gray-700">
-                      Peso:{" "}
-                      <span className="font-medium text-gray-900">
-                        {peso} kg
+
+                  <div className="flex gap-4 mt-2">
+                    <button
+                      onClick={() => setSexo("m")}
+                      className={`flex-1 flex flex-col items-center gap-3 py-6 border-2 rounded-2xl transition-all ${
+                        sexo === "m"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <img src={maleIconImg} alt="Masculino" className="w-14 h-14 object-contain" />
+                      <span className={`text-sm font-semibold ${sexo === "m" ? "text-[#2e3091]" : "text-gray-700"}`}>
+                        Masculino
                       </span>
-                    </label>
-                    <input
-                      type="range"
-                      min={45}
-                      max={140}
-                      value={peso}
-                      onChange={(e) => setPeso(Number(e.target.value))}
-                      className="w-full accent-[#2e3091]"
-                    />
-                  </div>
-                  
-                  {/* Sexo - Apenas texto Homem/Mulher */}
-                  <div>
-                    <label className="text-sm block mb-3 text-gray-700">
-                      Gênero
-                    </label>
-                    <div className="flex gap-4 justify-center">
-                      <button
-                        onClick={() => setSexo("m")}
-                        className={`flex items-center justify-center px-8 py-4 border-2 rounded-xl transition text-base font-medium ${
-                          sexo === "m"
-                            ? "border-[#2e3091] bg-blue-50 text-[#2e3091]"
-                            : "border-gray-200 hover:bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        Homem
-                      </button>
-                      <button
-                        onClick={() => setSexo("f")}
-                        className={`flex items-center justify-center px-8 py-4 border-2 rounded-xl transition text-base font-medium ${
-                          sexo === "f"
-                            ? "border-[#2e3091] bg-blue-50 text-[#2e3091]"
-                            : "border-gray-200 hover:bg-gray-50 text-gray-700"
-                        }`}
-                      >
-                        Mulher
-                      </button>
-                    </div>
+                    </button>
+                    <button
+                      onClick={() => setSexo("f")}
+                      className={`flex-1 flex flex-col items-center gap-3 py-6 border-2 rounded-2xl transition-all ${
+                        sexo === "f"
+                          ? "border-[#2e3091] bg-blue-50"
+                          : "border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      <img src={femaleIconImg} alt="Feminino" className="w-14 h-14 object-contain" />
+                      <span className={`text-sm font-semibold ${sexo === "f" ? "text-[#2e3091]" : "text-gray-700"}`}>
+                        Feminino
+                      </span>
+                    </button>
                   </div>
 
                   <div className="flex gap-3 mt-auto">
                     <button
                       onClick={() => setOpenFitFinder(false)}
-                      className="flex-1 border border-gray-200 py-3 rounded-lg text-sm hover:shadow-sm text-gray-700"
+                      className="flex-1 border border-gray-200 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={() => setFitStep(2)}
                       disabled={!sexo}
-                      className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-[#252a7a] hover:shadow-lg transition-all"
+                      className="flex-1 bg-[#2e3091] text-white py-3 rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-[#252a7a] transition-all"
                     >
-                      Continuar
+                      Próximo
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* ETAPA 2: Tipo de corpo */}
+              {/* ── ETAPA 2: Dados básicos ── */}
               {fitStep === 2 && (
                 <div className="flex flex-col gap-6 flex-1">
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    Qual seu tipo de corpo?
-                  </h2>
-                  
-                  {/* Mensagem de atenção */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3">
-                    <span className="text-amber-500 text-lg flex-shrink-0">⚠️</span>
-                    <p className="text-sm text-amber-800">
-                      <strong>Atenção:</strong> escolha de acordo com a imagem que mais se parece com o seu corpo atual.
+                  <div>
+                    <p className="text-xs font-semibold text-[#2e3091] uppercase tracking-widest mb-1">
+                      Etapa 1 de 3
                     </p>
+                    <h2 className="text-xl font-bold text-gray-900">Seus dados</h2>
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    {/* Ectomorfo */}
-                    <button
-                      onClick={() => setCaimento("justo")}
-                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
-                        caimento === "justo"
-                          ? "border-[#2e3091] bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <img 
-                        src={ectomorphImg} 
-                        alt="Ectomorfo" 
-                        className="w-12 h-20 object-contain mb-2"
-                      />
-                      <span className={`text-xs font-medium ${caimento === "justo" ? "text-[#2e3091]" : "text-gray-600"}`}>
-                        Ectomorfo
-                      </span>
-                    </button>
 
-                    {/* Mesomorfo */}
-                    <button
-                      onClick={() => setCaimento("regular")}
-                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
-                        caimento === "regular"
-                          ? "border-[#2e3091] bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <img 
-                        src={mesomorphImg} 
-                        alt="Mesomorfo" 
-                        className="w-12 h-20 object-contain mb-2"
-                      />
-                      <span className={`text-xs font-medium ${caimento === "regular" ? "text-[#2e3091]" : "text-gray-600"}`}>
-                        Mesomorfo
-                      </span>
-                    </button>
+                  {/* Altura */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-3">
+                      Altura <span className="text-gray-400 font-normal">— cm</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setAltura(v => Math.max(140, v - 1))}
+                        className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors flex-shrink-0"
+                      >
+                        <Minus className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <div className="flex-1 text-center">
+                        <span className="text-3xl font-bold text-[#2e3091]">{altura}</span>
+                        <span className="text-sm text-gray-500 ml-1">cm</span>
+                      </div>
+                      <button
+                        onClick={() => setAltura(v => Math.min(210, v + 1))}
+                        className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors flex-shrink-0"
+                      >
+                        <Plus className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                    <input
+                      type="range" min={140} max={210} value={altura}
+                      onChange={e => setAltura(Number(e.target.value))}
+                      className="w-full accent-[#2e3091] mt-2"
+                    />
+                  </div>
 
-                    {/* Endomorfo */}
-                    <button
-                      onClick={() => setCaimento("oversize")}
-                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl transition aspect-square ${
-                        caimento === "oversize"
-                          ? "border-[#2e3091] bg-blue-50"
-                          : "border-gray-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <img 
-                        src={endomorphImg} 
-                        alt="Endomorfo" 
-                        className="w-12 h-20 object-contain mb-2"
-                      />
-                      <span className={`text-xs font-medium ${caimento === "oversize" ? "text-[#2e3091]" : "text-gray-600"}`}>
-                        Endomorfo
-                      </span>
-                    </button>
+                  {/* Peso */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-3">
+                      Peso <span className="text-gray-400 font-normal">— kg</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setPeso(v => Math.max(40, v - 1))}
+                        className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors flex-shrink-0"
+                      >
+                        <Minus className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <div className="flex-1 text-center">
+                        <span className="text-3xl font-bold text-[#2e3091]">{peso}</span>
+                        <span className="text-sm text-gray-500 ml-1">kg</span>
+                      </div>
+                      <button
+                        onClick={() => setPeso(v => Math.min(180, v + 1))}
+                        className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors flex-shrink-0"
+                      >
+                        <Plus className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                    <input
+                      type="range" min={40} max={180} value={peso}
+                      onChange={e => setPeso(Number(e.target.value))}
+                      className="w-full accent-[#2e3091] mt-2"
+                    />
+                  </div>
+
+                  {/* Idade */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-3">
+                      Idade <span className="text-gray-400 font-normal">— anos</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => setIdade(v => Math.max(10, v - 1))}
+                        className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors flex-shrink-0"
+                      >
+                        <Minus className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <div className="flex-1 text-center">
+                        <span className="text-3xl font-bold text-[#2e3091]">{idade}</span>
+                        <span className="text-sm text-gray-500 ml-1">anos</span>
+                      </div>
+                      <button
+                        onClick={() => setIdade(v => Math.min(80, v + 1))}
+                        className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors flex-shrink-0"
+                      >
+                        <Plus className="w-4 h-4 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Distribuição corporal */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-2">
+                      Onde acumula mais volume?
+                    </label>
+                    <div className="flex gap-2">
+                      {(["tronco", "equilibrado", "inferior"] as BodyDominance[]).map((d) => {
+                        const labels: Record<BodyDominance, string> = {
+                          tronco: "Parte de cima",
+                          equilibrado: "Equilibrado",
+                          inferior: "Parte de baixo",
+                        };
+                        return (
+                          <button
+                            key={d}
+                            onClick={() => setDominance(d)}
+                            className={`flex-1 py-2 text-xs font-medium rounded-xl border transition-all ${
+                              dominance === d
+                                ? "border-[#2e3091] bg-blue-50 text-[#2e3091]"
+                                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {labels[d]}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="flex gap-3 mt-auto">
                     <button
                       onClick={() => setFitStep(1)}
-                      className="flex-1 border border-gray-200 py-3 rounded-lg text-sm hover:shadow-sm text-gray-700"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      onClick={() => setFitStep(3)}
-                      disabled={!caimento}
-                      className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold disabled:opacity-50 hover:bg-[#252a7a] hover:shadow-lg transition-all"
-                    >
-                      Ver resultado
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* ETAPA 3: Resultado Premium */}
-              {fitStep === 3 && (
-                <div className="flex flex-col gap-4 flex-1">
-                  {/* Resultado card */}
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <span className="text-xs font-bold text-green-700 uppercase tracking-wider">
-                        Resultado
-                      </span>
-                    </div>
-
-                    <h3 className="text-base font-semibold text-gray-900 mb-3">
-                      Tamanho recomendado para você
-                    </h3>
-
-                    <div className="bg-white rounded-xl p-4 mb-3 shadow-sm text-center">
-                      <p className="text-sm text-gray-500 mb-1">Tamanho ideal:</p>
-                      <p className="text-4xl font-bold text-[#2e3091]">{sizeResult.primary}</p>
-                    </div>
-
-                    {sizeResult.bodyMeasurement && (
-                      <p className="text-xs text-gray-500 text-center mt-1">
-                        {sizeResult.bodyMeasurement}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Observação */}
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-                    <span className="text-amber-500 text-lg flex-shrink-0 mt-0.5">⚠️</span>
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">Observação</p>
-                      <p className="text-sm text-amber-700 mt-1">
-                        Recomendação baseada nas suas medidas estimadas. Para maior precisão, tire suas medidas manualmente.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 mt-auto">
-                    <button
-                      onClick={() => setFitStep(2)}
-                      className="flex-1 border border-gray-200 py-3 rounded-lg text-sm hover:shadow-sm text-gray-700"
+                      className="flex-1 border border-gray-200 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       Voltar
                     </button>
                     <button
                       onClick={() => {
-                        setSelectedSize(sizeResult.primary);
-                        setOpenFitFinder(false);
+                        setAdjustments(DEFAULT_ADJUSTMENTS);
+                        setFitStep(3);
                       }}
-                      className="flex-1 bg-[#2e3091] text-white py-3 rounded-lg text-sm font-semibold hover:bg-[#252a7a] hover:shadow-lg transition-all"
+                      className="flex-1 bg-[#2e3091] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#252a7a] transition-all"
                     >
-                      Usar tamanho {sizeResult.primary}
+                      Próximo
                     </button>
                   </div>
                 </div>
               )}
+
+              {/* ── ETAPA 3: Ajuste Visual Corporal ── */}
+              {fitStep === 3 && (() => {
+                const body = estimateBody(altura, peso, sexo, adjustments, dominance);
+                const isFemale = sexo === "f";
+                const toraxLabel = isFemale ? "Busto" : "Tórax";
+
+                type AdjKey = keyof BodyAdjustments;
+                const MAX_ADJ = 3;
+
+                const applyClick = (key: AdjKey, delta: 1 | -1) => {
+                  setAdjustments(prev => ({
+                    ...prev,
+                    [key]: Math.max(-MAX_ADJ, Math.min(MAX_ADJ, prev[key] + delta)),
+                  }));
+                };
+
+                const AdjRow = ({
+                  label,
+                  measurement,
+                  adjKey,
+                }: {
+                  label: string;
+                  measurement: number;
+                  adjKey: AdjKey;
+                }) => (
+                  <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{label}</p>
+                      <p className="text-xs text-gray-400">~{Math.round(measurement)} cm</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => applyClick(adjKey, -1)}
+                        disabled={adjustments[adjKey] <= -MAX_ADJ}
+                        className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                      >
+                        <Minus className="w-3 h-3 text-gray-600" />
+                      </button>
+                      <span className="w-6 text-center text-xs font-semibold text-gray-600">
+                        {adjustments[adjKey] > 0 ? `+${adjustments[adjKey]}` : adjustments[adjKey] === 0 ? "•" : adjustments[adjKey]}
+                      </span>
+                      <button
+                        onClick={() => applyClick(adjKey, 1)}
+                        disabled={adjustments[adjKey] >= MAX_ADJ}
+                        className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                      >
+                        <Plus className="w-3 h-3 text-gray-600" />
+                      </button>
+                    </div>
+                  </div>
+                );
+
+                return (
+                  <div className="flex flex-col gap-4 flex-1">
+                    <div>
+                      <p className="text-xs font-semibold text-[#2e3091] uppercase tracking-widest mb-1">
+                        Etapa 2 de 3
+                      </p>
+                      <h2 className="text-xl font-bold text-gray-900">Ajuste a forma do corpo</h2>
+                      <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                        Reconhecemos que o seu corpo possui essas medidas aproximadas. Mas você pode ajustá-las se quiser.
+                      </p>
+                    </div>
+
+                    {/* Avatar volumétrico */}
+                    <div className="bg-gray-50 rounded-2xl p-4">
+                      {sexo ? (
+                        <AvatarBody
+                          altura={altura}
+                          peso={peso}
+                          sex={sexo}
+                          dominance={dominance}
+                        />
+                      ) : (
+                        <div className="flex gap-4 items-center">
+                          <img
+                            src={isFemale ? femaleIconImg : maleIconImg}
+                            alt=""
+                            className="w-16 h-auto object-contain opacity-70"
+                          />
+                          <div className="text-xs text-gray-600 space-y-1">
+                            <p><span className="font-medium text-gray-800">{toraxLabel}:</span> ~{Math.round(body.torax)} cm</p>
+                            <p><span className="font-medium text-gray-800">Cintura:</span> ~{Math.round(body.cintura)} cm</p>
+                            <p><span className="font-medium text-gray-800">Quadril:</span> ~{Math.round(body.quadril)} cm</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Controles de ajuste */}
+                    <div className="bg-white border border-gray-100 rounded-2xl px-4 divide-y divide-gray-100">
+                      <AdjRow label={toraxLabel} measurement={body.torax} adjKey="toraxAdj" />
+                      <AdjRow label="Cintura" measurement={body.cintura} adjKey="cinturaAdj" />
+                      <AdjRow label="Quadril" measurement={body.quadril} adjKey="quadrilAdj" />
+                      <AdjRow label="Glúteo" measurement={body.quadril} adjKey="gluteoAdj" />
+                      <AdjRow label="Coxa" measurement={body.coxa} adjKey="coxaAdj" />
+                    </div>
+
+                    <div className="flex gap-3 mt-auto">
+                      <button
+                        onClick={() => setFitStep(2)}
+                        className="flex-1 border border-gray-200 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Voltar
+                      </button>
+                      <button
+                        onClick={() => setFitStep(4)}
+                        className="flex-1 bg-[#2e3091] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#252a7a] transition-all"
+                      >
+                        Ver resultado
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ── ETAPA 4: Resultado ── */}
+              {fitStep === 4 && (() => {
+                const statusColor: Record<FitStatus, string> = {
+                  'ideal':            'bg-green-100 text-green-700 border-green-200',
+                  'levemente-justo':  'bg-yellow-100 text-yellow-700 border-yellow-200',
+                  'apertado':         'bg-red-100 text-red-700 border-red-200',
+                  'levemente-folgado':'bg-gray-100 text-gray-500 border-gray-200',
+                  'folgado':          'bg-gray-100 text-gray-400 border-gray-200',
+                };
+                const statusLabel: Record<FitStatus, string> = {
+                  'ideal':            'Ideal',
+                  'levemente-justo':  'Levemente justo',
+                  'apertado':         'Apertado',
+                  'levemente-folgado':'Levemente folgado',
+                  'folgado':          'Folgado',
+                };
+
+                return (
+                  <div className="flex flex-col gap-4 flex-1">
+                    <div>
+                      <p className="text-xs font-semibold text-[#2e3091] uppercase tracking-widest mb-1">
+                        Etapa 3 de 3
+                      </p>
+                      <h2 className="text-xl font-bold text-gray-900">Seu tamanho ideal</h2>
+                    </div>
+
+                    {/* Card principal */}
+                    <div className="bg-gradient-to-br from-[#2e3091]/5 to-blue-50 border-2 border-[#2e3091]/20 rounded-2xl p-6 text-center">
+                      <p className="text-sm text-gray-500 mb-2">Tamanho recomendado</p>
+                      <p className="text-6xl font-black text-[#2e3091] leading-none mb-3">
+                        {sizeResult.primary}
+                      </p>
+                      {sizeResult.bodyMeasurement && (
+                        <p className="text-xs text-gray-400">{sizeResult.bodyMeasurement}</p>
+                      )}
+                    </div>
+
+                    {/* Feedback regional */}
+                    {sizeResult.fits && sizeResult.fits.length > 0 && (
+                      <div className="bg-white border border-gray-100 rounded-2xl p-4">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                          Vestibilidade por região
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sizeResult.fits.map(fit => (
+                            <span
+                              key={fit.label}
+                              className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border ${statusColor[fit.status]}`}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70 flex-shrink-0" />
+                              {fit.label}: {statusLabel[fit.status]}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Legenda */}
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
+                        Verde = ideal
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />
+                        Amarelo = levemente justo
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                        Vermelho = apertado
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" />
+                        Cinza = folgado
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 mt-auto">
+                      <button
+                        onClick={() => setFitStep(3)}
+                        className="flex-1 border border-gray-200 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        Ajustar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedSize(sizeResult.primary);
+                          setOpenFitFinder(false);
+                        }}
+                        className="flex-1 bg-[#2e3091] text-white py-3 rounded-xl text-sm font-semibold hover:bg-[#252a7a] transition-all"
+                      >
+                        Usar tamanho {sizeResult.primary}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              </div>
             </motion.aside>
           </>
         )}
