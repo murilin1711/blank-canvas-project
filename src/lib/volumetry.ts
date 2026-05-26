@@ -21,6 +21,7 @@ export interface RegionVolume {
   name: string;
   deltaCm: number;      // cm a mais/menos em relação ao SVG Normal
   scaleFactor: number;  // fator de escala proporcional para deformação vetorial
+  regionKey: string;    // chave interna para DEFORMATION e NORMAL_SVG_CM
 }
 
 export interface VolumetryResult {
@@ -35,7 +36,7 @@ export interface VolumetryResult {
 
 // ─── TABELA DE NOMES ─────────────────────────────────────────────────────────
 
-const LEVEL_NAMES: Record<VolumeLevel, string> = {
+export const LEVEL_NAMES: Record<VolumeLevel, string> = {
   1: 'Pouco Volumoso',
   2: 'Pequeno',
   3: 'Normal',
@@ -61,7 +62,7 @@ export const DEFORMATION: Readonly<Record<string, Record<VolumeLevel, number>>> 
 // Circunferências de referência (cm) do SVG Normal — usadas para calcular
 // o scaleFactor proporcional para deformação vetorial.
 // Exemplo do documento: tórax normal = 100 cm → Grande = 107/100 = 1.07.
-const NORMAL_SVG_CM: Readonly<Record<string, number>> = {
+export const NORMAL_SVG_CM: Readonly<Record<string, number>> = {
   ombro:    44,
   torax:    100,
   abdome:   88,
@@ -101,6 +102,7 @@ function buildRegion(key: string, level: VolumeLevel): RegionVolume {
     name: LEVEL_NAMES[level],
     deltaCm: delta,
     scaleFactor: Math.round(((normalCm + delta) / normalCm) * 1000) / 1000,
+    regionKey: key,
   };
 }
 

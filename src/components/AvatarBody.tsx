@@ -1,57 +1,116 @@
 import { useMemo } from "react";
-import { computeVolume, type BodyDominance, type RegionVolume } from "@/lib/volumetry";
+import {
+  computeVolume,
+  type BodyDominance,
+  type RegionVolume,
+  type VolumeLevel,
+  DEFORMATION,
+  NORMAL_SVG_CM,
+  LEVEL_NAMES,
+} from "@/lib/volumetry";
+import type { BodyAdjustments } from "@/lib/sizeFinder";
 
 interface AvatarBodyProps {
   altura: number;
   peso: number;
   sex: "m" | "f";
   dominance?: BodyDominance;
+  adjustments?: BodyAdjustments;
 }
 
-const LEVEL_BG: Record<number, string> = {
-  1: "bg-blue-100 text-blue-700",
-  2: "bg-cyan-100 text-cyan-700",
-  3: "bg-green-100 text-green-700",
-  4: "bg-amber-100 text-amber-700",
-  5: "bg-red-100 text-red-700",
+const LEVEL_COLOR: Record<number, { bar: string }> = {
+  1: { bar: "bg-blue-400"  },
+  2: { bar: "bg-cyan-400"  },
+  3: { bar: "bg-green-400" },
+  4: { bar: "bg-amber-400" },
+  5: { bar: "bg-red-400"   },
 };
 
-function LevelDots({ level }: { level: number }) {
-  return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full ${LEVEL_BG[level]}`}>
-      {"●".repeat(level)}{"○".repeat(5 - level)}
-    </span>
-  );
+function clampLevel(n: number): VolumeLevel {
+  return Math.max(1, Math.min(5, Math.round(n))) as VolumeLevel;
+}
+
+function adjToShift(adj: number): number {
+  if (adj >= 2) return 1;
+  if (adj <= -2) return -1;
+  return 0;
+}
+
+function shiftRegion(region: RegionVolume, shift: number): RegionVolume {
+  if (shift === 0) return region;
+  const newLevel = clampLevel(region.level + shift);
+  if (newLevel === region.level) return region;
+  const delta = DEFORMATION[region.regionKey][newLevel];
+  const normalCm = NORMAL_SVG_CM[region.regionKey];
+  return {
+    ...region,
+    level: newLevel,
+    name: LEVEL_NAMES[newLevel],
+    deltaCm: delta,
+    scaleFactor: Math.round(((normalCm + delta) / normalCm) * 1000) / 1000,
+  };
 }
 
 function RegionRow({ label, region }: { label: string; region: RegionVolume }) {
+  const bar = LEVEL_COLOR[region.level].bar;
   return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-[11px] text-gray-500 w-14 shrink-0">{label}</span>
-      <LevelDots level={region.level} />
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] text-gray-500 w-12 shrink-0 text-right leading-tight">{label}</span>
+      <div className="flex gap-0.5 flex-1">
+        {([1, 2, 3, 4, 5] as const).map((i) => (
+          <div
+            key={i}
+            className={`h-2 flex-1 rounded-full transition-all duration-300 ${i <= region.level ? bar : "bg-gray-200"}`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
 
-export function AvatarBody({ altura, peso, sex, dominance = "equilibrado" }: AvatarBodyProps) {
+export function AvatarBody({
+  altura,
+  peso,
+  sex,
+  dominance = "equilibrado",
+  adjustments,
+}: AvatarBodyProps) {
   const vol = useMemo(
     () => computeVolume(altura, peso, sex, dominance),
     [altura, peso, sex, dominance]
   );
 
-  const toraxOmbroSvg = sex === "f" ? "/avatars/torax-ombro-fem.svg" : "/avatars/torax-ombro-masc.svg";
-  const inferioresSvg = sex === "f" ? "/avatars/inferiores-fem.svg" : "/avatars/inferiores-masc.svg";
+  const adj = useMemo(() => {
+    if (!adjustments) return vol;
+    const toraxShift   = adjToShift(adjustments.toraxAdj);
+    const cinturaShift = adjToShift(adjustments.cinturaAdj);
+    const quadrilShift = adjToShift(adjustments.quadrilAdj);
+    const gluteoShift  = adjToShift(adjustments.gluteoAdj);
+    const coxaShift    = adjToShift(adjustments.coxaAdj);
+    return {
+      ombro:   vol.ombro,
+      torax:   shiftRegion(vol.torax,   toraxShift),
+      abdome:  shiftRegion(vol.abdome,  cinturaShift),
+      quadril: shiftRegion(vol.quadril, quadrilShift),
+      coxa:    shiftRegion(vol.coxa,    coxaShift),
+      gluteo:  shiftRegion(vol.gluteo,  gluteoShift),
+      busto:   vol.busto ? shiftRegion(vol.busto, toraxShift) : undefined,
+    };
+  }, [vol, adjustments]);
 
-  // Scale factors — average tórax+ombro for the upper SVG, quadril+coxa for the lower
-  const upperScale = (vol.torax.scaleFactor + vol.ombro.scaleFactor) / 2;
-  const lowerScale = (vol.quadril.scaleFactor + vol.coxa.scaleFactor) / 2;
+  const toraxOmbroSvg =
+    sex === "f" ? "/avatars/torax-ombro-fem.svg" : "/avatars/torax-ombro-masc.svg";
+  const inferioresSvg =
+    sex === "f" ? "/avatars/inferiores-fem.svg" : "/avatars/inferiores-masc.svg";
+
+  const upperScale = (adj.torax.scaleFactor + adj.ombro.scaleFactor) / 2;
+  const lowerScale = (adj.quadril.scaleFactor + adj.coxa.scaleFactor) / 2;
 
   return (
-    <div className="flex gap-3 items-stretch">
-      {/* Silhueta composta */}
-      <div className="flex flex-col items-center w-[72px] shrink-0 gap-0">
-        {/* Tórax + Ombro */}
-        <div className="w-full overflow-hidden" style={{ height: 90 }}>
+    <div className="flex gap-4 items-center">
+      {/* Silhueta — maior para tornar as mudanças de escala visíveis */}
+      <div className="flex flex-col items-center w-[110px] shrink-0 gap-0">
+        <div className="w-full overflow-hidden" style={{ height: 130 }}>
           <img
             src={toraxOmbroSvg}
             alt=""
@@ -63,13 +122,12 @@ export function AvatarBody({ altura, peso, sex, dominance = "equilibrado" }: Ava
               transform: `scaleX(${upperScale})`,
               transformOrigin: "center top",
               transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              filter: "invert(13%) sepia(14%) saturate(696%) hue-rotate(314deg) brightness(91%) contrast(90%)",
+              filter:
+                "invert(13%) sepia(14%) saturate(696%) hue-rotate(314deg) brightness(91%) contrast(90%)",
             }}
           />
         </div>
-
-        {/* Inferiores */}
-        <div className="w-full overflow-hidden" style={{ height: 90 }}>
+        <div className="w-full overflow-hidden" style={{ height: 140 }}>
           <img
             src={inferioresSvg}
             alt=""
@@ -81,24 +139,25 @@ export function AvatarBody({ altura, peso, sex, dominance = "equilibrado" }: Ava
               transform: `scaleX(${lowerScale})`,
               transformOrigin: "center top",
               transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              filter: "invert(13%) sepia(14%) saturate(696%) hue-rotate(314deg) brightness(91%) contrast(90%)",
+              filter:
+                "invert(13%) sepia(14%) saturate(696%) hue-rotate(314deg) brightness(91%) contrast(90%)",
             }}
           />
         </div>
       </div>
 
-      {/* Níveis por região */}
-      <div className="flex flex-col justify-center gap-1.5 flex-1 min-w-0">
-        <RegionRow label="Ombro" region={vol.ombro} />
-        {sex === "f" && vol.busto ? (
-          <RegionRow label="Busto" region={vol.busto} />
+      {/* Níveis por região — barras de progresso */}
+      <div className="flex flex-col justify-center gap-2.5 flex-1 min-w-0">
+        <RegionRow label="Ombro" region={adj.ombro} />
+        {sex === "f" && adj.busto ? (
+          <RegionRow label="Busto" region={adj.busto} />
         ) : (
-          <RegionRow label="Tórax" region={vol.torax} />
+          <RegionRow label="Tórax" region={adj.torax} />
         )}
-        <RegionRow label="Abdome" region={vol.abdome} />
-        <RegionRow label="Quadril" region={vol.quadril} />
-        <RegionRow label="Coxa" region={vol.coxa} />
-        <RegionRow label="Glúteo" region={vol.gluteo} />
+        <RegionRow label="Abdome" region={adj.abdome} />
+        <RegionRow label="Quadril" region={adj.quadril} />
+        <RegionRow label="Coxa" region={adj.coxa} />
+        <RegionRow label="Glúteo" region={adj.gluteo} />
       </div>
     </div>
   );

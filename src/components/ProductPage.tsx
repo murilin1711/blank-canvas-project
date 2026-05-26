@@ -988,6 +988,7 @@ export default function ProductPage({
                           peso={peso}
                           sex={sexo}
                           dominance={dominance}
+                          adjustments={adjustments}
                         />
                       ) : (
                         <div className="flex gap-4 items-center">
