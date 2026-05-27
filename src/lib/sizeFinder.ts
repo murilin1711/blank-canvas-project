@@ -472,6 +472,19 @@ function matchWaist(
   return { size: rows[idx].size, ease: (rows[idx].halfWaist - halfBodyWaist) * 2 };
 }
 
+// ─── GARMENT CATEGORY ─────────────────────────────────────────────────────────
+
+/** Returns 'upper' for tops/jackets and 'lower' for pants/skirts. */
+export function getGarmentCategory(productName: string): 'upper' | 'lower' {
+  const n = productName.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  if (
+    n.includes('calca') || n.includes('bermuda') ||
+    n.includes('short') || n.includes('shorts') ||
+    n.includes('saia')
+  ) return 'lower';
+  return 'upper';
+}
+
 // Generic letter-size fallback (used when product type is unrecognized)
 function genericLetterSize(
   body: BodyMeasurements,

@@ -70,6 +70,195 @@ async function getValidToken(supabase: any): Promise<string> {
   return refreshData.access_token;
 }
 
+// ============================================================
+// SISTEMA DE CÁLCULO DE EMPACOTAMENTO (espelho do melhor-envio-quote)
+// ============================================================
+
+const ZIPLOCK_P = { w: 18, l: 25 };
+const ZIPLOCK_M = { w: 25, l: 35 };
+const ZIPLOCK_G = { w: 30, l: 40 };
+const ACC_H = 6;
+
+interface Block { w: number; l: number; h: number; rigid: boolean; }
+interface Dims  { w: number; l: number; h: number; }
+
+function norm(s: string): string {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+function classifyProduct(category: string, name: string): "calcado" | "vestuario" | "acc_p" | "acc_g" {
+  const c = norm(category);
+  const n = norm(name);
+  if (c.includes("calcad")) return "calcado";
+  if (c.includes("vestuari")) return "vestuario";
+  if (c.includes("acessori")) {
+    if (n.includes("boina") || (n.includes("meia") && n.includes("selene"))) return "acc_g";
+    return "acc_p";
+  }
+  return "vestuario";
+}
+
+function buildBlocks(items: any[], productMap: Record<number, any>): {
+  blocks: Block[]; weightKg: number; contentType: string;
+} {
+  const shoeBlocks: Block[] = [];
+  const clothingH: number[] = [];
+  let smallAcc = 0; let largeAcc = 0; let weightG = 0;
+
+  for (const item of items) {
+    const qty = item.quantity || 1;
+    const p = productMap[item.product_id ?? item.productId];
+    if (!p) continue;
+    weightG += (p.weight_g || 300) * qty;
+    const type = classifyProduct(p.category || "", p.name || "");
+    if (type === "calcado") {
+      const w = p.pkg_width_cm || 21.5;
+      const l = p.pkg_length_cm || 36;
+      const h = p.pkg_height_cm || 12.5;
+      for (let i = 0; i < qty; i++) shoeBlocks.push({ w, l, h, rigid: true });
+    } else if (type === "vestuario") {
+      const h = p.pkg_height_cm || 4;
+      for (let i = 0; i < qty; i++) clothingH.push(h);
+    } else if (type === "acc_p") {
+      smallAcc += qty;
+    } else {
+      largeAcc += qty;
+    }
+  }
+
+  const hasShoes    = shoeBlocks.length > 0;
+  const hasClothing = clothingH.length > 0;
+  const hasAcc      = smallAcc > 0 || largeAcc > 0;
+  const onlyAcc     = !hasShoes && !hasClothing && hasAcc;
+
+  const blocks: Block[] = [...shoeBlocks];
+
+  let rem = [...clothingH];
+  while (rem.length > 0) {
+    if (rem.length === 1) {
+      blocks.push({ ...ZIPLOCK_M, h: rem[0], rigid: false }); rem = [];
+    } else {
+      const grp = rem.splice(0, 3);
+      const fc = grp.length === 2 ? 0.8 : 0.7;
+      blocks.push({ ...ZIPLOCK_G, h: grp.reduce((s, h) => s + h, 0) * fc, rigid: false });
+    }
+  }
+
+  if (hasAcc) {
+    if (onlyAcc) {
+      if (largeAcc > 0 && smallAcc === 0) {
+        blocks.push({ ...ZIPLOCK_M, h: ACC_H, rigid: false });
+      } else {
+        blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
+        if (smallAcc + largeAcc >= 10) blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
+      }
+    } else {
+      if (largeAcc > 0) {
+        if (smallAcc <= 3) blocks.push({ ...ZIPLOCK_M, h: ACC_H, rigid: false });
+        else { blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false }); blocks.push({ ...ZIPLOCK_M, h: ACC_H, rigid: false }); }
+      } else if (smallAcc > 0) {
+        blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
+      }
+    }
+  }
+
+  let contentType: string;
+  if (hasShoes && !hasClothing)      contentType = "only_shoes";
+  else if (!hasShoes && hasClothing) contentType = "only_clothing";
+  else if (hasShoes && hasClothing)  contentType = "shoes_clothing";
+  else                               contentType = "only_accessories";
+
+  return { blocks, weightKg: Math.max(weightG / 1000, 0.1), contentType };
+}
+
+function sideBySide(b: Block[]): Dims { return { w: b.reduce((s,x)=>s+x.w,0), l: Math.max(...b.map(x=>x.l)), h: Math.max(...b.map(x=>x.h)) }; }
+function sideBySideL(b: Block[]): Dims { return { w: Math.max(...b.map(x=>x.w)), l: b.reduce((s,x)=>s+x.l,0), h: Math.max(...b.map(x=>x.h)) }; }
+function stacked(b: Block[]): Dims { return { w: Math.max(...b.map(x=>x.w)), l: Math.max(...b.map(x=>x.l)), h: b.reduce((s,x)=>s+x.h,0) }; }
+function volume(d: Dims): number { return d.w * d.l * d.h; }
+
+function hybridPack(blocks: Block[]): Dims {
+  if (!blocks.length) return { w: 0, l: 0, h: 0 };
+  if (blocks.length === 1) return { w: blocks[0].w, l: blocks[0].l, h: blocks[0].h };
+  const base = blocks[0]; const rest = blocks.slice(1);
+  const onTop: Block[] = []; const beside: Block[] = [];
+  for (const b of rest) {
+    if (b.w <= base.w && b.l <= base.l) onTop.push(b);
+    else if (b.l <= base.w && b.w <= base.l) onTop.push({ ...b, w: b.l, l: b.w });
+    else beside.push(b);
+  }
+  const baseH = base.h + onTop.reduce((s,b)=>s+b.h,0);
+  if (!beside.length) return { w: base.w, l: base.l, h: baseH };
+  const bAr = sideBySide(beside);
+  return { w: base.w + bAr.w, l: Math.max(base.l, bAr.l), h: Math.max(baseH, bAr.h) };
+}
+
+function sortBlocks(blocks: Block[]): Block[] {
+  return [...blocks].sort((a, b) => a.rigid !== b.rigid ? (a.rigid ? -1 : 1) : (b.w*b.l)-(a.w*a.l));
+}
+
+function bestDims(blocks: Block[]): Dims {
+  if (!blocks.length) return { w: 1, l: 1, h: 1 };
+  const sorted = sortBlocks(blocks);
+  const variants: Block[][] = [sorted];
+  if (blocks.length <= 6) {
+    for (let i = 0; i < sorted.length; i++) {
+      if (!sorted[i].rigid) {
+        const v = [...sorted]; v[i] = { ...v[i], w: v[i].l, l: v[i].w };
+        variants.push(sortBlocks(v));
+      }
+    }
+  }
+  let best: Dims | null = null;
+  for (const variant of variants) {
+    for (const d of [sideBySide(variant), sideBySideL(variant), stacked(variant), hybridPack(variant)]) {
+      if (!best || volume(d) < volume(best)) best = d;
+    }
+  }
+  return best || { w: 30, l: 40, h: 15 };
+}
+
+function calcPackageDims(blocks: Block[], contentType: string): Dims {
+  if (!blocks.length) return { w: 30, l: 40, h: 15 };
+  const d = bestDims(sortBlocks(blocks));
+  if (contentType === "only_shoes") {
+    return { w: Math.max(d.w+1,10), l: Math.max(d.l+1,10), h: Math.max(d.h+1,1) };
+  }
+  return { w: Math.max(d.w,10), l: Math.max(d.l,10), h: Math.max(d.h,1) };
+}
+
+// Busca produtos do banco e calcula dimensões do pacote (usado em quote e generate)
+async function calcDimsFromOrder(
+  orderItems: any[],
+  supabase: any,
+): Promise<{ dims: Dims; weightKg: number; contentType: string }> {
+  const productIds = orderItems
+    .map((i: any) => i.product_id ?? i.productId)
+    .filter((id: any) => id != null);
+
+  if (productIds.length === 0) {
+    const totalQty = orderItems.reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
+    return {
+      dims: { w: 30, l: 25, h: Math.min(5 * totalQty, 50) },
+      weightKg: Math.max(0.3 * totalQty, 0.3),
+      contentType: "only_clothing",
+    };
+  }
+
+  const { data: productRows } = await supabase
+    .from("products")
+    .select("id, name, category, weight_g, pkg_height_cm, pkg_width_cm, pkg_length_cm")
+    .in("id", productIds);
+
+  const productMap: Record<number, any> = {};
+  (productRows || []).forEach((p: any) => { productMap[p.id] = p; });
+
+  const { blocks, weightKg, contentType } = buildBlocks(orderItems, productMap);
+  const dims = calcPackageDims(blocks, contentType);
+  return { dims, weightKg, contentType };
+}
+
+// ============================================================
+
 // ── Admin token validation ────────────────────────────────────────────────────
 function validateAdminToken(token: string): boolean {
   try {
@@ -134,13 +323,14 @@ serve(async (req) => {
       const destCep = (addr.cep || "").replace(/\D/g, "");
       if (!destCep) throw new Error("CEP de destino não encontrado no pedido");
 
-      const totalQty = (order.order_items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
       const totalValue = (order.order_items || []).reduce((s: number, i: any) => s + (i.price || 50) * (i.quantity || 1), 0) || 50;
+
+      const { dims, weightKg } = await calcDimsFromOrder(order.order_items || [], supabase);
 
       const calcBody = {
         from: { postal_code: STORE_CEP },
         to: { postal_code: destCep },
-        products: [{ id: "uniforms", width: 30, height: Math.min(5 * totalQty, 50), length: 25, weight: Math.max(0.3 * totalQty, 0.3), insurance_value: totalValue, quantity: 1 }],
+        products: [{ id: "uniforms", width: dims.w, height: dims.h, length: dims.l, weight: weightKg, insurance_value: totalValue, quantity: 1 }],
       };
 
       const res = await meFetch("/me/shipment/calculate", meToken, { method: "POST", body: JSON.stringify(calcBody) });
@@ -203,52 +393,12 @@ serve(async (req) => {
       }
 
       // 3. Montar corpo do carrinho
-      const totalQty = (order.order_items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
       const totalValue = (order.order_items || []).reduce((s: number, i: any) => s + (i.price || 50) * (i.quantity || 1), 0) || 50;
 
-      // Buscar dimensões reais dos produtos no banco
-      const productIds = (order.order_items || [])
-        .map((i: any) => i.product_id)
-        .filter((id: any) => id != null);
+      // Usar o mesmo algoritmo de empacotamento que o melhor-envio-quote
+      const { dims: packDims, weightKg } = await calcDimsFromOrder(order.order_items || [], supabase);
 
-      let volWeight = Math.max(0.3 * totalQty, 0.3);
-      let volHeight = Math.min(5 * totalQty, 50);
-      let volWidth = 30;
-      let volLength = 25;
-
-      if (productIds.length > 0) {
-        const { data: productRows } = await supabase
-          .from("products")
-          .select("id, weight_g, pkg_height_cm, pkg_width_cm, pkg_length_cm")
-          .in("id", productIds);
-
-        if (productRows && productRows.length > 0) {
-          const productMap: Record<number, any> = {};
-          productRows.forEach((p: any) => { productMap[p.id] = p; });
-
-          let totalWeightG = 0;
-          let stackedHeight = 0;
-          let maxWidth = 0;
-          let maxLength = 0;
-          let hasRealDimensions = false;
-
-          for (const item of (order.order_items || [])) {
-            const qty = item.quantity || 1;
-            const prod = productMap[item.product_id];
-            if (prod?.weight_g) { totalWeightG += prod.weight_g * qty; hasRealDimensions = true; }
-            if (prod?.pkg_height_cm) stackedHeight += prod.pkg_height_cm * qty;
-            if (prod?.pkg_width_cm) maxWidth = Math.max(maxWidth, prod.pkg_width_cm);
-            if (prod?.pkg_length_cm) maxLength = Math.max(maxLength, prod.pkg_length_cm);
-          }
-
-          if (hasRealDimensions) {
-            volWeight = Math.max(totalWeightG / 1000, 0.1);
-            volHeight = stackedHeight > 0 ? Math.min(stackedHeight, 50) : Math.min(5 * totalQty, 50);
-            volWidth = maxWidth > 0 ? maxWidth : 30;
-            volLength = maxLength > 0 ? maxLength : 25;
-          }
-        }
-      }
+      console.log("[ME-LABEL] Packing dims:", JSON.stringify({ ...packDims, weightKg }));
 
       const cartBody = {
         service: serviceId,
@@ -287,10 +437,10 @@ serve(async (req) => {
           unitaryValue: item.price || 50,
         })),
         volumes: {
-          height: volHeight,
-          width: volWidth,
-          length: volLength,
-          weight: volWeight,
+          height: packDims.h,
+          width: packDims.w,
+          length: packDims.l,
+          weight: weightKg,
         },
         options: {
           insurance_value: totalValue,

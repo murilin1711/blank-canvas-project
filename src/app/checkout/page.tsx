@@ -211,6 +211,8 @@ export default function CheckoutPage() {
   const MAX_BU_CARDS = 3;
   const [bolsaCards, setBolsaCards] = useState<{qrCodeImage: string; password: string; amount: number}[]>([]);
   const [bolsaUniformeCompleted, setBolsaUniformeCompleted] = useState(false);
+  const [bolsaMultiCard, setBolsaMultiCard] = useState<boolean | null>(null);
+  const [showBolsaMultiCardQuestion, setShowBolsaMultiCardQuestion] = useState(false);
   const [showBolsaRemainderChoice, setShowBolsaRemainderChoice] = useState(false);
   const [bolsaRemainderMethod, setBolsaRemainderMethod] = useState<"stripe" | "pix">("pix");
   const [showBolsaRemainderStripe, setShowBolsaRemainderStripe] = useState(false);
@@ -1142,7 +1144,7 @@ export default function CheckoutPage() {
                               <input
                                 type="radio"
                                 checked={paymentMethod === "bolsa-uniforme"}
-                                onChange={() => setPaymentMethod("bolsa-uniforme")}
+                                onChange={() => { setPaymentMethod("bolsa-uniforme"); setBolsaMultiCard(null); }}
                                 className="w-5 h-5 accent-[#2e3091]"
                               />
                               <div className="flex items-center gap-2">
@@ -1224,7 +1226,7 @@ export default function CheckoutPage() {
                           } else if (paymentMethod === "pix") {
                             setShowPixPayment(true);
                           } else {
-                            setShowBolsaUniformeModal(true);
+                            setShowBolsaMultiCardQuestion(true);
                           }
                         }}
                         disabled={isProcessingPayment}
@@ -1305,8 +1307,8 @@ export default function CheckoutPage() {
                         )}
                       </div>
 
-                      {/* Opção 1: Outro cartão BU (máx 3 cartões) */}
-                      {bolsaCards.length < MAX_BU_CARDS && (
+                      {/* Opção 1: Outro cartão BU (máx 3 cartões) — só se escolheu multi-cartão */}
+                      {bolsaMultiCard && bolsaCards.length < MAX_BU_CARDS && (
                         <button
                           onClick={() => setShowBolsaUniformeModal(true)}
                           className="w-full border-2 border-[#2e3091] text-[#2e3091] py-4 rounded-full font-medium hover:bg-[#2e3091]/5 transition-colors mb-4 flex items-center justify-center gap-2"
@@ -1655,6 +1657,51 @@ export default function CheckoutPage() {
               )}
 
               {/* Bolsa Uniforme Modal */}
+              {/* Modal: pergunta se vai usar mais de um cartão BU */}
+              {showBolsaMultiCardQuestion && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl w-full max-w-sm p-7 shadow-2xl">
+                    <div className="w-12 h-12 bg-[#2e3091]/10 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                      <Wallet className="w-6 h-6 text-[#2e3091]" />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900 text-center mb-2">
+                      Quantos cartões Bolsa Uniforme você vai usar?
+                    </h2>
+                    <p className="text-sm text-gray-500 text-center mb-7">
+                      Você pode dividir o pagamento em até {MAX_BU_CARDS} cartões.
+                    </p>
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => {
+                          setBolsaMultiCard(false);
+                          setShowBolsaMultiCardQuestion(false);
+                          setShowBolsaUniformeModal(true);
+                        }}
+                        className="w-full bg-[#2e3091] text-white py-4 rounded-2xl font-semibold hover:bg-[#252a7a] transition-colors"
+                      >
+                        Apenas um cartão
+                      </button>
+                      <button
+                        onClick={() => {
+                          setBolsaMultiCard(true);
+                          setShowBolsaMultiCardQuestion(false);
+                          setShowBolsaUniformeModal(true);
+                        }}
+                        className="w-full border-2 border-[#2e3091] text-[#2e3091] py-4 rounded-2xl font-semibold hover:bg-[#2e3091]/5 transition-colors"
+                      >
+                        Mais de um cartão
+                      </button>
+                      <button
+                        onClick={() => setShowBolsaMultiCardQuestion(false)}
+                        className="w-full text-sm text-gray-400 py-2 hover:text-gray-600 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {showBolsaUniformeModal && (
                 <BolsaUniformePayment
                   suggestedAmount={bolsaCurrentMax}

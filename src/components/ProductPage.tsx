@@ -1,8 +1,7 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from "react";
-import { recommendSize, estimateBody, DEFAULT_ADJUSTMENTS, type BodyAdjustments, type FitStatus, type BodyDominance } from "@/lib/sizeFinder";
-import { AvatarBody } from "@/components/AvatarBody";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import { recommendSize, DEFAULT_ADJUSTMENTS, getGarmentCategory, type BodyAdjustments, type FitStatus, type BodyDominance } from "@/lib/sizeFinder";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, Heart, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
+import { ArrowLeft, Heart, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Footer from "@/components/sections/footer";
 import { useCart } from "@/contexts/CartContext";
@@ -16,6 +15,13 @@ import { ShoeSizeTable } from "@/components/ShoeSizeTable";
 import { BoinaSizeTable } from "@/components/BoinaSizeTable";
 import maleIconImg from "@/assets/icons/male-icon.png";
 import femaleIconImg from "@/assets/icons/female-icon.png";
+import toraxMascRaw from "@/assets/avatars/torax-ombro-masc.svg?raw";
+import toraxFemRaw from "@/assets/avatars/torax-ombro-fem.svg?raw";
+import abdomeRaw from "@/assets/avatars/abdome-masc.svg?raw";
+import bustoAbdomeRaw from "@/assets/avatars/busto-abdome-fem.svg?raw";
+import gluteoRaw from "@/assets/avatars/gluteo.svg?raw";
+import inferioresMascRaw from "@/assets/avatars/inferiores-masc.svg?raw";
+import inferioresFemRaw from "@/assets/avatars/inferiores-fem.svg?raw";
 
 // Tipos para variação com preço
 interface VariationOption {
@@ -47,6 +53,25 @@ interface ProductPageProps {
 }
 
 const EMBROIDERY_PRICE = 15.00;
+
+function makeIconHtml(rawSvg: string, transforms: Record<string, number>): string {
+  const TRANSITION = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+  // Fix SVG dimensions: remove pt-unit attrs, set explicit 148×148 CSS size
+  let html = rawSvg
+    .replace(/(<svg[^>]*)\s+width="[^"]*"/, '$1')
+    .replace(/(<svg[^>]*)\s+height="[^"]*"/, '$1')
+    .replace('<svg ', '<svg overflow="visible" style="width:148px;height:148px;display:block;" ');
+  for (const [id, sx] of Object.entries(transforms)) {
+    // transform-origin 50% 50% in view-box mode = center of SVG canvas (5000,5000 in user units)
+    // This scales the group horizontally around the figure's center axis — not fill-box which zooms
+    const st = `transform:scaleX(${sx});transform-origin:50% 50%;transition:${TRANSITION};`;
+    html = html.replace(
+      new RegExp(`(<g\\b[^>]*id="${id}"[^>]*)>`, 'g'),
+      `$1 style="${st}">`
+    );
+  }
+  return html;
+}
 
 export default function ProductPage({
   schoolName,
@@ -280,8 +305,7 @@ export default function ProductPage({
     () => recommendSize(productName, sexo, altura, peso, sizes, adjustments, dominance),
     [productName, sexo, altura, peso, sizes, adjustments, dominance]
   );
-  const recommended = sizeResult.primary;
-  const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
+const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
   const prevImage = () => setActiveIndex((s) => (s - 1 + images.length) % images.length);
 
   // Touch swipe refs
@@ -918,104 +942,167 @@ export default function ProductPage({
 
               {/* ── ETAPA 3: Ajuste Visual Corporal ── */}
               {fitStep === 3 && (() => {
-                const body = estimateBody(altura, peso, sexo, adjustments, dominance);
                 const isFemale = sexo === "f";
-                const toraxLabel = isFemale ? "Busto" : "Tórax";
+                const garmentCat = getGarmentCategory(productName);
 
                 type AdjKey = keyof BodyAdjustments;
-                const MAX_ADJ = 3;
 
-                const applyClick = (key: AdjKey, delta: 1 | -1) => {
-                  setAdjustments(prev => ({
-                    ...prev,
-                    [key]: Math.max(-MAX_ADJ, Math.min(MAX_ADJ, prev[key] + delta)),
-                  }));
+                const adjToLevel = (adj: number): number => {
+                  if (adj <= -3) return 1;
+                  if (adj <= -1) return 2;
+                  if (adj === 0) return 3;
+                  if (adj <= 2)  return 4;
+                  return 5;
                 };
 
-                const AdjRow = ({
-                  label,
-                  measurement,
-                  adjKey,
+                const LEVELS = [
+                  { level: 1, label: 'Pouco vol.', adj: -3 },
+                  { level: 2, label: 'Pequeno',    adj: -2 },
+                  { level: 3, label: 'Normal',     adj:  0 },
+                  { level: 4, label: 'Grande',     adj:  2 },
+                  { level: 5, label: 'Volumoso',   adj:  3 },
+                ] as const;
+
+                // scaleX visual por nível (1=muito estreito, 5=muito largo)
+                const LEVEL_SCALES: Record<number, number> = {
+                  1: 0.70, 2: 0.85, 3: 1.00, 4: 1.18, 5: 1.36,
+                };
+
+                const LevelBar = ({ adjKey, sublabel }: { adjKey: AdjKey; sublabel?: string }) => {
+                  const current = adjToLevel(adjustments[adjKey]);
+                  return (
+                    <div className="w-full">
+                      {sublabel && (
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest text-center mb-2">
+                          {sublabel}
+                        </p>
+                      )}
+                      <div className="flex justify-between w-full px-1">
+                        {LEVELS.map(({ level, label, adj }) => (
+                          <button
+                            key={level}
+                            onClick={() => setAdjustments(prev => ({ ...prev, [adjKey]: adj }))}
+                            className="text-[10px] font-semibold uppercase tracking-wide transition-colors leading-tight text-center"
+                            style={{ color: current === level ? '#1a1a1a' : '#b8b8b8' }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                };
+
+                const RegionCard = ({
+                  rawSvg,
+                  title,
+                  svgTransforms,
+                  children,
                 }: {
-                  label: string;
-                  measurement: number;
-                  adjKey: AdjKey;
+                  rawSvg: string;
+                  title: string;
+                  svgTransforms: Record<string, number>;
+                  children: React.ReactNode;
                 }) => (
-                  <div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{label}</p>
-                      <p className="text-xs text-gray-400">~{Math.round(measurement)} cm</p>
+                  <div className="border-b border-gray-100 last:border-0 py-5">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center mb-4">
+                      {title}
+                    </p>
+                    <div className="flex justify-center mb-4" style={{ height: 148 }}>
+                      <div
+                        style={{ lineHeight: 0 }}
+                        dangerouslySetInnerHTML={{ __html: makeIconHtml(rawSvg, svgTransforms) }}
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => applyClick(adjKey, -1)}
-                        disabled={adjustments[adjKey] <= -MAX_ADJ}
-                        className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 transition-colors"
-                      >
-                        <Minus className="w-3 h-3 text-gray-600" />
-                      </button>
-                      <span className="w-6 text-center text-xs font-semibold text-gray-600">
-                        {adjustments[adjKey] > 0 ? `+${adjustments[adjKey]}` : adjustments[adjKey] === 0 ? "•" : adjustments[adjKey]}
-                      </span>
-                      <button
-                        onClick={() => applyClick(adjKey, 1)}
-                        disabled={adjustments[adjKey] >= MAX_ADJ}
-                        className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-30 transition-colors"
-                      >
-                        <Plus className="w-3 h-3 text-gray-600" />
-                      </button>
-                    </div>
+                    {children}
                   </div>
                 );
 
                 return (
-                  <div className="flex flex-col gap-4 flex-1">
-                    <div>
+                  <div className="flex flex-col gap-0 flex-1">
+                    <div className="mb-4">
                       <p className="text-xs font-semibold text-[#2e3091] uppercase tracking-widest mb-1">
                         Etapa 2 de 3
                       </p>
                       <h2 className="text-xl font-bold text-gray-900">Ajuste a forma do corpo</h2>
-                      <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                        Reconhecemos que o seu corpo possui essas medidas aproximadas. Mas você pode ajustá-las se quiser.
-                      </p>
                     </div>
 
-                    {/* Avatar volumétrico */}
-                    <div className="bg-gray-50 rounded-2xl p-4">
-                      {sexo ? (
-                        <AvatarBody
-                          altura={altura}
-                          peso={peso}
-                          sex={sexo}
-                          dominance={dominance}
-                          adjustments={adjustments}
-                        />
+                    {/* Cards de região — empilhados verticalmente como Zara */}
+                    <div className="flex-1">
+                      {garmentCat === 'upper' ? (
+                        <>
+                          {/* Tórax e Ombro — igual para homem e mulher */}
+                          <RegionCard
+                            rawSvg={isFemale ? toraxFemRaw : toraxMascRaw}
+                            title="Tórax e Ombro"
+                            svgTransforms={{ torax_ombro_editavel: LEVEL_SCALES[adjToLevel(adjustments.toraxAdj)] ?? 1 }}
+                          >
+                            <LevelBar adjKey="toraxAdj" />
+                          </RegionCard>
+
+                          {/* Abdome (masculino) ou Busto + Abdome (feminino) */}
+                          {isFemale ? (
+                            <div className="border-b border-gray-100 last:border-0 py-5">
+                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center mb-4">
+                                Busto e Abdome
+                              </p>
+                              <div className="flex justify-center mb-5" style={{ height: 148 }}>
+                                <div
+                                  style={{ lineHeight: 0 }}
+                                  dangerouslySetInnerHTML={{
+                                    __html: makeIconHtml(bustoAbdomeRaw, {
+                                      busto_editavel:  LEVEL_SCALES[adjToLevel(adjustments.toraxAdj)]   ?? 1,
+                                      abdome_editavel: LEVEL_SCALES[adjToLevel(adjustments.cinturaAdj)] ?? 1,
+                                    }),
+                                  }}
+                                />
+                              </div>
+                              <div className="flex flex-col gap-4">
+                                <LevelBar adjKey="toraxAdj" sublabel="Busto" />
+                                <LevelBar adjKey="cinturaAdj" sublabel="Abdome" />
+                              </div>
+                            </div>
+                          ) : (
+                            <RegionCard
+                              rawSvg={abdomeRaw}
+                              title="Abdome"
+                              svgTransforms={{ abdome_editavel: LEVEL_SCALES[adjToLevel(adjustments.cinturaAdj)] ?? 1 }}
+                            >
+                              <LevelBar adjKey="cinturaAdj" />
+                            </RegionCard>
+                          )}
+                        </>
                       ) : (
-                        <div className="flex gap-4 items-center">
-                          <img
-                            src={isFemale ? femaleIconImg : maleIconImg}
-                            alt=""
-                            className="w-16 h-auto object-contain opacity-70"
-                          />
-                          <div className="text-xs text-gray-600 space-y-1">
-                            <p><span className="font-medium text-gray-800">{toraxLabel}:</span> ~{Math.round(body.torax)} cm</p>
-                            <p><span className="font-medium text-gray-800">Cintura:</span> ~{Math.round(body.cintura)} cm</p>
-                            <p><span className="font-medium text-gray-800">Quadril:</span> ~{Math.round(body.quadril)} cm</p>
-                          </div>
-                        </div>
+                        <>
+                          {/* Glúteo — mesmo ícone para homem e mulher */}
+                          <RegionCard
+                            rawSvg={gluteoRaw}
+                            title="Glúteo"
+                            svgTransforms={{ gluteo_editavel: LEVEL_SCALES[adjToLevel(adjustments.gluteoAdj)] ?? 1 }}
+                          >
+                            <LevelBar adjKey="gluteoAdj" />
+                          </RegionCard>
+                          {/* Quadril — deforma apenas o grupo quadril_editavel */}
+                          <RegionCard
+                            rawSvg={isFemale ? inferioresFemRaw : inferioresMascRaw}
+                            title="Quadril"
+                            svgTransforms={{ quadril_editavel: LEVEL_SCALES[adjToLevel(adjustments.quadrilAdj)] ?? 1 }}
+                          >
+                            <LevelBar adjKey="quadrilAdj" />
+                          </RegionCard>
+                          {/* Coxa — mesmo SVG, deforma apenas coxa_editavel */}
+                          <RegionCard
+                            rawSvg={isFemale ? inferioresFemRaw : inferioresMascRaw}
+                            title="Coxa"
+                            svgTransforms={{ coxa_editavel: LEVEL_SCALES[adjToLevel(adjustments.coxaAdj)] ?? 1 }}
+                          >
+                            <LevelBar adjKey="coxaAdj" />
+                          </RegionCard>
+                        </>
                       )}
                     </div>
 
-                    {/* Controles de ajuste */}
-                    <div className="bg-white border border-gray-100 rounded-2xl px-4 divide-y divide-gray-100">
-                      <AdjRow label={toraxLabel} measurement={body.torax} adjKey="toraxAdj" />
-                      <AdjRow label="Cintura" measurement={body.cintura} adjKey="cinturaAdj" />
-                      <AdjRow label="Quadril" measurement={body.quadril} adjKey="quadrilAdj" />
-                      <AdjRow label="Glúteo" measurement={body.quadril} adjKey="gluteoAdj" />
-                      <AdjRow label="Coxa" measurement={body.coxa} adjKey="coxaAdj" />
-                    </div>
-
-                    <div className="flex gap-3 mt-auto">
+                    <div className="flex gap-3 pt-4 border-t border-gray-100">
                       <button
                         onClick={() => setFitStep(2)}
                         className="flex-1 border border-gray-200 py-3 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
