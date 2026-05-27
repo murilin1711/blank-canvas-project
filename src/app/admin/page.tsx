@@ -45,6 +45,8 @@ import CategoryManager from "@/components/admin/CategoryManager";
 import BannerManager from "@/components/admin/BannerManager";
 import StockManager from "@/components/admin/StockManager";
 import { getPackageLabel } from "@/lib/packing";
+import { computePackingLayout } from "@/lib/packingLayout";
+import PackingIllustration from "@/components/PackingIllustration";
 
 type Tab = "pedidos" | "bolsa-uniforme" | "produtos" | "feedbacks" | "financeiro" | "clientes" | "banner" | "estoque";
 
@@ -212,6 +214,9 @@ export default function AdminPage() {
   const [labelSelectedService, setLabelSelectedService] = useState<number | null>(null);
   const [labelGenerating, setLabelGenerating] = useState(false);
   const [labelResult, setLabelResult] = useState<{ labelUrl: string | null; trackingCode: string | null } | null>(null);
+
+  // Packing illustration modal
+  const [packingOrder, setPackingOrder] = useState<Order | null>(null);
 
   // Feedback edit states
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -1602,6 +1607,12 @@ export default function AdminPage() {
                                         {pkg.dims.w} × {pkg.dims.l} × {pkg.dims.h} cm
                                       </span>
                                     )}
+                                    <button
+                                      onClick={() => setPackingOrder(order)}
+                                      className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors w-fit"
+                                    >
+                                      Ver embalagem
+                                    </button>
                                   </div>
                                 );
                               })()}
@@ -2566,6 +2577,46 @@ export default function AdminPage() {
                   </button>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Packing Illustration Modal */}
+      <AnimatePresence>
+        {packingOrder && packingOrder.order_items && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={() => setPackingOrder(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-semibold text-gray-900">Ilustração de Embalagem</h2>
+                <button
+                  onClick={() => setPackingOrder(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              {(() => {
+                const layout = computePackingLayout(
+                  packingOrder.order_items!.map(i => ({ productName: i.product_name, quantity: i.quantity })),
+                  products
+                );
+                return layout
+                  ? <PackingIllustration layout={layout} orderId={packingOrder.id} />
+                  : <p className="text-sm text-gray-500">Não foi possível calcular o layout.</p>;
+              })()}
             </motion.div>
           </motion.div>
         )}

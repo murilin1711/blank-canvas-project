@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import goiasMinasLogo from "@/assets/goias-minas-logo.png";
 import { getPackageLabel, type ProductDim } from "@/lib/packing";
+import { computePackingLayout } from "@/lib/packingLayout";
+import PackingIllustration from "@/components/PackingIllustration";
 
 type Tab = "pedidos" | "bolsa-uniforme" | "feedbacks" | "clientes" | "estoque";
 
@@ -128,6 +130,7 @@ export default function CaixaPage() {
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
   const [qrFullscreen, setQrFullscreen] = useState<string | null>(null);
+  const [packingOrder, setPackingOrder] = useState<Order | null>(null);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -663,6 +666,12 @@ export default function CaixaPage() {
                                   {pkg.dims.w} × {pkg.dims.l} × {pkg.dims.h} cm
                                 </span>
                               )}
+                              <button
+                                onClick={() => setPackingOrder(order)}
+                                className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
+                              >
+                                Ver embalagem
+                              </button>
                             </div>
                           );
                         })()}
@@ -1044,6 +1053,46 @@ export default function CaixaPage() {
                   )}
                 </>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Packing Illustration Modal */}
+      <AnimatePresence>
+        {packingOrder && packingOrder.order_items && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+            onClick={() => setPackingOrder(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-base font-semibold text-gray-900">Ilustração de Embalagem</h2>
+                <button
+                  onClick={() => setPackingOrder(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              {(() => {
+                const layout = computePackingLayout(
+                  packingOrder.order_items!.map(i => ({ productName: i.product_name, quantity: i.quantity })),
+                  packingProducts
+                );
+                return layout
+                  ? <PackingIllustration layout={layout} orderId={packingOrder.id} />
+                  : <p className="text-sm text-gray-500">Não foi possível calcular o layout.</p>;
+              })()}
             </motion.div>
           </motion.div>
         )}
