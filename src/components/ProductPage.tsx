@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
+import { BodyFigureSVG } from "@/components/BodyFigureSVG";
 import { recommendSize, DEFAULT_ADJUSTMENTS, getGarmentCategory, type BodyAdjustments, type FitStatus, type BodyDominance } from "@/lib/sizeFinder";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Heart, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
@@ -15,13 +16,14 @@ import { ShoeSizeTable } from "@/components/ShoeSizeTable";
 import { BoinaSizeTable } from "@/components/BoinaSizeTable";
 import maleIconImg from "@/assets/icons/male-icon.png";
 import femaleIconImg from "@/assets/icons/female-icon.png";
-import toraxMascRaw from "@/assets/avatars/torax-ombro-masc.svg?raw";
 import toraxFemRaw from "@/assets/avatars/torax-ombro-fem.svg?raw";
-import abdomeRaw from "@/assets/avatars/abdome-masc.svg?raw";
 import bustoAbdomeRaw from "@/assets/avatars/busto-abdome-fem.svg?raw";
 import gluteoRaw from "@/assets/avatars/gluteo.svg?raw";
 import inferioresMascRaw from "@/assets/avatars/inferiores-masc.svg?raw";
 import inferioresFemRaw from "@/assets/avatars/inferiores-fem.svg?raw";
+// SVGs separados: torax SEM abdome + somente abdome (para composite correto)
+import toraxSemAbdomeRaw from "@/assets/avatars/torax-sem-abdome-masc.svg?raw";
+import abdomeApenasRaw from "@/assets/avatars/abdome-somente-masc.svg?raw";
 
 // Tipos para variação com preço
 interface VariationOption {
@@ -54,21 +56,60 @@ interface ProductPageProps {
 
 const EMBROIDERY_PRICE = 15.00;
 
-function makeIconHtml(rawSvg: string, transforms: Record<string, number>): string {
-  const TRANSITION = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
-  // Fix SVG dimensions: remove pt-unit attrs, set explicit 148×148 CSS size
+const SVG_FILTER = "invert(13%) sepia(14%) saturate(696%) hue-rotate(314deg) brightness(91%) contrast(90%)";
+const SVG_TRANSITION = "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)";
+
+// Extrai o conteúdo dos <path> de dentro do grupo principal de um SVG raw
+function extractPaths(svgRaw: string): string {
+  const open = svgRaw.indexOf("<g ");
+  const close = svgRaw.lastIndexOf("</g>");
+  if (open === -1 || close === -1) return "";
+  const inner = svgRaw.slice(svgRaw.indexOf(">", open) + 1, close);
+  return inner.trim();
+}
+
+// Composite: torax (estático ou com escala) + abdome (com escala independente).
+// Os dois SVGs compartilham o mesmo viewBox 1000×1000 e sistema de coordenadas.
+// O transform de escala é aplicado em coordenadas de path (centro x=5000 antes do scale 0.1).
+// transition via CSS no wrapper div — SVG transform attr não anima nativamente.
+function makeUpperBodyHtml(toraxSx: number, abdomeSx: number, size = 148): string {
+  const toraxPaths  = extractPaths(toraxSemAbdomeRaw);
+  const abdomePaths = extractPaths(abdomeApenasRaw);
+
+  const toraxT  = `translate(5000 0) scale(${toraxSx} 1) translate(-5000 0)`;
+  const abdomeT = `translate(5000 0) scale(${abdomeSx} 1) translate(-5000 0)`;
+
+  return `<svg viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"
+    style="width:${size}px;height:${size}px;display:block;filter:${SVG_FILTER};">
+    <g transform="translate(0,1000) scale(0.1,-0.1)" fill="currentColor" stroke="none">
+      <g transform="${toraxT}">${toraxPaths}</g>
+      <g transform="${abdomeT}">${abdomePaths}</g>
+    </g>
+  </svg>`;
+}
+
+// Ícone de região única (inferiores, gluteo, etc.) — escala o SVG inteiro horizontalmente.
+// Usa transform SVG nativo no grupo principal.
+function makeRegionIconHtml(rawSvg: string, sx: number, size = 148): string {
   let html = rawSvg
-    .replace(/(<svg[^>]*)\s+width="[^"]*"/, '$1')
-    .replace(/(<svg[^>]*)\s+height="[^"]*"/, '$1')
-    .replace('<svg ', '<svg overflow="visible" style="width:148px;height:148px;display:block;" ');
-  for (const [id, sx] of Object.entries(transforms)) {
-    // transform-origin 50% 50% in view-box mode = center of SVG canvas (5000,5000 in user units)
-    // This scales the group horizontally around the figure's center axis — not fill-box which zooms
-    const st = `transform:scaleX(${sx});transform-origin:50% 50%;transition:${TRANSITION};`;
-    html = html.replace(
-      new RegExp(`(<g\\b[^>]*id="${id}"[^>]*)>`, 'g'),
-      `$1 style="${st}">`
-    );
+    .replace(/(<svg[^>]*)\s+width="[^"]*"/, "$1")
+    .replace(/(<svg[^>]*)\s+height="[^"]*"/, "$1")
+    .replace("<svg ", `<svg style="width:${size}px;height:${size}px;display:block;filter:${SVG_FILTER};" `);
+  // Injeta scaleX no primeiro <g> (o grupo de flip/coordenadas)
+  const gStart = html.indexOf("<g ");
+  const gTagEnd = html.indexOf(">", gStart);
+  const existingTransform = html.slice(gStart, gTagEnd).match(/transform="([^"]*)"/)?.[1] ?? "";
+  // Escala horizontal em torno do centro do viewBox (x=500 para viewBox 1000, x=5000 para 10000)
+  const vb = html.match(/viewBox="0 0 (\S+)/)?.[1] ?? "1000";
+  const cx = parseFloat(vb) / 2;
+  const scaleT = `translate(${cx} 0) scale(${sx} 1) translate(-${cx} 0)`;
+  const newTransform = existingTransform ? `${scaleT} ${existingTransform}` : scaleT;
+  html = html.slice(0, gStart) +
+    html.slice(gStart, gTagEnd).replace(/transform="[^"]*"/, `transform="${newTransform}"`) +
+    html.slice(gTagEnd);
+  if (!html.includes(newTransform)) {
+    // fallback: insert transform if not replaced
+    html = html.replace(/(<g\b[^>]*)>/, `$1 transform="${newTransform}">`);
   }
   return html;
 }
@@ -152,6 +193,8 @@ export default function ProductPage({
   const [adjustments, setAdjustments] = useState<BodyAdjustments>(DEFAULT_ADJUSTMENTS);
   const [dominance, setDominance] = useState<BodyDominance>("equilibrado");
   const [showLoginModal, setShowLoginModal] = useState(false);
+  type ActiveReg = "torax" | "abdome" | "quadril" | "coxa" | "gluteo" | null;
+  const [activeReg, setActiveReg] = useState<ActiveReg>(null);
   
   // Embroidery states
   const [wantsEmbroidery, setWantsEmbroidery] = useState(false);
@@ -993,111 +1036,69 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                   );
                 };
 
-                const RegionCard = ({
-                  rawSvg,
-                  title,
-                  svgTransforms,
-                  children,
+
+                const toraxSx   = LEVEL_SCALES[adjToLevel(adjustments.toraxAdj)]   ?? 1;
+                const abdomeSx  = LEVEL_SCALES[adjToLevel(adjustments.cinturaAdj)] ?? 1;
+                const gluteoSx  = LEVEL_SCALES[adjToLevel(adjustments.gluteoAdj)]  ?? 1;
+                const quadrilSx = LEVEL_SCALES[adjToLevel(adjustments.quadrilAdj)] ?? 1;
+                const coxaSx    = LEVEL_SCALES[adjToLevel(adjustments.coxaAdj)]    ?? 1;
+
+                const RegionRow = ({
+                  label,
+                  region,
+                  adjKey,
                 }: {
-                  rawSvg: string;
-                  title: string;
-                  svgTransforms: Record<string, number>;
-                  children: React.ReactNode;
+                  label: string;
+                  region: ActiveReg;
+                  adjKey: AdjKey;
                 }) => (
-                  <div className="border-b border-gray-100 last:border-0 py-5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center mb-4">
-                      {title}
-                    </p>
-                    <div className="flex justify-center mb-4" style={{ height: 148 }}>
-                      <div
-                        style={{ lineHeight: 0 }}
-                        dangerouslySetInnerHTML={{ __html: makeIconHtml(rawSvg, svgTransforms) }}
-                      />
-                    </div>
-                    {children}
+                  <div
+                    className="border-b border-gray-100 last:border-0 py-3"
+                    onMouseEnter={() => setActiveReg(region)}
+                    onMouseLeave={() => setActiveReg(null)}
+                    onTouchStart={() => setActiveReg(region)}
+                  >
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
+                    <LevelBar adjKey={adjKey} />
                   </div>
                 );
 
                 return (
                   <div className="flex flex-col gap-0 flex-1">
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <p className="text-xs font-semibold text-[#2e3091] uppercase tracking-widest mb-1">
                         Etapa 2 de 3
                       </p>
                       <h2 className="text-xl font-bold text-gray-900">Ajuste a forma do corpo</h2>
                     </div>
 
-                    {/* Cards de região — empilhados verticalmente como Zara */}
-                    <div className="flex-1">
+                    {/* Boneco paramétrico único — deforma região a região */}
+                    <div className="flex justify-center py-2 border-b border-gray-100">
+                      <BodyFigureSVG
+                        sex={isFemale ? "f" : "m"}
+                        toraxSx={toraxSx}
+                        abdomeSx={abdomeSx}
+                        quadrilSx={quadrilSx}
+                        coxaSx={coxaSx}
+                        gluteoSx={gluteoSx}
+                        activeRegion={activeReg}
+                        width={140}
+                        height={260}
+                      />
+                    </div>
+
+                    {/* Controles por região */}
+                    <div className="flex-1 overflow-y-auto pt-1">
                       {garmentCat === 'upper' ? (
                         <>
-                          {/* Tórax e Ombro — igual para homem e mulher */}
-                          <RegionCard
-                            rawSvg={isFemale ? toraxFemRaw : toraxMascRaw}
-                            title="Tórax e Ombro"
-                            svgTransforms={{ torax_ombro_editavel: LEVEL_SCALES[adjToLevel(adjustments.toraxAdj)] ?? 1 }}
-                          >
-                            <LevelBar adjKey="toraxAdj" />
-                          </RegionCard>
-
-                          {/* Abdome (masculino) ou Busto + Abdome (feminino) */}
-                          {isFemale ? (
-                            <div className="border-b border-gray-100 last:border-0 py-5">
-                              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest text-center mb-4">
-                                Busto e Abdome
-                              </p>
-                              <div className="flex justify-center mb-5" style={{ height: 148 }}>
-                                <div
-                                  style={{ lineHeight: 0 }}
-                                  dangerouslySetInnerHTML={{
-                                    __html: makeIconHtml(bustoAbdomeRaw, {
-                                      busto_editavel:  LEVEL_SCALES[adjToLevel(adjustments.toraxAdj)]   ?? 1,
-                                      abdome_editavel: LEVEL_SCALES[adjToLevel(adjustments.cinturaAdj)] ?? 1,
-                                    }),
-                                  }}
-                                />
-                              </div>
-                              <div className="flex flex-col gap-4">
-                                <LevelBar adjKey="toraxAdj" sublabel="Busto" />
-                                <LevelBar adjKey="cinturaAdj" sublabel="Abdome" />
-                              </div>
-                            </div>
-                          ) : (
-                            <RegionCard
-                              rawSvg={abdomeRaw}
-                              title="Abdome"
-                              svgTransforms={{ abdome_editavel: LEVEL_SCALES[adjToLevel(adjustments.cinturaAdj)] ?? 1 }}
-                            >
-                              <LevelBar adjKey="cinturaAdj" />
-                            </RegionCard>
-                          )}
+                          <RegionRow label="Tórax e Ombro" region="torax"  adjKey="toraxAdj" />
+                          <RegionRow label="Abdome"        region="abdome" adjKey="cinturaAdj" />
                         </>
                       ) : (
                         <>
-                          {/* Glúteo — mesmo ícone para homem e mulher */}
-                          <RegionCard
-                            rawSvg={gluteoRaw}
-                            title="Glúteo"
-                            svgTransforms={{ gluteo_editavel: LEVEL_SCALES[adjToLevel(adjustments.gluteoAdj)] ?? 1 }}
-                          >
-                            <LevelBar adjKey="gluteoAdj" />
-                          </RegionCard>
-                          {/* Quadril — deforma apenas o grupo quadril_editavel */}
-                          <RegionCard
-                            rawSvg={isFemale ? inferioresFemRaw : inferioresMascRaw}
-                            title="Quadril"
-                            svgTransforms={{ quadril_editavel: LEVEL_SCALES[adjToLevel(adjustments.quadrilAdj)] ?? 1 }}
-                          >
-                            <LevelBar adjKey="quadrilAdj" />
-                          </RegionCard>
-                          {/* Coxa — mesmo SVG, deforma apenas coxa_editavel */}
-                          <RegionCard
-                            rawSvg={isFemale ? inferioresFemRaw : inferioresMascRaw}
-                            title="Coxa"
-                            svgTransforms={{ coxa_editavel: LEVEL_SCALES[adjToLevel(adjustments.coxaAdj)] ?? 1 }}
-                          >
-                            <LevelBar adjKey="coxaAdj" />
-                          </RegionCard>
+                          <RegionRow label="Glúteo"  region="gluteo"  adjKey="gluteoAdj" />
+                          <RegionRow label="Quadril" region="quadril" adjKey="quadrilAdj" />
+                          <RegionRow label="Coxa"    region="coxa"    adjKey="coxaAdj" />
                         </>
                       )}
                     </div>
