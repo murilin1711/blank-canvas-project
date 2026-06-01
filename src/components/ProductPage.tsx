@@ -14,6 +14,7 @@ import SimilarProducts from "@/components/sections/SimilarProducts";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { ShoeSizeTable } from "@/components/ShoeSizeTable";
 import { BoinaSizeTable } from "@/components/BoinaSizeTable";
+import { GarmentMeasurementsTable, hasGarmentMeasurements } from "@/components/GarmentMeasurementsTable";
 import maleIconImg from "@/assets/icons/male-icon.png";
 import femaleIconImg from "@/assets/icons/female-icon.png";
 import toraxFemRaw from "@/assets/avatars/torax-ombro-fem.svg?raw";
@@ -135,6 +136,7 @@ export default function ProductPage({
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [openFitFinder, setOpenFitFinder] = useState(false);
+  const [openMeasurements, setOpenMeasurements] = useState(false);
 
   // Derive selectedSize for backward compat (Fit Finder, etc.)
   const selectedSize = selectedVariations["Tamanho"] || selectedVariations["Tamanhos"] || null;
@@ -562,18 +564,28 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                 <span className="text-sm font-medium text-gray-900">
                   Escolha o tamanho
                 </span>
-                {showSizeFinder && (
-                <button
-                  onClick={() => {
-                    setOpenFitFinder(true);
-                    setFitStep(1);
-                    setAdjustments(DEFAULT_ADJUSTMENTS);
-                  }}
-                  className="text-sm text-[#2e3091] underline font-medium hover:text-[#252a7a]"
-                >
-                  Qual meu tamanho ideal?
-                </button>
-                )}
+                <div className="flex flex-col items-end gap-0.5">
+                  {hasGarmentMeasurements(productName) && (
+                    <button
+                      onClick={() => setOpenMeasurements(true)}
+                      className="text-sm text-[#2e3091] underline font-medium hover:text-[#252a7a]"
+                    >
+                      Medidas do produto
+                    </button>
+                  )}
+                  {showSizeFinder && (
+                    <button
+                      onClick={() => {
+                        setOpenFitFinder(true);
+                        setFitStep(1);
+                        setAdjustments(DEFAULT_ADJUSTMENTS);
+                      }}
+                      className="text-sm text-[#2e3091] underline font-medium hover:text-[#252a7a]"
+                    >
+                      Qual meu tamanho ideal?
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {sizes.map((size) => {
@@ -1198,6 +1210,25 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                       </div>
                     </div>
 
+                    {/* Aviso — boneco em fase de teste */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 leading-snug">
+                      <span className="font-semibold">Atenção:</span> Boneco em fase de teste —{" "}
+                      {hasGarmentMeasurements(productName) ? (
+                        <button
+                          onClick={() => {
+                            setOpenFitFinder(false);
+                            setOpenMeasurements(true);
+                          }}
+                          className="underline font-semibold hover:text-amber-900"
+                        >
+                          consulte as medidas da peça
+                        </button>
+                      ) : (
+                        "consulte as medidas da peça"
+                      )}{" "}
+                      em caso de dúvidas.
+                    </div>
+
                     <div className="flex gap-3 mt-auto">
                       <button
                         onClick={() => setFitStep(3)}
@@ -1224,6 +1255,12 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
           </>
         )}
       </AnimatePresence>
+
+      <GarmentMeasurementsTable
+        productName={productName}
+        open={openMeasurements}
+        onClose={() => setOpenMeasurements(false)}
+      />
 
       <LoginRequiredModal open={showLoginModal} onClose={() => setShowLoginModal(false)} />
 

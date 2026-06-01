@@ -239,6 +239,13 @@ const MIN_EASE: Record<string, number> = {
   "calca-tectel":    23, // elastic tectel — large garment ease by design
 };
 
+// Female-specific overrides — calibrated against Luisa (161/51) and Larissa (157/54)
+const MIN_EASE_F: Partial<Record<string, number>> = {
+  "agasalho":        19, // women size up more on structured jacket
+  "agasalho-tectel": 15, // women prefer more room on tectel jacket
+  "calca-tectel":    25, // female torax formula yields lower cintura estimate
+};
+
 // ─── PRODUCT TYPE DETECTION ────────────────────────────────────────────────────
 
 type ProductType =
@@ -348,7 +355,7 @@ export function estimateBody(
   let gancho: number;
 
   if (g === "m") {
-    // Base estimates
+    // Base estimates — calibrated against Samuel (175/82) and Eduardo (174/76)
     torax   = (altura * 0.53) + (peso * 0.11) + dom.torax;
     cintura = (altura * 0.42) + (peso * 0.18) + dom.cintura;
     quadril = (altura * 0.50) + (peso * 0.12) + dom.quadril;
@@ -379,9 +386,9 @@ export function estimateBody(
     coxa += applyAdj(0, adj.coxaAdj, 4, 4);
 
   } else {
-    // Base estimates
-    torax   = (altura * 0.52) + (peso * 0.13) + dom.torax;
-    cintura = (altura * 0.40) + (peso * 0.17) + dom.cintura;
+    // Base estimates — calibrated against Luisa (161/51) and Larissa (157/54)
+    torax   = (altura * 0.48) + (peso * 0.13) + dom.torax;
+    cintura = (altura * 0.34) + (peso * 0.17) + dom.cintura;
     quadril = (altura * 0.54) + (peso * 0.15) + dom.quadril;
     coxa    = quadril * 0.60 + dom.coxa;
     ombro   = torax * 0.40;
@@ -538,7 +545,7 @@ export function recommendSize(
 
   const type = detectProductType(productName, gender, availableSizes);
   const body = estimateBody(altura, peso, gender, adjustments, dominance);
-  const ease = MIN_EASE[type] ?? 0;
+  const ease = (gender === "f" ? (MIN_EASE_F[type] ?? MIN_EASE[type]) : MIN_EASE[type]) ?? 0;
 
   const chestLabel = gender === "f" ? "Busto estimado" : "Tórax estimado";
   let match: { size: string | null; ease: number } = { size: null, ease: 0 };
