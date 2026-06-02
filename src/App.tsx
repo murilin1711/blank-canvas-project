@@ -8,6 +8,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import Header from '@/components/sections/header';
 import { LoadingProvider } from '@/contexts/LoadingContext';
 import { CookieConsent } from '@/components/CookieConsent';
+import { PasswordGate } from '@/components/PasswordGate';
 
 const HomePage = lazy(() => import('@/app/page'));
 const SobrePage = lazy(() => import('@/app/sobre/page'));
@@ -37,6 +38,7 @@ const NotFoundPage = lazy(() => import('@/app/not-found/page'));
 
 function App() {
   return (
+    <PasswordGate>
     <BrowserRouter>
       <LoadingProvider>
         <AuthProvider>
@@ -101,6 +103,7 @@ function App() {
         </AuthProvider>
       </LoadingProvider>
     </BrowserRouter>
+    </PasswordGate>
   );
 }
 
