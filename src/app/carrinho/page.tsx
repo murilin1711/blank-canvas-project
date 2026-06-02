@@ -5,7 +5,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp, Zap, AlertCircle, MapPin } from "lucide-react";
+import { Trash2, Heart, Plus, Minus, ShoppingBag, Truck, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import CheckoutFooter from "@/components/sections/checkout-footer";
@@ -18,18 +18,15 @@ export default function CarrinhoPage() {
   
   const [cep, setCep] = useState("");
   const [shippingOptions, setShippingOptions] = useState<{
-    juma: { price: number; duration: string; distance: string } | null;
     melhorEnvio: Array<{ id: number; name: string; company: string; companyLogo: string; price: number; deliveryDays: number; deliveryRange: { min: number; max: number } | null }>;
   } | null>(null);
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [showProducts, setShowProducts] = useState(true);
-  const [isAnapolisAddress, setIsAnapolisAddress] = useState(false);
 
   const getSelectedShippingPrice = () => {
     if (selectedShipping === "free") return 0;
     if (!selectedShipping || !shippingOptions) return 0;
-    if (selectedShipping === "juma") return shippingOptions.juma?.price || 0;
     const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
     return meOption?.price || 0;
   };
@@ -53,8 +50,6 @@ export default function CarrinhoPage() {
     setIsCalculating(true);
     setShippingOptions(null);
     setSelectedShipping(null);
-    setIsAnapolisAddress(false);
-
     const cleanCep = cep.replace(/\D/g, "");
 
     try {
@@ -75,17 +70,7 @@ export default function CarrinhoPage() {
         return;
       }
 
-      const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const cityNormalized = normalize(viaCepData.localidade || "");
-      const isAnapolis = cityNormalized === "anapolis" && viaCepData.uf === "GO";
-
-      // Frete não disponível para Anápolis — exibe aviso sem esperar ME
-      if (isAnapolis) {
-        setIsAnapolisAddress(true);
-        return;
-      }
-
-      // Não é Anápolis — aguardar ME (já rodando em background desde o início)
+      // Aguardar ME (já rodando em background desde o início)
       const meResult = await mePromise;
 
       let melhorEnvioOptions: any[] = [];
@@ -107,17 +92,15 @@ export default function CarrinhoPage() {
 
       if (melhorEnvioOptions.length === 0) {
         if (melhorEnvioBlocked) {
-          toast.error("Frete nacional indisponível no momento (bloqueio regional do provedor)");
+          toast.error("Frete indisponível no momento. Tente novamente em alguns minutos.", { duration: 6000 });
         } else if (melhorEnvioFailed) {
-          toast.error("Não foi possível consultar o frete nacional agora");
+          toast.error("Não foi possível consultar o frete. Tente novamente ou entre em contato: suporte@gmuniformes.com.br", { duration: 8000 });
         } else {
-          toast.error("Nenhuma opção de frete disponível para este CEP");
+          toast.error("Não encontramos opções de frete para este CEP. Entre em contato: suporte@gmuniformes.com.br", { duration: 8000 });
         }
       }
 
-      setShippingOptions({
-        juma: null,
-        melhorEnvio: melhorEnvioOptions });
+      setShippingOptions({ melhorEnvio: melhorEnvioOptions });
     } catch (error) {
       console.error("Shipping calc error:", error);
       toast.error("Erro ao calcular frete. Tente novamente.");
@@ -135,7 +118,7 @@ export default function CarrinhoPage() {
         cep: cep.replace(/\D/g, ""),
         label: "Frete Grátis",
         type: "free",
-        allOptions: { juma: null, melhorEnvio: [] } }));
+        allOptions: { melhorEnvio: [] } }));
       if (user) {
         navigate("/checkout");
       } else {
@@ -151,24 +134,16 @@ export default function CarrinhoPage() {
         selectedId: selectedShipping,
         price: getSelectedShippingPrice(),
         cep: cep.replace(/\D/g, "") };
-      if (selectedShipping === "juma" && shippingOptions.juma) {
-        shippingData.label = "Entrega Rápida (Juma)";
-        shippingData.description = `${shippingOptions.juma.duration} • ${shippingOptions.juma.distance}`;
-        shippingData.type = "juma";
-      } else {
-        const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
-        if (meOption) {
-          shippingData.label = `${meOption.company} - ${meOption.name}`;
-          shippingData.description = meOption.deliveryRange
-            ? `${meOption.deliveryRange.min}-${meOption.deliveryRange.max} dias úteis`
-            : `${meOption.deliveryDays} dias úteis`;
-          shippingData.type = "melhor_envio";
-          shippingData.companyLogo = meOption.companyLogo;
-        }
+      const meOption = shippingOptions.melhorEnvio.find(o => `me-${o.id}` === selectedShipping);
+      if (meOption) {
+        shippingData.label = `${meOption.company} - ${meOption.name}`;
+        shippingData.description = meOption.deliveryRange
+          ? `${meOption.deliveryRange.min}-${meOption.deliveryRange.max} dias úteis`
+          : `${meOption.deliveryDays} dias úteis`;
+        shippingData.type = "melhor_envio";
+        shippingData.companyLogo = meOption.companyLogo;
       }
-      shippingData.allOptions = {
-        juma: shippingOptions.juma,
-        melhorEnvio: shippingOptions.melhorEnvio };
+      shippingData.allOptions = { melhorEnvio: shippingOptions.melhorEnvio };
       localStorage.setItem("checkout_shipping_selection", JSON.stringify(shippingData));
     }
 
@@ -383,7 +358,7 @@ export default function CarrinhoPage() {
                   <input
                     type="text"
                     value={cep}
-                    onChange={(e) => { setCep(formatCEP(e.target.value)); setIsAnapolisAddress(false); setShippingOptions(null); }}
+                    onChange={(e) => { setCep(formatCEP(e.target.value)); setShippingOptions(null); }}
                     placeholder="Insira seu CEP"
                     maxLength={9}
                     className="flex-1 px-4 py-3 border border-border-light rounded-md text-sm focus:outline-none focus:border-[#2e3091] bg-background-primary"
@@ -402,26 +377,6 @@ export default function CarrinhoPage() {
                 </button>
 
                 {/* Aviso Anápolis */}
-                {isAnapolisAddress && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-2">
-                    <div className="flex gap-3">
-                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-800">
-                          😢 Frete não disponível para Anápolis
-                        </p>
-                        <p className="text-sm text-amber-700 mt-1">
-                          No momento não realizamos entregas para endereços em Anápolis. Para adquirir seus produtos, visite nossa loja presencialmente.
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-2 text-sm font-medium text-amber-800">
-                          <MapPin className="w-4 h-4 flex-shrink-0" />
-                          <span>Goiás Minas Uniformes — Anápolis, GO</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {/* Opção frete grátis sempre visível quando disponível */}
                 {hasFreeShipping && (
                   <div className="space-y-3 pt-4 border-t border-border-light">
@@ -446,28 +401,6 @@ export default function CarrinhoPage() {
                 {/* Shipping Options */}
                 {shippingOptions && (
                   <div className="space-y-3 pt-4 border-t border-border-light">
-                    {shippingOptions.juma && (
-                      <button
-                        onClick={() => setSelectedShipping("juma")}
-                        className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
-                          selectedShipping === "juma" 
-                            ? "border-[#2e3091] bg-[#2e3091]/5" 
-                            : "border-border-light hover:border-text-muted"
-                        }`}
-                      >
-                        <Zap className="w-5 h-5 text-amber-500" />
-                        <div className="flex-1 text-left">
-                          <p className="font-medium text-sm text-text-primary">ENTREGA RÁPIDA (Juma)</p>
-                          <p className="text-xs text-text-muted">
-                            {shippingOptions.juma.duration} • {shippingOptions.juma.distance}
-                          </p>
-                        </div>
-                        <span className="font-semibold text-sm text-text-primary">
-                          R$ {shippingOptions.juma.price.toFixed(2).replace(".", ",")}
-                        </span>
-                      </button>
-                    )}
-
                     {shippingOptions.melhorEnvio.map((option) => (
                       <button
                         key={option.id}

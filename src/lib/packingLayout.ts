@@ -17,6 +17,9 @@ const ENV_CLOTHING = [
 
 export type BlockKind = "ziplock_p" | "ziplock_m" | "ziplock_g" | "shoe_box";
 
+// SVG file key for shoe boxes (identifies the exact caixa illustration)
+export type ShoeSvgKey = "oly" | "rdl" | "cp" | "bw" | "lyd" | "md" | "sd";
+
 export interface LabeledBlock {
   w: number;
   l: number;
@@ -24,6 +27,7 @@ export interface LabeledBlock {
   rigid: boolean;
   kind: BlockKind;
   label: string; // may contain \n for two lines
+  svgKey?: ShoeSvgKey; // set for shoe_box blocks
 }
 
 export interface PlacedBlock extends LabeledBlock {
@@ -36,6 +40,7 @@ export interface PackingLayout {
   envelopeLabel: string;
   envelopeColor: string;
   dims: { w: number; l: number; h: number };
+  weightKg: number;
   blocks: PlacedBlock[];
   contentType: string;
 }
@@ -59,6 +64,18 @@ function classifyProduct(category: string, name: string) {
 
 function trunc(s: string, len: number) {
   return s.length > len ? s.slice(0, len - 1) + "…" : s;
+}
+
+function shoeSvgKey(name: string): ShoeSvgKey {
+  const n = norm(name);
+  if (n.includes("olympikus") || n.includes("olimpikus")) return "oly";
+  if (n.includes("randall")) return "rdl";
+  if (n.includes("cal prado") || n.includes("calprado")) return "cp";
+  if (n.includes("bootswear") || n.includes("boots")) return "bw";
+  if (n.includes("lindy")) return "lyd";
+  if (n.includes("modari")) return "md";
+  if (n.includes("saad")) return "sd";
+  return "oly"; // fallback
 }
 
 function dimsOf(blocks: PlacedBlock[]) {
@@ -199,10 +216,12 @@ function buildLabeledBlocks(
       const w = p.pkg_width_cm || 21.5;
       const l = p.pkg_length_cm || 36;
       const h = p.pkg_height_cm || 12.5;
+      const svgKey = shoeSvgKey(productName);
       for (let i = 0; i < quantity; i++) {
         shoeBlocks.push({
           w, l, h, rigid: true, kind: "shoe_box",
           label: trunc(productName, 12),
+          svgKey,
         });
       }
     } else if (type === "vestuario") {
@@ -340,5 +359,13 @@ export function computePackingLayout(
 
   const { label: envelopeLabel, color: envelopeColor } = computeEnvelopeLabel(dims, contentType, shoeCount);
 
-  return { envelopeLabel, envelopeColor, dims, blocks: placed, contentType };
+  const weightKg = Math.max(
+    items.reduce((sum, { productName, quantity }) => {
+      const p = byName[productName];
+      return sum + (p?.weight_g ?? 300) * quantity;
+    }, 0) / 1000,
+    0.1
+  );
+
+  return { envelopeLabel, envelopeColor, dims, weightKg, blocks: placed, contentType };
 }

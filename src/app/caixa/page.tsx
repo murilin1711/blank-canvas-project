@@ -308,7 +308,7 @@ export default function CaixaPage() {
     if (activeTab === 'pedidos' && packingProducts.length === 0) {
       supabase
         .from('products')
-        .select('name, category, pkg_height_cm, pkg_width_cm, pkg_length_cm')
+        .select('name, category, pkg_height_cm, pkg_width_cm, pkg_length_cm, weight_g')
         .then(({ data }) => { if (data) setPackingProducts(data as ProductDim[]); });
     }
   }, [activeTab, isAuthenticated]);

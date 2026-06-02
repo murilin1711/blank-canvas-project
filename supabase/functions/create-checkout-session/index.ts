@@ -131,15 +131,13 @@ serve(async (req) => {
           userId,
           customerName,
           shippingAddress: JSON.stringify(shippingAddress),
+          // name e img removidos — buscados do Supabase no webhook para não exceder 500 chars
           itemsJson: JSON.stringify(
             items.map((i) => ({
               id: i.productId,
-              name: i.productName,
-              img: i.productImage,
               price: i.price,
               size: i.size,
               qty: i.quantity,
-              school: i.schoolSlug,
             }))
           ),
           shipping: shipping.toString(),

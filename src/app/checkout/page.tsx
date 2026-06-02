@@ -186,7 +186,7 @@ export default function CheckoutPage() {
         setShippingMethod(data.selectedId);
         if (data.allOptions) {
           setCartShippingOptions({ melhorEnvio: data.allOptions.melhorEnvio ?? [] });
-          if (data.selectedId === "juma" || !data.selectedId?.startsWith("me-")) {
+if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
             setShippingMethod("");
           }
         }
@@ -261,11 +261,9 @@ export default function CheckoutPage() {
   
   const getShippingPrice = () => {
     if (hasFreeShipping || shippingMethod === "free") return 0;
-    if (cartShippingData && cartShippingOptions) {
-      if (shippingMethod.startsWith("me-")) {
-        const meOption = cartShippingOptions.melhorEnvio?.find((o: any) => `me-${o.id}` === shippingMethod);
-        if (meOption) return meOption.price;
-      }
+    if (shippingMethod.startsWith("me-")) {
+      const meOption = cartShippingOptions?.melhorEnvio?.find((o: any) => `me-${o.id}` === shippingMethod);
+      if (meOption) return meOption.price;
     }
     return shippingPrices.economico;
   };

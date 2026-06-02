@@ -2,7 +2,7 @@
 
 import { AnimatedLink as Link } from '@/components/AnimatedLink';
 import { useState } from "react";
-import { MessageCircle, Mail, X } from "lucide-react";
+import { Mail, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -289,27 +289,15 @@ const Footer = () => {
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <p className="text-sm text-gray-500 mb-5">Escolha como prefere entrar em contato:</p>
-            <div className="flex flex-col gap-3">
-              <a
-                href={WHATSAPP_CONTACT}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setShowContactModal(false)}
-                className="flex items-center gap-3 px-4 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
-                WhatsApp
-              </a>
-              <a
-                href={EMAIL_CONTACT}
-                onClick={() => setShowContactModal(false)}
-                className="flex items-center gap-3 px-4 py-3 bg-gray-100 text-gray-800 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-              >
-                <Mail className="w-5 h-5" />
-                suporte@goiasminas.com
-              </a>
-            </div>
+            <p className="text-sm text-gray-500 mb-5">Entre em contato pelo email:</p>
+            <a
+              href={EMAIL_CONTACT}
+              onClick={() => setShowContactModal(false)}
+              className="flex items-center gap-3 px-4 py-3 bg-gray-100 text-gray-800 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              <Mail className="w-5 h-5" />
+              suporte@goiasminas.com
+            </a>
           </div>
         </div>
       )}

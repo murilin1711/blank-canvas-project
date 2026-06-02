@@ -104,16 +104,29 @@ serve(async (req) => {
 
       console.log("Order created:", order.id);
 
+      // Busca nome e imagem dos produtos no Supabase (não ficam mais no metadata)
+      const productIds = items.map((i: any) => i.id);
+      const { data: productRows } = await supabase
+        .from("products")
+        .select("id, name, images")
+        .in("id", productIds);
+      const productMap = new Map(
+        (productRows ?? []).map((p: any) => [p.id, p])
+      );
+
       // Create order items
-      const orderItems = items.map((item: any) => ({
-        order_id: order.id,
-        product_id: item.id,
-        product_name: item.name,
-        product_image: item.img,
-        price: item.price,
-        size: item.size,
-        quantity: item.qty,
-      }));
+      const orderItems = items.map((item: any) => {
+        const prod = productMap.get(item.id);
+        return {
+          order_id: order.id,
+          product_id: item.id,
+          product_name: prod?.name ?? `Produto #${item.id}`,
+          product_image: prod?.images?.[0] ?? null,
+          price: item.price,
+          size: item.size,
+          quantity: item.qty,
+        };
+      });
 
       const { error: itemsError } = await supabase
         .from("order_items")

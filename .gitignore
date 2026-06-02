@@ -37,3 +37,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# Build output
+dist/
+
+# Superpowers brainstorm sessions
+.superpowers/

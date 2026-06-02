@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
-import { BodyFigureSVG } from "@/components/BodyFigureSVG";
-import { recommendSize, DEFAULT_ADJUSTMENTS, getGarmentCategory, type BodyAdjustments, type FitStatus, type BodyDominance } from "@/lib/sizeFinder";
+import { BodyImageAvatar } from "@/components/BodyImageAvatar";
+import { recommendSize, DEFAULT_ADJUSTMENTS, type BodyAdjustments, type FitStatus, type BodyDominance } from "@/lib/sizeFinder";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Heart, ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -195,9 +195,6 @@ export default function ProductPage({
   const [adjustments, setAdjustments] = useState<BodyAdjustments>(DEFAULT_ADJUSTMENTS);
   const [dominance, setDominance] = useState<BodyDominance>("equilibrado");
   const [showLoginModal, setShowLoginModal] = useState(false);
-  type ActiveReg = "torax" | "abdome" | "quadril" | "coxa" | "gluteo" | null;
-  const [activeReg, setActiveReg] = useState<ActiveReg>(null);
-  
   // Embroidery states
   const [wantsEmbroidery, setWantsEmbroidery] = useState(false);
   const [embroideryName, setEmbroideryName] = useState("");
@@ -998,7 +995,6 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
               {/* ── ETAPA 3: Ajuste Visual Corporal ── */}
               {fitStep === 3 && (() => {
                 const isFemale = sexo === "f";
-                const garmentCat = getGarmentCategory(productName);
 
                 type AdjKey = keyof BodyAdjustments;
 
@@ -1019,10 +1015,6 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                 ] as const;
 
                 // scaleX visual por nível (1=muito estreito, 5=muito largo)
-                const LEVEL_SCALES: Record<number, number> = {
-                  1: 0.70, 2: 0.85, 3: 1.00, 4: 1.18, 5: 1.36,
-                };
-
                 const LevelBar = ({ adjKey, sublabel }: { adjKey: AdjKey; sublabel?: string }) => {
                   const current = adjToLevel(adjustments[adjKey]);
                   return (
@@ -1049,27 +1041,19 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                 };
 
 
-                const toraxSx   = LEVEL_SCALES[adjToLevel(adjustments.toraxAdj)]   ?? 1;
-                const abdomeSx  = LEVEL_SCALES[adjToLevel(adjustments.cinturaAdj)] ?? 1;
-                const gluteoSx  = LEVEL_SCALES[adjToLevel(adjustments.gluteoAdj)]  ?? 1;
-                const quadrilSx = LEVEL_SCALES[adjToLevel(adjustments.quadrilAdj)] ?? 1;
-                const coxaSx    = LEVEL_SCALES[adjToLevel(adjustments.coxaAdj)]    ?? 1;
+                const toraxLevel   = adjToLevel(adjustments.toraxAdj)   as 1|2|3|4|5;
+                const abdomeLevel  = adjToLevel(adjustments.cinturaAdj) as 1|2|3|4|5;
+                const gluteoLevel  = adjToLevel(adjustments.gluteoAdj)  as 1|2|3|4|5;
+                const quadrilLevel = adjToLevel(adjustments.quadrilAdj) as 1|2|3|4|5;
 
                 const RegionRow = ({
                   label,
-                  region,
                   adjKey,
                 }: {
                   label: string;
-                  region: ActiveReg;
                   adjKey: AdjKey;
                 }) => (
-                  <div
-                    className="border-b border-gray-100 last:border-0 py-3"
-                    onMouseEnter={() => setActiveReg(region)}
-                    onMouseLeave={() => setActiveReg(null)}
-                    onTouchStart={() => setActiveReg(region)}
-                  >
+                  <div className="border-b border-gray-100 last:border-0 py-3">
                     <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
                     <LevelBar adjKey={adjKey} />
                   </div>
@@ -1084,35 +1068,27 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                       <h2 className="text-xl font-bold text-gray-900">Ajuste a forma do corpo</h2>
                     </div>
 
-                    {/* Boneco paramétrico único — deforma região a região */}
-                    <div className="flex justify-center py-2 border-b border-gray-100">
-                      <BodyFigureSVG
-                        sex={isFemale ? "f" : "m"}
-                        toraxSx={toraxSx}
-                        abdomeSx={abdomeSx}
-                        quadrilSx={quadrilSx}
-                        coxaSx={coxaSx}
-                        gluteoSx={gluteoSx}
-                        activeRegion={activeReg}
-                        width={140}
-                        height={260}
-                      />
-                    </div>
+                    {/* imagem → seleção, por região */}
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="flex justify-center pt-2 pb-1">
+                        <BodyImageAvatar sex={isFemale ? "f" : "m"} region="torax"  level={toraxLevel}   width={140} />
+                      </div>
+                      <RegionRow label="Tórax e Ombro" adjKey="toraxAdj" />
 
-                    {/* Controles por região */}
-                    <div className="flex-1 overflow-y-auto pt-1">
-                      {garmentCat === 'upper' ? (
-                        <>
-                          <RegionRow label="Tórax e Ombro" region="torax"  adjKey="toraxAdj" />
-                          <RegionRow label="Abdome"        region="abdome" adjKey="cinturaAdj" />
-                        </>
-                      ) : (
-                        <>
-                          <RegionRow label="Glúteo"  region="gluteo"  adjKey="gluteoAdj" />
-                          <RegionRow label="Quadril" region="quadril" adjKey="quadrilAdj" />
-                          <RegionRow label="Coxa"    region="coxa"    adjKey="coxaAdj" />
-                        </>
-                      )}
+                      <div className="flex justify-center pt-2 pb-1">
+                        <BodyImageAvatar sex={isFemale ? "f" : "m"} region="abdome" level={abdomeLevel}  width={140} />
+                      </div>
+                      <RegionRow label="Abdome" adjKey="cinturaAdj" />
+
+                      <div className="flex justify-center pt-2 pb-1">
+                        <BodyImageAvatar sex={isFemale ? "f" : "m"} region="coxa"   level={quadrilLevel} width={140} />
+                      </div>
+                      <RegionRow label="Quadril e Coxa" adjKey="quadrilAdj" />
+
+                      <div className="flex justify-center pt-2 pb-1">
+                        <BodyImageAvatar sex={isFemale ? "f" : "m"} region="gluteo" level={gluteoLevel}  width={140} />
+                      </div>
+                      <RegionRow label="Glúteo" adjKey="gluteoAdj" />
                     </div>
 
                     <div className="flex gap-3 pt-4 border-t border-gray-100">

@@ -20,6 +20,7 @@ export interface ProductDim {
   pkg_height_cm?: number | null;
   pkg_width_cm?: number | null;
   pkg_length_cm?: number | null;
+  weight_g?: number | null;
 }
 
 export interface PackageLabel {
