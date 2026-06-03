@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
       // IMPORTANT: do not send qr_code_image in the list payload (it's a large base64 string)
       const { data: d } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("id, user_id, order_id, total_amount, shipping_amount, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
+        .select("id, user_id, order_id, total_amount, shipping_amount, shipping_payment_status, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
         .order("created_at", { ascending: true });
 
       result = { bolsaPayments: d || [] };

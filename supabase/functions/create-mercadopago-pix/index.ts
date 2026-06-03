@@ -34,6 +34,7 @@ interface PixPaymentRequest {
     state: string;
   };
   shipping: number;
+  bolsaPaymentId?: string;
 }
 
 serve(async (req) => {
@@ -48,7 +49,7 @@ serve(async (req) => {
     }
 
     const body: PixPaymentRequest = await req.json();
-    const { items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping } = body;
+    const { items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping, bolsaPaymentId } = body;
 
     // Clean CPF (remove dots and dashes)
     const cleanCpf = cpf.replace(/\D/g, "");
@@ -75,6 +76,7 @@ serve(async (req) => {
       },
       metadata: {
         user_id: userId,
+        ...(bolsaPaymentId ? { bolsa_payment_id: bolsaPaymentId } : {}),
         items: JSON.stringify(items.map(item => ({
           productId: item.productId,
           productName: item.productName,

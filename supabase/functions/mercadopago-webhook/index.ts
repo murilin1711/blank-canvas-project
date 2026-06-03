@@ -125,6 +125,16 @@ serve(async (req) => {
 
     console.log("[MERCADOPAGO-WEBHOOK] Order updated to paid:", orderId);
 
+    // Se for pagamento de frete do Bolsa Uniforme, marca frete como pago
+    const bolsaPaymentId = payment.metadata?.bolsa_payment_id;
+    if (bolsaPaymentId) {
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ shipping_payment_status: "paid" })
+        .eq("id", bolsaPaymentId);
+      console.log("[MERCADOPAGO-WEBHOOK] Bolsa frete marcado como pago:", bolsaPaymentId);
+    }
+
     // Decrementa estoque
     const { data: orderItemsForStock } = await supabase.from("order_items").select("product_id, size, quantity").eq("order_id", orderId);
     if (orderItemsForStock) {

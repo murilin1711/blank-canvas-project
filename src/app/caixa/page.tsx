@@ -40,6 +40,8 @@ interface BolsaUniformePayment {
   customer_phone: string;
   customer_email: string | null;
   total_amount: number;
+  shipping_amount?: number | null;
+  shipping_payment_status?: string | null;
   items?: any;
   shipping_address?: any;
   notes: string | null;
@@ -321,11 +323,29 @@ export default function CaixaPage() {
     setLoadedSections(new Set([section]));
   };
 
+  // Realtime: auto-update orders when Stripe/PIX webhook fires
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const channel = supabase
+      .channel('caixa-orders-realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+        const updated = payload.new as any;
+        setOrders(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        reloadSection('orders', true);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isAuthenticated]);
+
   const isLoading = loadingBolsa || loadingOrders || loadingFeedbacks || loadingCustomers;
 
   const ORDER_STATUSES = [
     { value: 'pending', label: 'Pagamento pendente', color: 'bg-yellow-100 text-yellow-700' },
-    { value: 'paid', label: 'Pagamento aprovado', color: 'bg-green-100 text-green-700' },
+    { value: 'paid', label: 'Pagamento confirmado', color: 'bg-green-100 text-green-700' },
     { value: 'separating', label: 'Envio Pronto', color: 'bg-blue-100 text-blue-700' },
     { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
   ];
@@ -702,6 +722,14 @@ export default function CaixaPage() {
                         <h3 className="font-semibold text-lg">{payment.customer_name}</h3>
                         <p className="text-sm text-gray-500">{payment.customer_phone}</p>
                         <p className="font-bold text-[#2e3091] mt-2">{formatCurrency(payment.total_amount)}</p>
+                        {Number(payment.shipping_amount) > 0 && (
+                          <p className="text-xs mt-0.5 flex items-center gap-1">
+                            <span className="text-gray-500">Frete: {formatCurrency(Number(payment.shipping_amount))}</span>
+                            {payment.shipping_payment_status === 'paid'
+                              ? <span className="text-green-600 font-semibold">✓ Pago</span>
+                              : <span className="text-yellow-600 font-semibold">Pendente</span>}
+                          </p>
+                        )}
                       </div>
                       <select
                         value={payment.status}
@@ -929,7 +957,30 @@ export default function CaixaPage() {
                         </div>
                       )}
                       <div>
-                        <p className="text-sm text-gray-500">Valor Total</p>
+                        <p className="text-sm text-gray-500">Valor dos Produtos</p>
+                        <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.total_amount) - Number(selectedPayment.shipping_amount || 0))}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Frete</p>
+                        {Number(selectedPayment.shipping_amount) > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.shipping_amount))}</p>
+                            {selectedPayment.shipping_payment_status === 'paid' ? (
+                              <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                <Check className="w-3 h-3" /> Confirmado
+                              </span>
+                            ) : (
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                                Aguardando pagamento
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-green-600 font-semibold">Grátis</span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">Total Pago</p>
                         <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount))}</p>
                       </div>
                       <div>

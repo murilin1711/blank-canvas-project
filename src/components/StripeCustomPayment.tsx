@@ -41,6 +41,7 @@ interface StripeCustomPaymentProps {
   shipping: number;
   userId: string;
   total: number;
+  onSuccess?: () => void;
 }
 
 // Appearance configuration for Stripe Elements
@@ -219,6 +220,7 @@ export function StripeCustomPayment({
   shipping,
   userId,
   total,
+  onSuccess,
 }: StripeCustomPaymentProps) {
   const navigate = useNavigate();
   const { clearCart } = useCart();
@@ -285,8 +287,12 @@ export function StripeCustomPayment({
   }, [items, customerEmail, customerName, shippingAddress, shipping, userId]);
 
   const handlePaymentSuccess = () => {
-    clearCart();
-    navigate("/checkout/sucesso");
+    if (onSuccess) {
+      onSuccess();
+    } else {
+      clearCart();
+      navigate("/checkout/sucesso");
+    }
   };
 
 

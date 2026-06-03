@@ -220,6 +220,8 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
   const [shippingPaymentMethod, setShippingPaymentMethod] = useState<"stripe" | "pix">("pix");
   const [showShippingStripe, setShowShippingStripe] = useState(false);
   const [showShippingPix, setShowShippingPix] = useState(false);
+  const [bolsaPaymentId, setBolsaPaymentId] = useState<string | null>(null);
+  const [shippingPaid, setShippingPaid] = useState(false);
 
   // Detecta se o endereço é de Anápolis (normaliza acentos)
   const isAnapolisCity = (city: string) =>
@@ -1498,8 +1500,21 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                     </div>
                   )}
 
+                  {/* === Frete pago com sucesso === */}
+                  {bolsaUniformeCompleted && shipping > 0 && shippingPaid && (
+                    <div className="bg-green-50 border border-green-200 rounded-2xl p-6 text-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Check className="w-6 h-6 text-green-600" />
+                      </div>
+                      <p className="font-semibold text-green-800 text-lg">Pedido enviado!</p>
+                      <p className="text-sm text-green-700 mt-2">
+                        Produtos via Bolsa Uniforme (aguardando aprovação) e frete confirmado. Você receberá um e-mail de confirmação.
+                      </p>
+                    </div>
+                  )}
+
                   {/* === Etapa 2: Pagar o frete após Bolsa Uniforme === */}
-                  {bolsaUniformeCompleted && shipping > 0 && (
+                  {bolsaUniformeCompleted && shipping > 0 && !shippingPaid && (
                     showShippingStripe ? (
                       <div>
                         <div className="flex items-center justify-between mb-6">
@@ -1539,6 +1554,15 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             shipping={0}
                             userId={user?.id || ""}
                             total={shipping}
+                            onSuccess={async () => {
+                              if (bolsaPaymentId) {
+                                await supabase.from("bolsa_uniforme_payments" as any)
+                                  .update({ shipping_payment_status: "paid" } as any)
+                                  .eq("id", bolsaPaymentId);
+                              }
+                              setShippingPaid(true);
+                              setShowShippingStripe(false);
+                            }}
                           />
                         </div>
                       </div>
@@ -1569,6 +1593,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         }}
                         shipping={0}
                         onBack={() => setShowShippingPix(false)}
+                        bolsaPaymentId={bolsaPaymentId}
                       />
                     ) : (
                       <>
@@ -1715,7 +1740,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                     const isLastCard = newRemainder === 0;
 
                     try {
-                      const { error } = await supabase.from("bolsa_uniforme_payments" as any).insert({
+                      const { data: insertedPayment, error } = await supabase.from("bolsa_uniforme_payments" as any).insert({
                         user_id: user?.id,
                         qr_code_image: data.qrCodeImage,
                         password: data.password,
@@ -1723,7 +1748,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         customer_phone: personal.phone,
                         customer_email: user?.email,
                         total_amount: cardAmount,
-                        shipping_amount: 0,
+                        shipping_amount: isLastCard ? shipping : 0,
                         items: items.map(item => ({
                           productId: item.productId,
                           productName: item.productName,
@@ -1743,11 +1768,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           state: address.state,
                         },
                         status: "pending",
-                      } as any);
+                      } as any).select("id").single();
 
                       if (error) {
                         console.error("Error saving bolsa uniforme payment:", error);
                       } else {
+                        if (isLastCard && (insertedPayment as any)?.id) {
+                          setBolsaPaymentId((insertedPayment as any).id);
+                        }
                         setShowBolsaUniformeModal(false);
 
                         if (!isLastCard) {

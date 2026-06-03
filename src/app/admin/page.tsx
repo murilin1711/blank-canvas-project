@@ -62,6 +62,7 @@ interface BolsaUniformePayment {
   customer_email: string | null;
   total_amount: number;
   shipping_amount?: number;
+  shipping_payment_status?: string | null;
   items?: any;
   shipping_address?: any;
   notes: string | null;
@@ -217,6 +218,9 @@ export default function AdminPage() {
 
   // Packing illustration modal
   const [packingOrder, setPackingOrder] = useState<Order | null>(null);
+
+  // Expand order items inline
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
   // Feedback edit states
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -516,6 +520,24 @@ export default function AdminPage() {
     'estoque': 'products', // Estoque needs products data
   };
 
+  // Realtime: auto-update orders when Stripe/PIX webhook fires
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+        const updated = payload.new as any;
+        setOrders(prev => prev.map(o => o.id === updated.id ? { ...o, ...updated } : o));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        reloadSection('orders', true);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isAuthenticated]);
+
   // Load section on demand when tab changes
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -553,7 +575,7 @@ export default function AdminPage() {
 
   const ORDER_STATUSES = [
     { value: 'pending', label: 'Pagamento pendente', color: 'bg-yellow-100 text-yellow-700' },
-    { value: 'paid', label: 'Pagamento aprovado', color: 'bg-green-100 text-green-700' },
+    { value: 'paid', label: 'Pagamento confirmado', color: 'bg-green-100 text-green-700' },
     { value: 'separating', label: 'Envio Pronto', color: 'bg-blue-100 text-blue-700' },
     { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
   ];
@@ -1587,10 +1609,19 @@ export default function AdminPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {filterOrdersByCategory(orders, ordersSelectedCategories).map((order) => (
-                          <tr key={order.id} className="hover:bg-gray-50">
+                          <React.Fragment key={order.id}>
+                          <tr className="hover:bg-gray-50">
                             <td className="px-6 py-4 text-sm text-gray-900">{order.id.slice(0, 8)}...</td>
                             <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
-                            <td className="px-6 py-4 text-sm text-gray-500">{order.order_items?.length || 0} itens</td>
+                            <td className="px-6 py-4 text-sm">
+                              <button
+                                onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                className="flex items-center gap-1 text-[#2e3091] hover:underline font-medium"
+                              >
+                                {order.order_items?.length || 0} itens
+                                {expandedOrderId === order.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </button>
+                            </td>
                             <td className="px-6 py-4">
                               {(() => {
                                 const pkg = getPackageLabel(
@@ -1652,6 +1683,27 @@ export default function AdminPage() {
                               </div>
                             </td>
                           </tr>
+                          {expandedOrderId === order.id && order.order_items && order.order_items.length > 0 && (
+                            <tr className="bg-blue-50/50">
+                              <td colSpan={7} className="px-6 py-3">
+                                <div className="space-y-2">
+                                  {order.order_items.map((item) => (
+                                    <div key={item.id} className="flex items-center gap-3 text-sm">
+                                      {item.product_image && (
+                                        <img src={item.product_image} alt={item.product_name} className="w-10 h-10 object-cover rounded" />
+                                      )}
+                                      <div className="flex-1">
+                                        <p className="font-medium text-gray-900">{item.product_name}</p>
+                                        <p className="text-gray-500 text-xs">Tam: {item.size} • Qtd: {item.quantity}</p>
+                                      </div>
+                                      <p className="font-medium text-gray-900">{formatCurrency(item.price)}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
@@ -1716,6 +1768,9 @@ export default function AdminPage() {
                               </span>
                               <span className="text-sm text-gray-500 hidden sm:inline">
                                 {formatCurrency(Number(payment.total_amount))}
+                                {Number(payment.shipping_amount) > 0 && (
+                                  <span className="text-xs text-gray-400 ml-1">(frete: {formatCurrency(Number(payment.shipping_amount))})</span>
+                                )}
                               </span>
                             </div>
                             
@@ -2465,7 +2520,30 @@ export default function AdminPage() {
                     </div>
                   )}
                   <div>
-                    <p className="text-sm text-gray-500">Valor Total</p>
+                    <p className="text-sm text-gray-500">Valor dos Produtos</p>
+                    <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.total_amount) - Number(selectedPayment.shipping_amount || 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Frete</p>
+                    {Number(selectedPayment.shipping_amount) > 0 ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.shipping_amount))}</p>
+                        {selectedPayment.shipping_payment_status === 'paid' ? (
+                          <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                            <Check className="w-3 h-3" /> Confirmado via Stripe/Pix
+                          </span>
+                        ) : (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                            Aguardando pagamento
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-green-600 font-semibold">Grátis</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Pago</p>
                     <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount))}</p>
                   </div>
                   <div>

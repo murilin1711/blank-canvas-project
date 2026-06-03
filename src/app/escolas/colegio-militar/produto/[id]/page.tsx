@@ -138,6 +138,7 @@ export default function DynamicProductPage() {
       allowsEmbroidery={product.allows_embroidery || false}
       freeShipping={product.free_shipping || false}
       showSizeFinder={product.show_size_finder !== false}
+      modelInfo={(product as any).model_info ?? null}
     />
   );
 }

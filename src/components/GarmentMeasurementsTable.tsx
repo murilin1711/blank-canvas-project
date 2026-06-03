@@ -142,6 +142,14 @@ const SAIA = [
   { tam: "52", cintura: 108, compr: 76, quadril: 136 },
 ];
 
+const BIBICO_MARROM = [
+  { tam: "PP", compr: 47, altura: 8 },
+  { tam: "P",  compr: 49, altura: 8 },
+  { tam: "M",  compr: 52, altura: 8 },
+  { tam: "G",  compr: 54, altura: 8 },
+  { tam: "GG", compr: 56, altura: 8 },
+];
+
 // ─── DETECÇÃO ─────────────────────────────────────────────────────────────────
 
 type TableKey =
@@ -149,11 +157,13 @@ type TableKey =
   | 'camisa-bege' | 'camisa-branca-m' | 'camisete-f'
   | 'tunica-f' | 'tunica-m'
   | 'calca-tec' | 'calca-soc' | 'saia'
+  | 'bibico-marrom'
   | null;
 
 function detectTable(productName: string): TableKey {
   const n = normalize(productName);
 
+  if (n.includes('bibico')) return 'bibico-marrom';
   if (n.includes('agasalho') || n.includes('conjunto')) {
     return n.includes('tectel') || n.includes('tec') ? 'agasalho-tec' : 'agasalho-gab';
   }
@@ -316,6 +326,29 @@ function SaiaTable({ rows }: { rows: typeof SAIA }) {
   );
 }
 
+function BibicoTable({ rows }: { rows: typeof BIBICO_MARROM }) {
+  return (
+    <table className="w-full text-sm border-collapse">
+      <thead>
+        <tr className="bg-[#2e3091]/8 text-[#2e3091] text-xs font-semibold uppercase tracking-wide">
+          <th className="px-3 py-2 text-left border-b border-gray-200">Tam.</th>
+          <th className="px-3 py-2 text-center border-b border-gray-200">Comprimento</th>
+          <th className="px-3 py-2 text-center border-b border-gray-200">Altura</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={i} className="border-b border-gray-100 hover:bg-gray-50/50">
+            <td className="px-3 py-2 font-semibold text-gray-900">{r.tam}</td>
+            <td className="px-3 py-2 text-center text-gray-700">{fmt(r.compr)}</td>
+            <td className="px-3 py-2 text-center text-gray-700">{fmt(r.altura)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function getTableContent(key: TableKey): React.ReactNode {
   switch (key) {
     case 'camiseta-u':     return <UpperTable rows={CAMISETA_U} />;
@@ -329,6 +362,7 @@ function getTableContent(key: TableKey): React.ReactNode {
     case 'calca-tec':      return <LowerTable rows={CALCA_TEC} />;
     case 'calca-soc':      return <LowerTable rows={CALCA_SOC} />;
     case 'saia':           return <SaiaTable rows={SAIA} />;
+    case 'bibico-marrom':  return <BibicoTable rows={BIBICO_MARROM} />;
     default:               return null;
   }
 }
