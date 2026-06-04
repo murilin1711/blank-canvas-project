@@ -310,8 +310,9 @@ export default function ProductFormModal({
         pkg_height_cm: form.pkg_height_cm ? parseFloat(form.pkg_height_cm) : null,
         pkg_width_cm: form.pkg_width_cm ? parseFloat(form.pkg_width_cm) : null,
         pkg_length_cm: form.pkg_length_cm ? parseFloat(form.pkg_length_cm) : null,
-        model_info: (form.model_info.height || form.model_info.weight || form.model_info.size || form.model_info.note)
+        model_info: (form.model_info.gender || form.model_info.height || form.model_info.weight || form.model_info.size || form.model_info.note)
           ? {
+              gender: form.model_info.gender || null,
               height: form.model_info.height || null,
               weight: form.model_info.weight || null,
               size: form.model_info.size || null,
