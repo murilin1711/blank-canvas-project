@@ -17,12 +17,16 @@ interface Variation {
   options: (string | VariationOption)[]; // Suporta formato antigo (string) e novo (objeto)
 }
 
-interface ModelInfo {
-  gender: "F" | "M" | "";
+interface ModelEntry {
   height: string;
   weight: string;
   size: string;
   note: string;
+}
+
+interface ModelInfo {
+  female: ModelEntry;
+  male: ModelEntry;
 }
 
 interface ProductFormData {
@@ -86,11 +90,18 @@ export default function ProductFormModal({
         pkg_width_cm: editingProduct.pkg_width_cm != null ? String(editingProduct.pkg_width_cm) : "",
         pkg_length_cm: editingProduct.pkg_length_cm != null ? String(editingProduct.pkg_length_cm) : "",
         model_info: {
-          gender: editingProduct.model_info?.gender ?? "",
-          height: editingProduct.model_info?.height ?? "",
-          weight: editingProduct.model_info?.weight ?? "",
-          size: editingProduct.model_info?.size ?? "",
-          note: editingProduct.model_info?.note ?? "",
+          female: {
+            height: editingProduct.model_info?.female?.height ?? "",
+            weight: editingProduct.model_info?.female?.weight ?? "",
+            size: editingProduct.model_info?.female?.size ?? "",
+            note: editingProduct.model_info?.female?.note ?? "",
+          },
+          male: {
+            height: editingProduct.model_info?.male?.height ?? "",
+            weight: editingProduct.model_info?.male?.weight ?? "",
+            size: editingProduct.model_info?.male?.size ?? "",
+            note: editingProduct.model_info?.male?.note ?? "",
+          },
         },
       };
     }
@@ -111,7 +122,10 @@ export default function ProductFormModal({
       pkg_height_cm: "",
       pkg_width_cm: "",
       pkg_length_cm: "",
-      model_info: { gender: "", height: "", weight: "", size: "", note: "" },
+      model_info: {
+        female: { height: "", weight: "", size: "", note: "" },
+        male:   { height: "", weight: "", size: "", note: "" },
+      },
     };
   };
 
@@ -310,15 +324,17 @@ export default function ProductFormModal({
         pkg_height_cm: form.pkg_height_cm ? parseFloat(form.pkg_height_cm) : null,
         pkg_width_cm: form.pkg_width_cm ? parseFloat(form.pkg_width_cm) : null,
         pkg_length_cm: form.pkg_length_cm ? parseFloat(form.pkg_length_cm) : null,
-        model_info: (form.model_info.gender || form.model_info.height || form.model_info.weight || form.model_info.size || form.model_info.note)
-          ? {
-              gender: form.model_info.gender || null,
-              height: form.model_info.height || null,
-              weight: form.model_info.weight || null,
-              size: form.model_info.size || null,
-              note: form.model_info.note || null,
-            }
-          : null,
+        model_info: (() => {
+          const f = form.model_info.female;
+          const m = form.model_info.male;
+          const hasFemale = f.height || f.weight || f.size || f.note;
+          const hasMale   = m.height || m.weight || m.size || m.note;
+          if (!hasFemale && !hasMale) return null;
+          return {
+            ...(hasFemale ? { female: { height: f.height || null, weight: f.weight || null, size: f.size || null, note: f.note || null } } : {}),
+            ...(hasMale   ? { male:   { height: m.height || null, weight: m.weight || null, size: m.size || null, note: m.note || null } } : {}),
+          };
+        })(),
       };
 
       if (editingProduct) {
@@ -892,71 +908,42 @@ export default function ProductFormModal({
 
           {/* Model info */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              👩 Informações da modelo
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Informações do(a) modelo
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Aparece na página do produto para ajudar o cliente a escolher o tamanho.
+              Aparece na página do produto. Preencha apenas os que tiver.
             </p>
-            <div className="flex gap-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, model_info: { ...form.model_info, gender: "F" } })}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${form.model_info.gender === "F" ? "border-[#2e3091] bg-[#2e3091]/5 text-[#2e3091]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
-              >
-                👩 Modelo
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, model_info: { ...form.model_info, gender: "M" } })}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${form.model_info.gender === "M" ? "border-[#2e3091] bg-[#2e3091]/5 text-[#2e3091]" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
-              >
-                👨 Modelo
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-3 mb-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Altura (cm)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.model_info.height}
-                  onChange={(e) => setForm({ ...form, model_info: { ...form.model_info, height: e.target.value } })}
-                  placeholder="Ex: 170"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Peso (kg)</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.model_info.weight}
-                  onChange={(e) => setForm({ ...form, model_info: { ...form.model_info, weight: e.target.value } })}
-                  placeholder="Ex: 58"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Tamanho que veste</label>
-                <input
-                  type="text"
-                  value={form.model_info.size}
-                  onChange={(e) => setForm({ ...form, model_info: { ...form.model_info, size: e.target.value } })}
-                  placeholder="Ex: M"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Observação (opcional)</label>
-              <input
-                type="text"
-                value={form.model_info.note}
-                onChange={(e) => setForm({ ...form, model_info: { ...form.model_info, note: e.target.value } })}
-                placeholder="Ex: A modelo prefere um tamanho maior para mais conforto"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(["female", "male"] as const).map((gender) => {
+                const entry = form.model_info[gender];
+                const label = gender === "female" ? "👩 Modelo" : "👨 Modelo";
+                const update = (field: keyof ModelEntry, value: string) =>
+                  setForm({ ...form, model_info: { ...form.model_info, [gender]: { ...entry, [field]: value } } });
+                return (
+                  <div key={gender} className="border border-gray-200 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-semibold text-gray-700">{label}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Altura (cm)</label>
+                        <input type="number" min="0" value={entry.height} onChange={(e) => update("height", e.target.value)} placeholder="170" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Peso (kg)</label>
+                        <input type="number" min="0" value={entry.weight} onChange={(e) => update("weight", e.target.value)} placeholder="58" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Tam. que veste</label>
+                        <input type="text" value={entry.size} onChange={(e) => update("size", e.target.value)} placeholder="M" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Observação</label>
+                      <input type="text" value={entry.note} onChange={(e) => update("note", e.target.value)} placeholder="Opcional" className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#2e3091]" />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

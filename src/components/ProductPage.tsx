@@ -39,12 +39,16 @@ interface Variation {
   options: (string | VariationOption)[];
 }
 
-interface ModelInfo {
-  gender?: "F" | "M" | "" | null;
+interface ModelEntry {
   height?: string | null;
   weight?: string | null;
   size?: string | null;
   note?: string | null;
+}
+
+interface ModelInfo {
+  female?: ModelEntry | null;
+  male?: ModelEntry | null;
 }
 
 interface ProductPageProps {
@@ -565,18 +569,22 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
             </p>
 
             {/* ===== INFO DA MODELO ===== */}
-            {modelInfo && (modelInfo.height || modelInfo.weight || modelInfo.size) && (
-              <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 w-fit">
-                <span className="text-base">{modelInfo.gender === "M" ? "👨" : "👩"}</span>
-                <span>
-                  {modelInfo.gender === "M" ? "Modelo" : "Modelo"}:{" "}
-                  {[
-                    modelInfo.height && `${modelInfo.height} cm`,
-                    modelInfo.weight && `${modelInfo.weight} kg`,
-                    modelInfo.size && `veste ${modelInfo.size}`,
-                  ].filter(Boolean).join(" · ")}
-                  {modelInfo.note && <span className="ml-1 italic">— {modelInfo.note}</span>}
-                </span>
+            {modelInfo && (modelInfo.female || modelInfo.male) && (
+              <div className="mt-4 flex flex-col gap-1.5">
+                {([["female", "👩", "Modelo"] as const, ["male", "👨", "Modelo"] as const]).map(([key, emoji, label]) => {
+                  const m = modelInfo[key];
+                  if (!m || (!m.height && !m.weight && !m.size)) return null;
+                  return (
+                    <div key={key} className="flex items-center gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 w-fit">
+                      <span className="text-base">{emoji}</span>
+                      <span>
+                        {label}:{" "}
+                        {[m.height && `${m.height} cm`, m.weight && `${m.weight} kg`, m.size && `veste ${m.size}`].filter(Boolean).join(" · ")}
+                        {m.note && <span className="ml-1 italic">— {m.note}</span>}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
