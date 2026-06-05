@@ -297,10 +297,10 @@ export default function ProductFormModal({
     setSaving(true);
 
     try {
-      // Extrair os valores de tamanho para o campo sizes (compatibilidade)
-      const sizeVariation = form.variations.find((v) => 
+      // Extrair os valores para o campo sizes (compatibilidade)
+      const sizeVariation = form.variations.find((v) =>
         v.name.toLowerCase() === "tamanho" || v.name.toLowerCase() === "tamanhos"
-      );
+      ) ?? form.variations[0];
       const sizes = sizeVariation
         ? sizeVariation.options.map(opt => getOptionValue(opt))
         : ["P", "M", "G", "GG"];

@@ -40,13 +40,18 @@ function getOptionValue(opt: string | VariationOption): string {
 }
 
 function getProductSizes(product: Product): string[] {
-  // Prioriza a variação "Tamanho"/"Tamanhos" (igual ao ProductFormModal)
   if (product.variations && product.variations.length > 0) {
+    // Prioriza variação chamada "Tamanho"/"Tamanhos"
     const sizeVar = product.variations.find(
       (v) => v.name.toLowerCase() === "tamanho" || v.name.toLowerCase() === "tamanhos"
     );
     if (sizeVar && sizeVar.options.length > 0) {
       return sizeVar.options.map(getOptionValue);
+    }
+    // Usa a primeira variação disponível (ex: "Número", "Cor")
+    const firstVar = product.variations[0];
+    if (firstVar && firstVar.options.length > 0) {
+      return firstVar.options.map(getOptionValue);
     }
   }
   // Fallback para o campo sizes
