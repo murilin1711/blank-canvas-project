@@ -38,7 +38,6 @@ const NotFoundPage = lazy(() => import('@/app/not-found/page'));
 
 function App() {
   return (
-    <PasswordGate>
     <BrowserRouter>
       <LoadingProvider>
         <AuthProvider>
@@ -103,7 +102,6 @@ function App() {
         </AuthProvider>
       </LoadingProvider>
     </BrowserRouter>
-    </PasswordGate>
   );
 }
 

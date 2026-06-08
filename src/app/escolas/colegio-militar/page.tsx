@@ -51,6 +51,7 @@ export default function LojaEstiloOsklen() {
   const [products, setProducts] = useState<Product[]>([]);
   const [queryProducts, setQueryProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [outOfStockIds, setOutOfStockIds] = useState<Set<number>>(new Set());
   const [categories, setCategories] = useState<string[]>(["Todos"]);
 
   // Fetch products from database
@@ -96,10 +97,29 @@ export default function LojaEstiloOsklen() {
         }));
         setProducts(mapped);
         setQueryProducts(mapped);
-        
+
         // Extract unique categories from products
         const uniqueCategories = [...new Set(data.map(p => p.category).filter(Boolean))] as string[];
         setCategories(["Todos", ...uniqueCategories]);
+
+        // Check which products are completely out of stock
+        const productIds = data.map((p) => p.id);
+        if (productIds.length > 0) {
+          const { data: stockData } = await supabase
+            .from("product_stock")
+            .select("product_id, quantity")
+            .in("product_id", productIds);
+          if (stockData && stockData.length > 0) {
+            const totalByProduct: Record<number, number> = {};
+            for (const row of stockData) {
+              totalByProduct[row.product_id] = (totalByProduct[row.product_id] || 0) + row.quantity;
+            }
+            const oos = new Set<number>(
+              productIds.filter((id) => id in totalByProduct && totalByProduct[id] === 0)
+            );
+            setOutOfStockIds(oos);
+          }
+        }
       }
       setLoading(false);
     }
@@ -511,22 +531,31 @@ export default function LojaEstiloOsklen() {
                     )}
 
                     {/* Botão + central */}
-                    <button
-                      aria-label="Adicionar ao carrinho"
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        openAddToCart(p);
-                      }}
-                      className={
-                        "absolute left-1/2 -translate-x-1/2 bottom-8 rounded-full flex items-center justify-center transition-all z-20 " +
-                        "w-[24px] h-[24px] " +
-                        "bg-white shadow-md border border-gray-200 " +
-                        "opacity-100 " +
-                        "hover:scale-105 active:scale-95 cursor-pointer"
-                      }
-                    >
-                      <Plus className="w-3 h-3 text-black" strokeWidth={2.5} />
-                    </button>
+                    {outOfStockIds.has(p.id) ? (
+                      <div
+                        className="absolute left-1/2 -translate-x-1/2 bottom-8 z-20 bg-white/90 border border-gray-200 rounded-full px-2 py-0.5 flex items-center"
+                        title="Sem estoque"
+                      >
+                        <span className="text-[10px] font-medium text-gray-500 whitespace-nowrap">Esgotado</span>
+                      </div>
+                    ) : (
+                      <button
+                        aria-label="Adicionar ao carrinho"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          openAddToCart(p);
+                        }}
+                        className={
+                          "absolute left-1/2 -translate-x-1/2 bottom-8 rounded-full flex items-center justify-center transition-all z-20 " +
+                          "w-[24px] h-[24px] " +
+                          "bg-white shadow-md border border-gray-200 " +
+                          "opacity-100 " +
+                          "hover:scale-105 active:scale-95 cursor-pointer"
+                        }
+                      >
+                        <Plus className="w-3 h-3 text-black" strokeWidth={2.5} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

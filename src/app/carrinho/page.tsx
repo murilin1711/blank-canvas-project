@@ -406,8 +406,8 @@ export default function CarrinhoPage() {
                         key={option.id}
                         onClick={() => setSelectedShipping(`me-${option.id}`)}
                         className={`w-full flex items-center gap-4 p-4 border rounded-lg transition-all ${
-                          selectedShipping === `me-${option.id}` 
-                            ? "border-[#2e3091] bg-[#2e3091]/5" 
+                          selectedShipping === `me-${option.id}`
+                            ? "border-[#2e3091] bg-[#2e3091]/5"
                             : "border-border-light hover:border-text-muted"
                         }`}
                       >
@@ -419,7 +419,7 @@ export default function CarrinhoPage() {
                         <div className="flex-1 text-left">
                           <p className="font-medium text-sm text-text-primary">{option.company} - {option.name}</p>
                           <p className="text-xs text-text-muted">
-                            {option.deliveryRange 
+                            {option.deliveryRange
                               ? `${option.deliveryRange.min}-${option.deliveryRange.max} dias úteis`
                               : `${option.deliveryDays} dias úteis`
                             }
@@ -430,6 +430,9 @@ export default function CarrinhoPage() {
                         </span>
                       </button>
                     ))}
+                    <p className="text-xs text-text-muted pt-1">
+                      * O prazo de entrega é contado a partir da data de postagem pela loja.
+                    </p>
                   </div>
                 )}
               </div>

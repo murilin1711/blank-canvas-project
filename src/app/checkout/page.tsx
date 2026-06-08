@@ -1007,6 +1007,11 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                                     Nenhuma opção de frete disponível para este endereço.
                                   </p>
                                 )}
+                                {cartShippingOptions.melhorEnvio?.length > 0 && (
+                                  <p className="text-caption text-text-muted pt-1">
+                                    * O prazo de entrega é contado a partir da data de postagem pela loja.
+                                  </p>
+                                )}
                               </>
                             ) : null}
                           </div>
