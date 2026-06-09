@@ -182,11 +182,14 @@ export default function ProductPage({
         .eq("product_id", productId);
       if (cancelled) return;
       if (error) {
-        console.error("[ProductPage] Erro ao carregar estoque:", error);
+        console.error("[Estoque] Erro ao carregar:", error);
       } else if (data) {
         const map: Record<string, number> = {};
         data.forEach((row) => { map[row.size] = row.quantity; });
         setStockMap(map);
+        console.log(`[Estoque] produto ${productId} →`, map, `| tamanhos recebidos: ${data.length}`);
+      } else {
+        console.log(`[Estoque] produto ${productId} → sem dados retornados`);
       }
       setStockLoaded(true);
     })();
