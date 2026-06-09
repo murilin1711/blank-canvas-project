@@ -180,10 +180,24 @@ export default function StockManager({ products }: StockManagerProps) {
       .from("product_stock")
       .upsert(rows, { onConflict: "product_id,size" });
 
+    // Remove linhas obsoletas de cada produto (tamanhos que não existem mais)
+    await Promise.all(
+      activeProducts.map((product) => {
+        const sizes = getProductSizes(product);
+        if (sizes.length === 0) return Promise.resolve();
+        return supabase
+          .from("product_stock")
+          .delete()
+          .eq("product_id", product.id)
+          .not("size", "in", `(${sizes.join(",")})`);
+      })
+    );
+
     if (error) {
       toast.error("Erro ao sincronizar estoque global");
     } else {
-      const newStock = { ...stock };
+      // Reconstrói estado local só com os tamanhos válidos atuais
+      const newStock: Record<string, number> = {};
       rows.forEach((r) => { newStock[stockKey(r.product_id, r.size)] = qty; });
       setStock(newStock);
       setRawInputs({});
@@ -215,10 +229,21 @@ export default function StockManager({ products }: StockManagerProps) {
       .from("product_stock")
       .upsert(rows, { onConflict: "product_id,size" });
 
+    // Remove linhas de tamanhos que não existem mais neste produto
+    await supabase
+      .from("product_stock")
+      .delete()
+      .eq("product_id", product.id)
+      .not("size", "in", `(${sizes.join(",")})`);
+
     if (error) {
       toast.error("Erro ao sincronizar estoque do produto");
     } else {
-      const newStock = { ...stock };
+      // Atualiza estado local: remove chaves obsoletas e adiciona as atuais
+      const newStock: Record<string, number> = {};
+      Object.entries(stock).forEach(([k, v]) => {
+        if (!k.startsWith(`${product.id}__`)) newStock[k] = v;
+      });
       const clearedRaw = { ...rawInputs };
       rows.forEach((r) => {
         const key = stockKey(r.product_id, r.size);
