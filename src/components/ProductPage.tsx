@@ -174,18 +174,23 @@ export default function ProductPage({
 
   useEffect(() => {
     if (!productId) { setStockLoaded(true); return; }
-    (supabase as any)
-      .from("product_stock")
-      .select("size, quantity")
-      .eq("product_id", productId)
-      .then(({ data }: { data: any[] | null }) => {
-        if (data) {
-          const map: Record<string, number> = {};
-          data.forEach((row) => { map[row.size] = row.quantity; });
-          setStockMap(map);
-        }
-        setStockLoaded(true);
-      });
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("product_stock")
+        .select("size, quantity")
+        .eq("product_id", productId);
+      if (cancelled) return;
+      if (error) {
+        console.error("[ProductPage] Erro ao carregar estoque:", error);
+      } else if (data) {
+        const map: Record<string, number> = {};
+        data.forEach((row) => { map[row.size] = row.quantity; });
+        setStockMap(map);
+      }
+      setStockLoaded(true);
+    })();
+    return () => { cancelled = true; };
   }, [productId]);
 
   const stockOf = (size: string): number | null =>

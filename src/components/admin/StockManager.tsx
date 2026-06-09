@@ -142,6 +142,10 @@ export default function StockManager({ products }: StockManagerProps) {
     return stock[key] ?? 0;
   };
 
+  const hasStockRow = (productId: number, size: string): boolean => {
+    return stockKey(productId, size) in stock;
+  };
+
   const handleGlobalSync = async () => {
     const qty = parseInt(globalSyncQty, 10);
     if (isNaN(qty) || qty < 0) {
@@ -377,6 +381,9 @@ export default function StockManager({ products }: StockManagerProps) {
                     const committedQty = getCommittedQty(product.id, size);
                     const displayValue = getDisplayValue(product.id, size);
                     const isSaving = saving[key];
+                    const rowExists = hasStockRow(product.id, size);
+                    const isZeroStock = rowExists && committedQty === 0;
+                    const isNotSaved = !rowExists;
 
                     return (
                       <div
@@ -393,16 +400,21 @@ export default function StockManager({ products }: StockManagerProps) {
                           onChange={(e) => handleQuantityChange(product.id, size, e.target.value)}
                           onBlur={() => handleQuantityBlur(product.id, size)}
                           className={`w-16 text-center px-2 py-1.5 border rounded-lg text-sm font-medium focus:outline-none focus:border-[#2e3091] transition-colors ${
-                            committedQty === 0
+                            isZeroStock
                               ? "border-red-200 bg-red-50 text-red-600"
+                              : isNotSaved
+                              ? "border-amber-200 bg-amber-50 text-amber-700"
                               : "border-gray-200 bg-white text-gray-900"
                           }`}
                         />
                         {isSaving && (
                           <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />
                         )}
-                        {committedQty === 0 && !isSaving && (
+                        {isZeroStock && !isSaving && (
                           <span className="text-[10px] text-red-400">Sem estoque</span>
+                        )}
+                        {isNotSaved && !isSaving && (
+                          <span className="text-[10px] text-amber-500">Não salvo</span>
                         )}
                       </div>
                     );
