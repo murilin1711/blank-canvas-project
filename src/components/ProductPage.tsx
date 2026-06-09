@@ -299,6 +299,10 @@ export default function ProductPage({
         toast.error(`Selecione: ${v.name}`);
         return;
       }
+      if (isOutOfStock(selectedVariations[v.name])) {
+        toast.error(`${v.name} esgotado`);
+        return;
+      }
     }
     
     const sizeLabel = buildSizeLabel();
@@ -677,22 +681,27 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                       const value = getOptionValue(opt);
                       const selected = selectedVariations[variation.name] === value;
                       const optionImg = getOptionImage(opt);
+                      const outOfStock = isOutOfStock(value);
                       return (
                         <button
                           key={value}
                           onClick={() => {
+                            if (outOfStock) return;
                             setSelectedVariations(prev => ({ ...prev, [variation.name]: value }));
                             if (optionImg) {
                               const idx = images.findIndex(img => img === optionImg);
                               if (idx >= 0) setActiveIndex(idx);
                             }
                           }}
+                          disabled={outOfStock}
+                          aria-pressed={selected}
                           className={`px-4 py-2 rounded-md text-sm transition-all ${
-                            selected
+                            outOfStock
+                              ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed line-through"
+                              : selected
                               ? "bg-[#2e3091] text-white font-semibold shadow-md"
                               : "bg-white text-gray-800 border border-gray-200 hover:shadow-md hover:border-[#2e3091]"
                           }`}
-                          aria-pressed={selected}
                         >
                           {value}
                         </button>
