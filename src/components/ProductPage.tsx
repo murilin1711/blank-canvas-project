@@ -187,9 +187,6 @@ export default function ProductPage({
         const map: Record<string, number> = {};
         data.forEach((row) => { map[row.size] = row.quantity; });
         setStockMap(map);
-        console.log(`[Estoque] produto ${productId} →`, map, `| tamanhos recebidos: ${data.length}`);
-      } else {
-        console.log(`[Estoque] produto ${productId} → sem dados retornados`);
       }
       setStockLoaded(true);
     })();
