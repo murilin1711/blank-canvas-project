@@ -119,7 +119,15 @@ export default function StockManager({ products }: StockManagerProps) {
   const handleQuantityBlur = (productId: number, size: string) => {
     const key = stockKey(productId, size);
     const raw = rawInputs[key];
-    if (raw === undefined) return; // não houve edição
+
+    if (raw === undefined) {
+      // Admin não digitou nada — mas se não existe linha no banco, salva 0 agora
+      if (!(key in stock)) {
+        upsertStock(productId, size, 0);
+      }
+      return;
+    }
+
     const qty = parseInt(raw, 10);
     const finalQty = isNaN(qty) || qty < 0 ? 0 : qty;
     setRawInputs((prev) => {
@@ -414,7 +422,13 @@ export default function StockManager({ products }: StockManagerProps) {
                           <span className="text-[10px] text-red-400">Sem estoque</span>
                         )}
                         {isNotSaved && !isSaving && (
-                          <span className="text-[10px] text-amber-500">Não salvo</span>
+                          <button
+                            onClick={() => upsertStock(product.id, size, 0)}
+                            className="text-[10px] text-amber-600 underline hover:text-amber-800"
+                            title="Clique para salvar como 0 (sem estoque)"
+                          >
+                            Não salvo
+                          </button>
                         )}
                       </div>
                     );
