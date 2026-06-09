@@ -170,9 +170,8 @@ export default function LojaEstiloOsklen() {
 
   const [openAddModal, setOpenAddModal] = useState(false);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
-  const [modalSelectedSize, setModalSelectedSize] = useState<string | null>(
-    null
-  );
+  const [modalSelectedSize, setModalSelectedSize] = useState<string | null>(null);
+  const [modalStockMap, setModalStockMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let filtered = [...products];
@@ -335,15 +334,30 @@ export default function LojaEstiloOsklen() {
     // do not preventDefault: vertical page scroll still works
   }
 
-  function openAddToCart(product: Product) {
+  async function openAddToCart(product: Product) {
     setModalProduct(product);
     setModalSelectedSize(null);
+    setModalStockMap({});
     setOpenAddModal(true);
+    const { data } = await supabase
+      .from("product_stock")
+      .select("size, quantity")
+      .eq("product_id", product.id);
+    if (data) {
+      const map: Record<string, number> = {};
+      data.forEach((row) => { map[row.size] = row.quantity; });
+      setModalStockMap(map);
+    }
   }
 
   function confirmAddToCart() {
     if (!modalProduct || !modalSelectedSize) {
       toast.error("Selecione um tamanho");
+      return;
+    }
+    const stockQty = modalStockMap[modalSelectedSize];
+    if (stockQty !== undefined && stockQty === 0) {
+      toast.error("Tamanho esgotado");
       return;
     }
     addItem({
@@ -718,19 +732,26 @@ export default function LojaEstiloOsklen() {
                 Escolha {modalProduct.variationName ? `a ${modalProduct.variationName.toLowerCase()}` : "o tamanho"}
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                {modalProduct.sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setModalSelectedSize(s)}
-                    className={`shrink-0 px-3 py-2 rounded border text-sm cursor-pointer ${
-                      modalSelectedSize === s
-                        ? "bg-[#2e3091] text-white border-[#2e3091]"
-                        : "bg-neutral-50 border-neutral-200 hover:border-neutral-300"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {modalProduct.sizes.map((s) => {
+                  const stockQty = modalStockMap[s];
+                  const oos = stockQty !== undefined && stockQty === 0;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => { if (!oos) setModalSelectedSize(s); }}
+                      disabled={oos}
+                      className={`shrink-0 px-3 py-2 rounded border text-sm ${
+                        oos
+                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed line-through"
+                          : modalSelectedSize === s
+                          ? "bg-[#2e3091] text-white border-[#2e3091] cursor-pointer"
+                          : "bg-neutral-50 border-neutral-200 hover:border-neutral-300 cursor-pointer"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
