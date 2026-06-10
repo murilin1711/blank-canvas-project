@@ -1602,7 +1602,7 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Embalagem</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                         </tr>
@@ -1648,7 +1648,16 @@ export default function AdminPage() {
                                 );
                               })()}
                             </td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.total))}</td>
+                            <td className="px-6 py-4 text-sm">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-medium text-gray-900">{formatCurrency(Number(order.total))}</span>
+                                {Number(order.shipping) > 0 && (
+                                  <span className="text-xs text-gray-500">
+                                    produtos: {formatCurrency(Number(order.subtotal))} · frete: {formatCurrency(Number(order.shipping))}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
                             <td className="px-6 py-4">
                               <select
                                 value={order.status}
