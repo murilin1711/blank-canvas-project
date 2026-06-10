@@ -1836,6 +1836,53 @@ export default function AdminPage() {
                                           </span>
                                         ))}
                                       </div>
+
+                                      {Array.isArray(payment.items) && payment.items.length > 0 && (() => {
+                                        const pkg = getPackageLabel(
+                                          payment.items.map((item: any) => ({ productName: item.productName, quantity: item.quantity })),
+                                          products
+                                        );
+                                        if (pkg.label === "—") return null;
+                                        return (
+                                          <div className="flex items-center gap-3 mt-2">
+                                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pkg.color}`}>
+                                              {pkg.label}
+                                            </span>
+                                            {pkg.dims && (
+                                              <span className="text-xs text-gray-500 whitespace-nowrap">
+                                                {pkg.dims.w} × {pkg.dims.l} × {pkg.dims.h} cm
+                                              </span>
+                                            )}
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPackingOrder({
+                                                  id: payment.id,
+                                                  user_id: payment.user_id,
+                                                  subtotal: Number(payment.total_amount) || 0,
+                                                  shipping: Number(payment.shipping_amount) || 0,
+                                                  total: (Number(payment.total_amount) || 0) + (Number(payment.shipping_amount) || 0),
+                                                  status: payment.status,
+                                                  payment_method: "bolsa_uniforme",
+                                                  shipping_address: payment.shipping_address || {},
+                                                  created_at: payment.created_at,
+                                                  order_items: payment.items.map((item: any) => ({
+                                                    id: `${item.productName}-${item.size}`,
+                                                    product_name: item.productName,
+                                                    product_image: "",
+                                                    price: 0,
+                                                    size: item.size,
+                                                    quantity: item.quantity,
+                                                  })),
+                                                });
+                                              }}
+                                              className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
+                                            >
+                                              Ver embalagem
+                                            </button>
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   </div>
 
