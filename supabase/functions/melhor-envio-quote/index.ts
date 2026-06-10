@@ -383,7 +383,71 @@ serve(async (req) => {
 
     const payload = await req.json();
     const { destCep, items } = payload;
-...
+
+    if (!destCep) {
+      return new Response(
+        JSON.stringify({ error: "CEP de destino é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const totalValue = (items || []).reduce(
+      (sum: number, i: any) => sum + (i.price || 50) * (i.quantity || 1), 0
+    ) || 50;
+
+    const productIds = (items || [])
+      .map((i: any) => i.productId)
+      .filter((id: any) => typeof id === "number" && !isNaN(id));
+
+    let width: number;
+    let height: number;
+    let length: number;
+    let weight: number;
+
+    if (productIds.length > 0) {
+      const { data: productRows } = await supabase
+        .from("products")
+        .select("id, name, category, weight_g, pkg_height_cm, pkg_width_cm, pkg_length_cm")
+        .in("id", productIds);
+
+      const productMap: Record<number, any> = {};
+      (productRows || []).forEach((p: any) => { productMap[p.id] = p; });
+
+      const { blocks, contentType, shoeCount, weightKg } =
+        buildBlocks(items || [], productMap);
+
+      const dims = calcPackageDims(blocks, contentType);
+
+      width  = dims.w;
+      length = dims.l;
+      height = dims.h;
+      weight = weightKg;
+
+      console.log("[ME-QUOTE] Packing result:", JSON.stringify({ contentType, shoeCount, blocks, dims: { width, length, height }, weight }, null, 2));
+    } else {
+      const totalQty = (items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
+      weight = Math.max(0.3 * totalQty, 0.3);
+      height = Math.min(5 + (totalQty - 1) * 2, 50);
+      width  = 30;
+      length = 40;
+    }
+
+    const calcBody = {
+      from: { postal_code: STORE_CEP },
+      to: { postal_code: destCep.replace(/\D/g, "") },
+      products: [
+        {
+          id: "uniforms",
+          width,
+          height,
+          length,
+          weight,
+          insurance_value: totalValue,
+          quantity: 1,
+        },
+      ],
+    };
+
     console.log("[ME-QUOTE] Payload enviado ao Melhor Envios:", JSON.stringify(calcBody, null, 2));
 
     // Somente endpoint autenticado — garante preços com desconto da conta
