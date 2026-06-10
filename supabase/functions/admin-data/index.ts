@@ -82,9 +82,16 @@ Deno.serve(async (req: Request) => {
       const { data: d } = await supabase.from("orders").select("total, created_at, status").order("created_at", { ascending: false });
       result = { orders: d || [] };
     } else if (action === 'update_payment_status') {
+      const updatePayload: Record<string, any> = {
+        status: data.status,
+        processed_at: new Date().toISOString(),
+      };
+      if (data.status === 'rejected' && data.rejectionReason) {
+        updatePayload.notes = data.rejectionReason;
+      }
       const { error: payStatusError } = await supabase
         .from("bolsa_uniforme_payments")
-        .update({ status: data.status, processed_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq("id", data.id);
       if (payStatusError) throw new Error(payStatusError.message);
 
