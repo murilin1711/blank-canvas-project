@@ -98,7 +98,7 @@ serve(async (req) => {
         customerName,
         shippingAddress: JSON.stringify(shippingAddress),
         shipping: shipping.toString(),
-        flow: "direct_pi",
+        flow: items.length === 0 ? "frete_only" : "direct_pi",
         ...(shippingMethod ? { shippingMethod } : {}),
         items: JSON.stringify(items.map(item => ({
           productId: item.productId,
