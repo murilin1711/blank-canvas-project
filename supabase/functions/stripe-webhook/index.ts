@@ -57,6 +57,114 @@ serve(async (req) => {
 
     console.log("Received Stripe event:", event.type);
 
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      const metadata = paymentIntent.metadata;
+
+      // Only handle direct payment intents (not those created inside a checkout session)
+      if (metadata?.flow !== "direct_pi") {
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const userId = metadata.userId;
+      const shippingAddress = JSON.parse(metadata.shippingAddress || "{}");
+      const shipping = parseFloat(metadata.shipping || "0");
+      const items = JSON.parse(metadata.items || "[]");
+      if (metadata.shippingMethod) {
+        shippingAddress.selected_shipping_method = metadata.shippingMethod;
+      }
+
+      const subtotal = items.reduce(
+        (acc: number, item: any) => acc + item.price * item.quantity,
+        0
+      );
+
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: userId,
+          subtotal,
+          shipping,
+          total: subtotal + shipping,
+          status: "paid",
+          payment_method: paymentIntent.payment_method_types?.[0] || "card",
+          shipping_address: shippingAddress,
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error("Error creating order (payment_intent.succeeded):", orderError);
+        throw orderError;
+      }
+
+      console.log("Order created via payment_intent.succeeded:", order.id);
+
+      const productIds = items.map((i: any) => i.productId);
+      const { data: productRows } = await supabase
+        .from("products")
+        .select("id, name, images")
+        .in("id", productIds);
+      const productMap = new Map(
+        (productRows ?? []).map((p: any) => [p.id, p])
+      );
+
+      const orderItems = items.map((item: any) => {
+        const prod = productMap.get(item.productId);
+        return {
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: prod?.name ?? item.productName ?? `Produto #${item.productId}`,
+          product_image: prod?.images?.[0] ?? null,
+          price: item.price,
+          size: item.size,
+          quantity: item.quantity,
+        };
+      });
+
+      if (orderItems.length > 0) {
+        await supabase.from("order_items").insert(orderItems);
+      }
+
+      for (const item of orderItems) {
+        await supabase.rpc("decrement_stock", {
+          p_product_id: item.product_id,
+          p_size: item.size,
+          p_qty: item.quantity,
+        }).catch((e: any) => console.error("Stock decrement error:", e));
+      }
+
+      try {
+        const userRes = await supabase.auth.admin.getUserById(userId);
+        const userEmail = userRes.data?.user?.email;
+        const userName = userRes.data?.user?.user_metadata?.name || "";
+        if (userEmail) {
+          await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+            body: JSON.stringify({
+              template: "order_confirmation",
+              to: userEmail,
+              data: {
+                orderId: order.id,
+                customerName: userName,
+                items: orderItems.map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                subtotal,
+                shipping,
+                total: subtotal + shipping,
+                shippingAddress,
+              },
+            }),
+          });
+        }
+      } catch (emailErr) {
+        console.error("Email send failed (non-critical):", emailErr);
+      }
+    }
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 

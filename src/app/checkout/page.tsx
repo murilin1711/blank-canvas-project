@@ -1412,6 +1412,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           shipping={shipping}
                           userId={user?.id || ""}
                           total={bolsaRemainderTotal + shipping}
+                          shippingMethod={shippingMethod}
                         />
                       </div>
                     </div>
@@ -1487,6 +1488,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           shipping={shipping}
                           userId={user?.id || ""}
                           total={total}
+                          shippingMethod={shippingMethod}
                         />
                       </div>
                     </div>
@@ -1559,6 +1561,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             shipping={0}
                             userId={user?.id || ""}
                             total={shipping}
+                            shippingMethod={shippingMethod}
                             onSuccess={async () => {
                               if (bolsaPaymentId) {
                                 await supabase.from("bolsa_uniforme_payments" as any)

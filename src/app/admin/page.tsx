@@ -2823,6 +2823,23 @@ export default function AdminPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Serviço de entrega
                     </label>
+                    {/* Serviço escolhido pelo cliente */}
+                    {(() => {
+                      const selectedMethod = labelOrder?.shipping_address?.selected_shipping_method as string | undefined;
+                      if (!selectedMethod || !selectedMethod.startsWith("me-")) return null;
+                      const clientServiceId = parseInt(selectedMethod.slice(3));
+                      const clientService = labelServices.find(s => s.id === clientServiceId);
+                      return (
+                        <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs text-green-800">
+                          <Check className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>
+                            <strong>Cliente escolheu:</strong>{" "}
+                            {clientService ? `${clientService.company} — ${clientService.name}` : `Serviço ID ${clientServiceId}`}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
                     {labelLoadingQuote ? (
                       <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
                         <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
@@ -2832,12 +2849,17 @@ export default function AdminPage() {
                       <p className="text-sm text-red-500">Nenhum serviço disponível para este CEP.</p>
                     ) : (
                       <div className="space-y-2">
-                        {labelServices.map((svc) => (
+                        {labelServices.map((svc) => {
+                          const selectedMethod = labelOrder?.shipping_address?.selected_shipping_method as string | undefined;
+                          const isClientChoice = selectedMethod === `me-${svc.id}`;
+                          return (
                           <label
                             key={svc.id}
                             className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                               labelSelectedService === svc.id
                                 ? "border-blue-500 bg-blue-50"
+                                : isClientChoice
+                                ? "border-green-400 bg-green-50"
                                 : "border-gray-200 hover:bg-gray-50"
                             }`}
                           >
@@ -2850,14 +2872,20 @@ export default function AdminPage() {
                               className="accent-blue-600"
                             />
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">{svc.company} — {svc.name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-medium text-gray-900">{svc.company} — {svc.name}</p>
+                                {isClientChoice && (
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">Cliente escolheu</span>
+                                )}
+                              </div>
                               <p className="text-xs text-gray-500">{svc.deliveryDays} dias úteis</p>
                             </div>
                             <span className="text-sm font-semibold text-gray-900">
                               R$ {svc.price.toFixed(2).replace(".", ",")}
                             </span>
                           </label>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
