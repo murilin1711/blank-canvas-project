@@ -455,51 +455,21 @@ serve(async (req) => {
 
     console.log("[ME-QUOTE] Payload enviado ao Melhor Envios:", JSON.stringify(calcBody, null, 2));
 
-    // Tenta endpoint autenticado; fallback para público se WAF bloquear
-    let response: Response;
-    let usedPublic = false;
-
-    if (token) {
-      response = await fetch(`${MELHOR_ENVIO_API}/me/shipment/calculate`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
-        },
-        body: JSON.stringify(calcBody),
-      });
-
-      if (!response.ok) {
-        const authErrText = await response.text();
-        console.warn("Auth endpoint failed:", response.status, authErrText.substring(0, 200));
-        if (response.status === 403 && authErrText.includes("E-WAF-0003")) {
-          throw new Error("MELHOR_ENVIO_WAF_BLOCKED");
-        }
-        usedPublic = true;
-      }
-    } else {
-      usedPublic = true;
+    // Usa apenas endpoint autenticado — endpoint público retorna preços sem desconto da conta
+    if (!token) {
+      throw new Error("MELHOR_ENVIO_TOKEN_UNAVAILABLE");
     }
 
-    if (usedPublic) {
-      const publicBody = {
-        from: { postal_code: STORE_CEP },
-        to: { postal_code: destCep.replace(/\D/g, "") },
-        packages: [{ width, height, length, weight, insurance_value: totalValue }],
-      };
-
-      response = await fetch(`${MELHOR_ENVIO_API}/calculator/calculate`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
-        },
-        body: JSON.stringify(publicBody),
-      });
-    }
+    const response = await fetch(`${MELHOR_ENVIO_API}/me/shipment/calculate`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "User-Agent": "GenesisPoint samuelclodes@gmail.com",
+      },
+      body: JSON.stringify(calcBody),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
@@ -514,18 +484,24 @@ serve(async (req) => {
 
     const options = data
       .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
-      .map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        company: s.company?.name || "",
-        companyLogo: s.company?.picture || "",
-        price: Number(s.price),
-        discount: Number(s.discount || 0),
-        deliveryDays: s.delivery_time,
-        deliveryRange: s.delivery_range
-          ? { min: s.delivery_range.min, max: s.delivery_range.max }
-          : null,
-      }))
+      .map((s: any) => {
+        const fullPrice = Number(s.price);
+        const discount = Number(s.discount || 0);
+        const finalPrice = Math.max(fullPrice - discount, 0);
+        return {
+          id: s.id,
+          name: s.name,
+          company: s.company?.name || "",
+          companyLogo: s.company?.picture || "",
+          price: finalPrice,
+          discount,
+          deliveryDays: s.delivery_time,
+          deliveryRange: s.delivery_range
+            ? { min: s.delivery_range.min, max: s.delivery_range.max }
+            : null,
+        };
+      })
+      .filter((s: any) => s.price > 0)
       .sort((a: any, b: any) => a.price - b.price);
 
     return new Response(
