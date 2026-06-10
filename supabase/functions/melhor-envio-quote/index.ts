@@ -378,12 +378,8 @@ serve(async (req) => {
   }
 
   try {
-    let token: string | null = null;
-    try {
-      token = await getValidToken(supabase);
-    } catch (e) {
-      console.warn("Could not get token:", e.message);
-    }
+    // Token é obrigatório — sem ele, preços retornariam valor cheio (sem desconto contratual)
+    const token = await getValidToken(supabase);
 
     const payload = await req.json();
     const { destCep, items } = payload;
@@ -429,7 +425,6 @@ serve(async (req) => {
 
       console.log("[ME-QUOTE] Packing result:", JSON.stringify({ contentType, shoeCount, blocks, dims: { width, length, height }, weight }, null, 2));
     } else {
-      // Fallback: sem IDs de produto
       const totalQty = (items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
       weight = Math.max(0.3 * totalQty, 0.3);
       height = Math.min(5 + (totalQty - 1) * 2, 50);

@@ -114,6 +114,7 @@ export type Database = {
           qr_code_image: string
           shipping_address: Json | null
           shipping_amount: number
+          shipping_payment_status: string | null
           status: string
           total_amount: number
           updated_at: string
@@ -134,6 +135,7 @@ export type Database = {
           qr_code_image: string
           shipping_address?: Json | null
           shipping_amount?: number
+          shipping_payment_status?: string | null
           status?: string
           total_amount: number
           updated_at?: string
@@ -154,6 +156,7 @@ export type Database = {
           qr_code_image?: string
           shipping_address?: Json | null
           shipping_amount?: number
+          shipping_payment_status?: string | null
           status?: string
           total_amount?: number
           updated_at?: string
@@ -425,6 +428,7 @@ export type Database = {
           image_url: string | null
           images: string[] | null
           is_active: boolean | null
+          model_info: Json | null
           name: string
           pkg_height_cm: number | null
           pkg_length_cm: number | null
@@ -449,6 +453,7 @@ export type Database = {
           image_url?: string | null
           images?: string[] | null
           is_active?: boolean | null
+          model_info?: Json | null
           name: string
           pkg_height_cm?: number | null
           pkg_length_cm?: number | null
@@ -473,6 +478,7 @@ export type Database = {
           image_url?: string | null
           images?: string[] | null
           is_active?: boolean | null
+          model_info?: Json | null
           name?: string
           pkg_height_cm?: number | null
           pkg_length_cm?: number | null
