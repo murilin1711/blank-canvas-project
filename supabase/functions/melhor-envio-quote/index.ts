@@ -475,14 +475,18 @@ serve(async (req) => {
 
     const options = data
       .filter((s: any) => !s.error && s.price && Number(s.price) > 0)
-      .map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        company: s.company?.name || "",
-        companyLogo: s.company?.picture || "",
-        price: Number(s.price),
-        discount: Number(s.discount || 0),
-        deliveryDays: s.delivery_time,
+      .map((s: any) => {
+        const fullPrice = Number(s.price);
+        const discount = Number(s.discount || 0);
+        const finalPrice = Math.max(fullPrice - discount, 0);
+        return {
+          id: s.id,
+          name: s.name,
+          company: s.company?.name || "",
+          companyLogo: s.company?.picture || "",
+          price: finalPrice,
+          discount,
+          deliveryDays: s.delivery_time,
         deliveryRange: s.delivery_range
           ? { min: s.delivery_range.min, max: s.delivery_range.max }
           : null,
