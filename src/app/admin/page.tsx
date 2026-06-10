@@ -2568,7 +2568,7 @@ export default function AdminPage() {
                   )}
                   <div>
                     <p className="text-sm text-gray-500">Valor dos Produtos</p>
-                    <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.total_amount) - Number(selectedPayment.shipping_amount || 0))}</p>
+                    <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.total_amount))}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Frete</p>
@@ -2591,7 +2591,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Total Pago</p>
-                    <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount))}</p>
+                    <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount) + Number(selectedPayment.shipping_amount || 0))}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Data</p>
