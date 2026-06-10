@@ -378,128 +378,25 @@ serve(async (req) => {
   }
 
   try {
-    let token: string | null = null;
-    try {
-      token = await getValidToken(supabase);
-    } catch (e) {
-      console.warn("Could not get token:", e.message);
-    }
+    // Token é obrigatório — sem ele, preços retornariam valor cheio (sem desconto contratual)
+    const token = await getValidToken(supabase);
 
     const payload = await req.json();
     const { destCep, items } = payload;
-
-    if (!destCep) {
-      return new Response(
-        JSON.stringify({ error: "CEP de destino é obrigatório" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const totalValue = (items || []).reduce(
-      (sum: number, i: any) => sum + (i.price || 50) * (i.quantity || 1), 0
-    ) || 50;
-
-    const productIds = (items || [])
-      .map((i: any) => i.productId)
-      .filter((id: any) => typeof id === "number" && !isNaN(id));
-
-    let width: number;
-    let height: number;
-    let length: number;
-    let weight: number;
-
-    if (productIds.length > 0) {
-      const { data: productRows } = await supabase
-        .from("products")
-        .select("id, name, category, weight_g, pkg_height_cm, pkg_width_cm, pkg_length_cm")
-        .in("id", productIds);
-
-      const productMap: Record<number, any> = {};
-      (productRows || []).forEach((p: any) => { productMap[p.id] = p; });
-
-      const { blocks, contentType, shoeCount, weightKg } =
-        buildBlocks(items || [], productMap);
-
-      const dims = calcPackageDims(blocks, contentType);
-
-      width  = dims.w;
-      length = dims.l;
-      height = dims.h;
-      weight = weightKg;
-
-      console.log("[ME-QUOTE] Packing result:", JSON.stringify({ contentType, shoeCount, blocks, dims: { width, length, height }, weight }, null, 2));
-    } else {
-      // Fallback: sem IDs de produto
-      const totalQty = (items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
-      weight = Math.max(0.3 * totalQty, 0.3);
-      height = Math.min(5 + (totalQty - 1) * 2, 50);
-      width  = 30;
-      length = 40;
-    }
-
-    const calcBody = {
-      from: { postal_code: STORE_CEP },
-      to: { postal_code: destCep.replace(/\D/g, "") },
-      products: [
-        {
-          id: "uniforms",
-          width,
-          height,
-          length,
-          weight,
-          insurance_value: totalValue,
-          quantity: 1,
-        },
-      ],
-    };
-
+...
     console.log("[ME-QUOTE] Payload enviado ao Melhor Envios:", JSON.stringify(calcBody, null, 2));
 
-    // Tenta endpoint autenticado; fallback para público se WAF bloquear
-    let response: Response;
-    let usedPublic = false;
-
-    if (token) {
-      response = await fetch(`${MELHOR_ENVIO_API}/me/shipment/calculate`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
-        },
-        body: JSON.stringify(calcBody),
-      });
-
-      if (!response.ok) {
-        const authErrText = await response.text();
-        console.warn("Auth endpoint failed:", response.status, authErrText.substring(0, 200));
-        if (response.status === 403 && authErrText.includes("E-WAF-0003")) {
-          throw new Error("MELHOR_ENVIO_WAF_BLOCKED");
-        }
-        usedPublic = true;
-      }
-    } else {
-      usedPublic = true;
-    }
-
-    if (usedPublic) {
-      const publicBody = {
-        from: { postal_code: STORE_CEP },
-        to: { postal_code: destCep.replace(/\D/g, "") },
-        packages: [{ width, height, length, weight, insurance_value: totalValue }],
-      };
-
-      response = await fetch(`${MELHOR_ENVIO_API}/calculator/calculate`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          "User-Agent": "GenesisPoint samuelclodes@gmail.com",
-        },
-        body: JSON.stringify(publicBody),
-      });
-    }
+    // Somente endpoint autenticado — garante preços com desconto da conta
+    const response = await fetch(`${MELHOR_ENVIO_API}/me/shipment/calculate`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "User-Agent": "GenesisPoint samuelclodes@gmail.com",
+      },
+      body: JSON.stringify(calcBody),
+    });
 
     if (!response.ok) {
       const errText = await response.text();
