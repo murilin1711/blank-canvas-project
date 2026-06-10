@@ -1606,16 +1606,35 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                     ) : (
                       <>
                         {/* Banner confirmação produtos */}
-                        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                               <Check className="w-5 h-5 text-green-600" />
                             </div>
                             <div>
-                              <p className="font-semibold text-green-800">Bolsa Uniforme recebido! Vamos analisar e confirmar seu pedido.</p>
+                              <p className="font-semibold text-green-800">Bolsa Uniforme recebido!</p>
                               <p className="text-sm text-green-700 mt-0.5">
-                                Produtos no valor de R$ {subtotal.toFixed(2).replace(".", ",")} aguardando confirmação. O frete precisa ser pago separadamente.
+                                Seus produtos (R$ {subtotal.toFixed(2).replace(".", ",")}) estão aguardando análise.
                               </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-5 mb-6">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <AlertCircle className="w-5 h-5 text-orange-600" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-orange-800">Frete pendente — R$ {shipping.toFixed(2).replace(".", ",")}</p>
+                              <p className="text-sm text-orange-700 mt-0.5">
+                                Pague agora ou acesse <strong>Meus Pedidos</strong> para pagar quando quiser.
+                              </p>
+                              <button
+                                onClick={() => navigate("/meus-pedidos")}
+                                className="mt-2 text-sm text-orange-700 underline hover:no-underline font-medium"
+                              >
+                                Ir para Meus Pedidos →
+                              </button>
                             </div>
                           </div>
                         </div>

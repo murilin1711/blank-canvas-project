@@ -202,6 +202,9 @@ export default function AdminPage() {
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [loadingPaymentDetails, setLoadingPaymentDetails] = useState(false);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionTarget, setRejectionTarget] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string>("");
   const [expandedCustomers, setExpandedCustomers] = useState<Record<string, boolean>>({});
 
   // Product edit states
@@ -697,7 +700,7 @@ export default function AdminPage() {
     }
   };
 
-  const updatePaymentStatus = async (id: string, status: string) => {
+  const updatePaymentStatus = async (id: string, status: string, rejectionReasonArg?: string) => {
     setBolsaPayments(prev => prev.map(p => p.id === id ? { ...p, status: status as any } : p));
 
     try {
@@ -705,7 +708,7 @@ export default function AdminPage() {
       if (!token) { handleLogout(); return; }
 
       const response = await supabase.functions.invoke('admin-data', {
-        body: { action: 'update_payment_status', token, data: { id, status } }
+        body: { action: 'update_payment_status', token, data: { id, status, ...(rejectionReasonArg ? { rejectionReason: rejectionReasonArg } : {}) } }
       });
 
       if (response.error || response.data?.error) {
@@ -2701,8 +2704,9 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => {
-                      updatePaymentStatus(selectedPayment.id, "rejected");
-                      setShowDetailsModal(false);
+                      setRejectionTarget(selectedPayment.id);
+                      setRejectionReason("");
+                      setShowRejectionModal(true);
                     }}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
                   >
@@ -2934,6 +2938,62 @@ export default function AdminPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal de rejeição com motivo */}
+      {showRejectionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Motivo da Rejeição</h3>
+            <p className="text-sm text-gray-600 mb-4">Selecione o motivo para informar o cliente:</p>
+            <div className="space-y-3 mb-6">
+              {[
+                "Senha incorreta",
+                "Foto com qualidade ruim",
+                "Foto enviada do lado oposto do cartão",
+              ].map((reason) => (
+                <label key={reason} className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <input
+                    type="radio"
+                    name="rejectionReason"
+                    value={reason}
+                    checked={rejectionReason === reason}
+                    onChange={() => setRejectionReason(reason)}
+                    className="w-4 h-4 accent-red-500"
+                  />
+                  <span className="text-sm text-gray-800">{reason}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowRejectionModal(false);
+                  setRejectionTarget(null);
+                  setRejectionReason("");
+                }}
+                className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={!rejectionReason}
+                onClick={() => {
+                  if (rejectionTarget && rejectionReason) {
+                    updatePaymentStatus(rejectionTarget, "rejected", rejectionReason);
+                    setShowRejectionModal(false);
+                    setShowDetailsModal(false);
+                    setRejectionTarget(null);
+                    setRejectionReason("");
+                  }
+                }}
+                className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirmar Rejeição
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
