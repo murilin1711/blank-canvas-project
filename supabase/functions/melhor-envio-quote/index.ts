@@ -487,10 +487,11 @@ serve(async (req) => {
           price: finalPrice,
           discount,
           deliveryDays: s.delivery_time,
-        deliveryRange: s.delivery_range
-          ? { min: s.delivery_range.min, max: s.delivery_range.max }
-          : null,
-      }))
+          deliveryRange: s.delivery_range
+            ? { min: s.delivery_range.min, max: s.delivery_range.max }
+            : null,
+        };
+      })
       .sort((a: any, b: any) => a.price - b.price);
 
     return new Response(
