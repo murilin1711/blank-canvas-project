@@ -1621,7 +1621,7 @@ export default function AdminPage() {
                                 onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
                                 className="flex items-center gap-1 text-[#2e3091] hover:underline font-medium"
                               >
-                                {order.order_items?.length || 0} itens
+                                {order.order_items?.reduce((s, i) => s + (i.quantity || 1), 0) || 0} itens
                                 {expandedOrderId === order.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                               </button>
                             </td>
