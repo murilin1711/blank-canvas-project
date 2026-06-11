@@ -2906,17 +2906,24 @@ export default function AdminPage() {
                     <div className="mt-4">
                       <button
                         onClick={() => {
-                          const orderWithMethod = {
-                            ...linkedOrder,
-                            shipping_address: {
-                              ...linkedOrder.shipping_address,
-                              selected_shipping_method:
-                                linkedOrder.shipping_address?.selected_shipping_method ||
-                                selectedPayment?.shipping_address?.selected_shipping_method,
-                            },
+                          const buAddr = selectedPayment?.shipping_address || {};
+                          const orderAddr = linkedOrder.shipping_address || {};
+                          const mergedAddr = {
+                            ...buAddr,
+                            ...orderAddr,
+                            cep: orderAddr.cep || buAddr.cep,
+                            street: orderAddr.street || buAddr.street,
+                            number: orderAddr.number || buAddr.number,
+                            complement: orderAddr.complement || buAddr.complement,
+                            neighborhood: orderAddr.neighborhood || buAddr.neighborhood,
+                            city: orderAddr.city || buAddr.city,
+                            state: orderAddr.state || buAddr.state,
+                            selected_shipping_method:
+                              orderAddr.selected_shipping_method ||
+                              buAddr.selected_shipping_method,
                           };
                           setShowDetailsModal(false);
-                          openLabelModal(orderWithMethod as Order);
+                          openLabelModal({ ...linkedOrder, shipping_address: mergedAddr } as Order);
                         }}
                         className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                       >
