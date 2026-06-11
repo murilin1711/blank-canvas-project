@@ -118,44 +118,44 @@ serve(async (req) => {
       throw new Error("QR Code data not found in response");
     }
 
-    // Create order in database
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    // Pagamento de frete do Bolsa Uniforme — não cria pedido em orders
+    let order: any = null;
+    if (!bolsaPaymentId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Calculate subtotal
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // Create order
-    const { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert({
-        user_id: userId,
-        subtotal,
-        shipping,
-        total,
-        shipping_address: shippingAddress,
-        status: "pending",
-        payment_method: "pix",
-      })
-      .select()
-      .single();
+      const { data: createdOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: userId,
+          subtotal,
+          shipping,
+          total,
+          shipping_address: shippingAddress,
+          status: "pending",
+          payment_method: "pix",
+        })
+        .select()
+        .single();
 
-    if (orderError) {
-      console.error("[CREATE-MERCADOPAGO-PIX] Error creating order:", orderError);
-    } else {
-      // Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_id: item.productId,
-        product_name: item.productName,
-        product_image: item.productImage,
-        price: item.price,
-        size: item.size,
-        quantity: item.quantity,
-      }));
-
-      await supabase.from("order_items").insert(orderItems);
+      if (orderError) {
+        console.error("[CREATE-MERCADOPAGO-PIX] Error creating order:", orderError);
+      } else {
+        order = createdOrder;
+        const orderItems = items.map(item => ({
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          product_image: item.productImage,
+          price: item.price,
+          size: item.size,
+          quantity: item.quantity,
+        }));
+        await supabase.from("order_items").insert(orderItems);
+      }
     }
 
     return new Response(

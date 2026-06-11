@@ -91,8 +91,21 @@ serve(async (req) => {
       });
     }
 
-    // Find the pending order for this user with pix payment method
-    // We look for the most recent pending pix order
+    // Pagamento de frete do Bolsa Uniforme — só atualiza shipping_payment_status, não mexe em orders
+    const bolsaPaymentId = payment.metadata?.bolsa_payment_id;
+    if (bolsaPaymentId) {
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ shipping_payment_status: "paid" })
+        .eq("id", bolsaPaymentId);
+      console.log("[MERCADOPAGO-WEBHOOK] Bolsa frete marcado como pago:", bolsaPaymentId);
+      return new Response(JSON.stringify({ success: true, bolsaPaymentId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Pagamento normal — busca e atualiza o pedido
     const { data: orders, error: findError } = await supabase
       .from("orders")
       .select("id")
@@ -124,16 +137,6 @@ serve(async (req) => {
     }
 
     console.log("[MERCADOPAGO-WEBHOOK] Order updated to paid:", orderId);
-
-    // Se for pagamento de frete do Bolsa Uniforme, marca frete como pago
-    const bolsaPaymentId = payment.metadata?.bolsa_payment_id;
-    if (bolsaPaymentId) {
-      await supabase
-        .from("bolsa_uniforme_payments")
-        .update({ shipping_payment_status: "paid" })
-        .eq("id", bolsaPaymentId);
-      console.log("[MERCADOPAGO-WEBHOOK] Bolsa frete marcado como pago:", bolsaPaymentId);
-    }
 
     // Decrementa estoque
     const { data: orderItemsForStock } = await supabase.from("order_items").select("product_id, size, quantity").eq("order_id", orderId);
