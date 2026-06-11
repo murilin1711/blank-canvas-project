@@ -118,13 +118,56 @@ serve(async (req) => {
       throw new Error("QR Code data not found in response");
     }
 
-    // Pagamento de frete do Bolsa Uniforme — não cria pedido em orders
-    let order: any = null;
-    if (!bolsaPaymentId) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    let order: any = null;
+
+    if (bolsaPaymentId) {
+      // Frete do Bolsa Uniforme — cria orders com payment_method "bolsa_uniforme"
+      // para não aparecer na aba Pedidos, mas permitir gerar etiqueta ME
+      const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+      const { data: createdOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: userId,
+          subtotal,
+          shipping,
+          total,
+          shipping_address: {
+            ...shippingAddress,
+            ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}),
+          },
+          status: "pending",
+          payment_method: "bolsa_uniforme",
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error("[CREATE-MERCADOPAGO-PIX] Error creating BU frete order:", orderError);
+      } else {
+        order = createdOrder;
+        const orderItems = items.map(item => ({
+          order_id: order.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          product_image: item.productImage,
+          price: item.price,
+          size: item.size,
+          quantity: item.quantity,
+        }));
+        await supabase.from("order_items").insert(orderItems);
+        // Vincula o order ao bolsa_uniforme_payment
+        await supabase
+          .from("bolsa_uniforme_payments")
+          .update({ order_id: order.id })
+          .eq("id", bolsaPaymentId);
+      }
+    } else {
+      // PIX normal — cria pedido na aba Pedidos
       const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
       const { data: createdOrder, error: orderError } = await supabase

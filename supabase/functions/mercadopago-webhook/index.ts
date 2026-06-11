@@ -91,13 +91,22 @@ serve(async (req) => {
       });
     }
 
-    // Pagamento de frete do Bolsa Uniforme — só atualiza shipping_payment_status, não mexe em orders
+    // Pagamento de frete do Bolsa Uniforme
     const bolsaPaymentId = payment.metadata?.bolsa_payment_id;
     if (bolsaPaymentId) {
-      await supabase
+      const { data: buPayment } = await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
-        .eq("id", bolsaPaymentId);
+        .eq("id", bolsaPaymentId)
+        .select("order_id")
+        .single();
+      // Se há um orders vinculado, marca como pago também
+      if (buPayment?.order_id) {
+        await supabase
+          .from("orders")
+          .update({ status: "paid", payment_provider_id: String(paymentId) })
+          .eq("id", buPayment.order_id);
+      }
       console.log("[MERCADOPAGO-WEBHOOK] Bolsa frete marcado como pago:", bolsaPaymentId);
       return new Response(JSON.stringify({ success: true, bolsaPaymentId }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
