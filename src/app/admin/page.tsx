@@ -703,7 +703,12 @@ export default function AdminPage() {
       if (error || data?.error) throw new Error(error?.message || data?.error);
 
       setLabelServices(data.options || []);
-      if (data.options?.length > 0) setLabelSelectedService(data.options[0].id);
+      if (data.options?.length > 0) {
+        const clientMethod = order.shipping_address?.selected_shipping_method as string | undefined;
+        const clientId = clientMethod?.startsWith("me-") ? parseInt(clientMethod.slice(3)) : null;
+        const match = clientId ? data.options.find((s: any) => s.id === clientId) : null;
+        setLabelSelectedService(match ? match.id : data.options[0].id);
+      }
     } catch (err: any) {
       toast.error(`Erro ao cotar frete: ${err.message}`);
     } finally {
@@ -1685,7 +1690,6 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Embalagem</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frete</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                         </tr>
@@ -1732,14 +1736,22 @@ export default function AdminPage() {
                               })()}
                             </td>
                             <td className="px-6 py-4 text-sm">
-                              <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
-                            </td>
-                            <td className="px-6 py-4 text-sm">
-                              {Number(order.shipping) > 0 ? (
-                                <span className="font-medium text-gray-700">{formatCurrency(Number(order.shipping))}</span>
-                              ) : (
-                                <span className="text-green-600 font-medium text-xs">Grátis</span>
-                              )}
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1.5 text-gray-600 text-xs">
+                                  <span>Produtos:</span>
+                                  <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-gray-600 text-xs">
+                                  <span>Frete:</span>
+                                  {Number(order.shipping) > 0
+                                    ? <span className="font-medium text-gray-900">{formatCurrency(Number(order.shipping))}</span>
+                                    : <span className="font-medium text-green-600">Grátis</span>}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs border-t border-gray-200 pt-0.5 mt-0.5">
+                                  <span className="text-gray-500">Total:</span>
+                                  <span className="font-bold text-gray-900">{formatCurrency(Number(order.total))}</span>
+                                </div>
+                              </div>
                             </td>
                             <td className="px-6 py-4">
                               <select
@@ -1794,7 +1806,7 @@ export default function AdminPage() {
                           </tr>
                           {expandedOrderId === order.id && order.order_items && order.order_items.length > 0 && (
                             <tr className="bg-blue-50/50">
-                              <td colSpan={8} className="px-6 py-3">
+                              <td colSpan={7} className="px-6 py-3">
                                 <div className="space-y-2">
                                   {order.order_items.map((item) => (
                                     <div key={item.id} className="flex items-center gap-3 text-sm">
