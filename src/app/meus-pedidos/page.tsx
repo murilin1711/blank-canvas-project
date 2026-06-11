@@ -7,7 +7,7 @@ import { StripeCustomPayment } from "@/components/StripeCustomPayment";
 import { MercadoPagoPixPayment } from "@/components/MercadoPagoPixPayment";
 import { BolsaUniformePayment } from "@/components/BolsaUniformePayment";
 import { toast } from "sonner";
-import { Package, AlertTriangle, Clock, XCircle, CreditCard, RefreshCw } from "lucide-react";
+import { Package, AlertTriangle, Clock, XCircle, CreditCard, RefreshCw, Truck } from "lucide-react";
 
 interface OrderItem {
   id: string;
@@ -26,6 +26,7 @@ interface Order {
   subtotal: number;
   shipping: number;
   payment_method: string | null;
+  tracking_code?: string | null;
   items: OrderItem[];
 }
 
@@ -406,8 +407,9 @@ export default function MeusPedidosPage() {
     const statusMap: Record<string, { label: string; color: string }> = {
       pending: { label: "Pagamento pendente", color: "bg-yellow-100 text-yellow-800" },
       paid: { label: "Pagamento aprovado", color: "bg-green-100 text-green-800" },
-      separating: { label: "Envio Pronto", color: "bg-blue-100 text-blue-800" },
+      separating: { label: "Preparando envio", color: "bg-blue-100 text-blue-800" },
       shipped: { label: "Enviado", color: "bg-purple-100 text-purple-800" },
+      refunded: { label: "Reembolsado", color: "bg-red-100 text-red-800" },
     };
     return statusMap[status] || { label: status, color: "bg-gray-100 text-gray-800" };
   };
@@ -482,6 +484,30 @@ export default function MeusPedidosPage() {
                         <span>R$ {order.total.toFixed(2).replace(".", ",")}</span>
                       </div>
                     </div>
+
+                    {/* Tracking code */}
+                    {order.tracking_code && (
+                      <div className="mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Truck className="w-4 h-4 text-purple-700" />
+                          <span className="text-sm font-semibold text-purple-800">Seu pedido foi enviado!</span>
+                        </div>
+                        <p className="text-sm text-purple-700 mb-2">Use o código abaixo para rastrear no site dos Correios:</p>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm bg-white border border-purple-300 px-3 py-1.5 rounded-lg tracking-widest text-gray-900 flex-1 text-center">
+                            {order.tracking_code}
+                          </span>
+                          <a
+                            href={`https://rastreamento.correios.com.br/app/index.php`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm px-3 py-1.5 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors whitespace-nowrap"
+                          >
+                            Rastrear
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

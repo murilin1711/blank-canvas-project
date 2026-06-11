@@ -79,6 +79,7 @@ interface Order {
   status: string;
   payment_method: string | null;
   payment_provider_id?: string | null;
+  tracking_code?: string | null;
   shipping_address: any;
   created_at: string;
   order_items?: OrderItem[];
@@ -225,6 +226,10 @@ export default function AdminPage() {
 
   // Refund state
   const [refundingOrderId, setRefundingOrderId] = useState<string | null>(null);
+
+  // Tracking code state
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+  const [savingTrackingId, setSavingTrackingId] = useState<string | null>(null);
 
   // Expand order items inline
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -637,6 +642,27 @@ export default function AdminPage() {
       toast.error(err.message || "Erro ao processar reembolso");
     } finally {
       setRefundingOrderId(null);
+    }
+  };
+
+  const handleSaveTracking = async (order: Order) => {
+    const trackingCode = trackingInputs[order.id]?.trim();
+    if (!trackingCode) { toast.error("Digite o código de rastreio"); return; }
+    setSavingTrackingId(order.id);
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+      const res = await supabase.functions.invoke("admin-data", {
+        body: { action: "update_tracking_code", token, data: { id: order.id, trackingCode } },
+      });
+      if (res.error || res.data?.error) throw new Error(res.error?.message || res.data?.error);
+      toast.success("Código de rastreio salvo! Status → Enviado");
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, tracking_code: trackingCode, status: "shipped" } : o));
+      setTrackingInputs(prev => ({ ...prev, [order.id]: "" }));
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar código");
+    } finally {
+      setSavingTrackingId(null);
     }
   };
 
@@ -1745,6 +1771,41 @@ export default function AdminPage() {
                                       <p className="font-medium text-gray-900">{formatCurrency(item.price)}</p>
                                     </div>
                                   ))}
+                                </div>
+                                {/* Tracking code */}
+                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                  {order.tracking_code ? (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="text-gray-600 font-medium">Rastreio:</span>
+                                      <span className="font-mono bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-900">{order.tracking_code}</span>
+                                      <button
+                                        onClick={() => setTrackingInputs(prev => ({ ...prev, [order.id]: order.tracking_code || "" }))}
+                                        className="text-xs text-blue-600 hover:underline"
+                                      >
+                                        Alterar
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                  {(!order.tracking_code || trackingInputs[order.id] !== undefined) && (
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <input
+                                        type="text"
+                                        placeholder="Código de rastreio (ex: BR123456789BR)"
+                                        value={trackingInputs[order.id] ?? ""}
+                                        onChange={(e) => setTrackingInputs(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                        onKeyDown={(e) => { if (e.key === "Enter") handleSaveTracking(order); }}
+                                        className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                      <button
+                                        onClick={() => handleSaveTracking(order)}
+                                        disabled={savingTrackingId === order.id}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                      >
+                                        <Save className="w-3.5 h-3.5" />
+                                        {savingTrackingId === order.id ? "..." : "Salvar"}
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                             </tr>
