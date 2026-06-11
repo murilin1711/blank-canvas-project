@@ -2901,6 +2901,30 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  {/* Etiqueta Melhor Envio */}
+                  {!linkedOrder.shipping_address?.label_url && linkedOrder.shipping_address?.cep && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => { setShowDetailsModal(false); openLabelModal(linkedOrder); }}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Printer className="w-4 h-4" />
+                        Gerar Etiqueta ME
+                      </button>
+                    </div>
+                  )}
+                  {linkedOrder.shipping_address?.me_order_id && (
+                    <div className="mt-4">
+                      <button
+                        onClick={() => handleReprint(linkedOrder)}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        Imprimir Etiqueta
+                      </button>
+                    </div>
+                  )}
+
                   {/* Código de rastreio */}
                   <div className="mt-4">
                     <p className="text-sm text-gray-500 mb-1">Código de Rastreio</p>
