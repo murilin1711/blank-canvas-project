@@ -60,7 +60,6 @@ interface BolsaUniformePayment {
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
-  customer_cpf?: string | null;
   total_amount: number;
   shipping_amount?: number;
   shipping_payment_status?: string | null;
@@ -554,6 +553,19 @@ export default function AdminPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [isAuthenticated]);
+
+  // Busca CPFs em lote sempre que bolsaPayments mudar
+  useEffect(() => {
+    if (bolsaPayments.length === 0) return;
+    const missing = [...new Set(bolsaPayments.map(p => p.user_id).filter(id => id && !orderCpfs[id]))];
+    if (missing.length === 0) return;
+    supabase.from("profiles").select("user_id, cpf").in("user_id", missing).then(({ data }) => {
+      if (!data) return;
+      const updates: Record<string, string> = {};
+      data.forEach(p => { if (p.cpf) updates[p.user_id] = p.cpf; });
+      if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
+    });
+  }, [bolsaPayments]);
 
   // Load section on demand when tab changes
   useEffect(() => {
@@ -2059,10 +2071,10 @@ export default function AdminPage() {
                                           <span className="text-gray-900">{payment.customer_email}</span>
                                         </div>
                                       )}
-                                      {payment.customer_cpf && (
+                                      {orderCpfs[payment.user_id] && (
                                         <div className="flex items-center gap-2 text-sm">
                                           <span className="text-gray-500">CPF:</span>
-                                          <span className="text-gray-900">{payment.customer_cpf}</span>
+                                          <span className="text-gray-900">{orderCpfs[payment.user_id]}</span>
                                         </div>
                                       )}
                                       <div className="flex items-center gap-2 text-sm">
@@ -2817,10 +2829,10 @@ export default function AdminPage() {
                       <p className="font-medium text-gray-900">{selectedPayment.customer_email}</p>
                     </div>
                   )}
-                  {selectedPayment.customer_cpf && (
+                  {selectedPayment.user_id && orderCpfs[selectedPayment.user_id] && (
                     <div>
                       <p className="text-sm text-gray-500">CPF</p>
-                      <p className="font-medium text-gray-900">{selectedPayment.customer_cpf}</p>
+                      <p className="font-medium text-gray-900">{orderCpfs[selectedPayment.user_id]}</p>
                     </div>
                   )}
                   <div>
