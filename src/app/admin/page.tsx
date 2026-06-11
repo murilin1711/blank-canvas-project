@@ -803,6 +803,23 @@ export default function AdminPage() {
     }
   };
 
+  const handleMarkShippingPaid = async (paymentId: string) => {
+    const token = getAdminToken();
+    if (!token) { handleLogout(); return; }
+    try {
+      const { error } = await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ shipping_payment_status: "paid" })
+        .eq("id", paymentId);
+      if (error) throw error;
+      setBolsaPayments(prev => prev.map(p => p.id === paymentId ? { ...p, shipping_payment_status: "paid" } : p));
+      setSelectedPayment(prev => prev ? { ...prev, shipping_payment_status: "paid" } : prev);
+      toast.success("Frete marcado como pago!");
+    } catch (err: any) {
+      toast.error("Erro ao atualizar: " + err.message);
+    }
+  };
+
   const openBolsaLabelModal = (payment: BolsaUniformePayment) => {
     if (!payment.order_id) {
       toast.error("Pedido ainda não foi criado. Aprove o pagamento primeiro.");
@@ -2754,9 +2771,17 @@ export default function AdminPage() {
                             <Check className="w-3 h-3" /> Confirmado via Stripe/Pix
                           </span>
                         ) : (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                            Aguardando pagamento
-                          </span>
+                          <>
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                              Aguardando pagamento
+                            </span>
+                            <button
+                              onClick={() => handleMarkShippingPaid(selectedPayment.id)}
+                              className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                            >
+                              Marcar como pago
+                            </button>
+                          </>
                         )}
                       </div>
                     ) : (
