@@ -1656,6 +1656,7 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produtos</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Embalagem</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frete</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
                         </tr>
@@ -1702,14 +1703,14 @@ export default function AdminPage() {
                               })()}
                             </td>
                             <td className="px-6 py-4 text-sm">
-                              <div className="flex flex-col gap-0.5">
-                                <span className="font-medium text-gray-900">{formatCurrency(Number(order.total))}</span>
-                                {Number(order.shipping) > 0 && (
-                                  <span className="text-xs text-gray-500">
-                                    produtos: {formatCurrency(Number(order.subtotal))} · frete: {formatCurrency(Number(order.shipping))}
-                                  </span>
-                                )}
-                              </div>
+                              <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
+                            </td>
+                            <td className="px-6 py-4 text-sm">
+                              {Number(order.shipping) > 0 ? (
+                                <span className="font-medium text-gray-700">{formatCurrency(Number(order.shipping))}</span>
+                              ) : (
+                                <span className="text-green-600 font-medium text-xs">Grátis</span>
+                              )}
                             </td>
                             <td className="px-6 py-4">
                               <select
@@ -1757,7 +1758,7 @@ export default function AdminPage() {
                           </tr>
                           {expandedOrderId === order.id && order.order_items && order.order_items.length > 0 && (
                             <tr className="bg-blue-50/50">
-                              <td colSpan={7} className="px-6 py-3">
+                              <td colSpan={8} className="px-6 py-3">
                                 <div className="space-y-2">
                                   {order.order_items.map((item) => (
                                     <div key={item.id} className="flex items-center gap-3 text-sm">
