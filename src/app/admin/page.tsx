@@ -1503,6 +1503,11 @@ export default function AdminPage() {
       }
     }
 
+    if (payment.user_id && !orderCpfs[payment.user_id]) {
+      const { data: prof } = await supabase.from("profiles").select("cpf").eq("id", payment.user_id).single();
+      if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [payment.user_id]: prof.cpf! }));
+    }
+
     setLoadingPaymentDetails(false);
   };
 
@@ -2051,6 +2056,12 @@ export default function AdminPage() {
                                         <div className="flex items-center gap-2 text-sm">
                                           <span className="text-gray-500">Email:</span>
                                           <span className="text-gray-900">{payment.customer_email}</span>
+                                        </div>
+                                      )}
+                                      {orderCpfs[payment.user_id] && (
+                                        <div className="flex items-center gap-2 text-sm">
+                                          <span className="text-gray-500">CPF:</span>
+                                          <span className="text-gray-900">{orderCpfs[payment.user_id]}</span>
                                         </div>
                                       )}
                                       <div className="flex items-center gap-2 text-sm">
@@ -2803,6 +2814,12 @@ export default function AdminPage() {
                     <div>
                       <p className="text-sm text-gray-500">Email</p>
                       <p className="font-medium text-gray-900">{selectedPayment.customer_email}</p>
+                    </div>
+                  )}
+                  {selectedPayment.user_id && orderCpfs[selectedPayment.user_id] && (
+                    <div>
+                      <p className="text-sm text-gray-500">CPF</p>
+                      <p className="font-medium text-gray-900">{orderCpfs[selectedPayment.user_id]}</p>
                     </div>
                   )}
                   <div>
