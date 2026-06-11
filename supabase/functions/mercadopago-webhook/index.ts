@@ -115,7 +115,7 @@ serve(async (req) => {
     // Update order status to paid
     const { error: updateError } = await supabase
       .from("orders")
-      .update({ status: "paid" })
+      .update({ status: "paid", payment_provider_id: String(paymentId) })
       .eq("id", orderId);
 
     if (updateError) {

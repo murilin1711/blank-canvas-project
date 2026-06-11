@@ -78,6 +78,7 @@ interface Order {
   total: number;
   status: string;
   payment_method: string | null;
+  payment_provider_id?: string | null;
   shipping_address: any;
   created_at: string;
   order_items?: OrderItem[];
@@ -221,6 +222,9 @@ export default function AdminPage() {
 
   // Packing illustration modal
   const [packingOrder, setPackingOrder] = useState<Order | null>(null);
+
+  // Refund state
+  const [refundingOrderId, setRefundingOrderId] = useState<string | null>(null);
 
   // Expand order items inline
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
@@ -581,6 +585,7 @@ export default function AdminPage() {
     { value: 'paid', label: 'Pagamento confirmado', color: 'bg-green-100 text-green-700' },
     { value: 'separating', label: 'Envio Pronto', color: 'bg-blue-100 text-blue-700' },
     { value: 'shipped', label: 'Enviado', color: 'bg-purple-100 text-purple-700' },
+    { value: 'refunded', label: 'Reembolsado', color: 'bg-red-100 text-red-700' },
   ];
 
   const BOLSA_STATUSES = [
@@ -615,6 +620,25 @@ export default function AdminPage() {
     }
   };
 
+
+  const handleRefundOrder = async (order: Order) => {
+    if (!confirm(`Reembolsar R$ ${Number(order.total).toFixed(2)} para o pedido #${order.id.slice(0, 8)}? Esta ação não pode ser desfeita.`)) return;
+    setRefundingOrderId(order.id);
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+      const res = await supabase.functions.invoke("refund-order", {
+        body: { orderId: order.id, adminToken: token },
+      });
+      if (res.error || res.data?.error) throw new Error(res.error?.message || res.data?.error);
+      toast.success("Reembolso realizado com sucesso!");
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: "refunded" } : o));
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao processar reembolso");
+    } finally {
+      setRefundingOrderId(null);
+    }
+  };
 
   const openLabelModal = async (order: Order) => {
     setLabelOrder(order);
@@ -1690,6 +1714,16 @@ export default function AdminPage() {
                                   >
                                     <ExternalLink className="w-3.5 h-3.5" />
                                     Imprimir
+                                  </button>
+                                )}
+                                {order.status === "paid" && (
+                                  <button
+                                    onClick={() => handleRefundOrder(order)}
+                                    disabled={refundingOrderId === order.id}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                  >
+                                    <RefreshCw className={`w-3.5 h-3.5 ${refundingOrderId === order.id ? "animate-spin" : ""}`} />
+                                    {refundingOrderId === order.id ? "..." : "Reembolsar"}
                                   </button>
                                 )}
                               </div>

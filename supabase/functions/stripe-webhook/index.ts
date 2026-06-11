@@ -92,6 +92,7 @@ serve(async (req) => {
           status: "paid",
           payment_method: paymentIntent.payment_method_types?.[0] || "card",
           shipping_address: shippingAddress,
+          payment_provider_id: paymentIntent.id,
         })
         .select()
         .single();
@@ -201,6 +202,7 @@ serve(async (req) => {
           status: "paid",
           payment_method: session.payment_method_types?.[0] || "card",
           shipping_address: shippingAddress,
+          payment_provider_id: paymentIntentId,
         })
         .select()
         .single();
