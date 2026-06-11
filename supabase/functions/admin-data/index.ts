@@ -216,8 +216,11 @@ Deno.serve(async (req: Request) => {
         if (!existingOrder) orderId = null;
       }
 
-      // Cria orders se não existir
-      if (!orderId && buPayment) {
+      // Só cria order se o bolsa uniforme já foi aprovado — caso contrário o order
+      // seria criado com o total completo (produtos + frete) antes da aprovação,
+      // inflando o faturamento indevidamente. A criação do order é responsabilidade
+      // do fluxo de aprovação (update_payment_status → approved).
+      if (!orderId && buPayment && buPayment.status === 'approved') {
         const buAddr = buPayment.shipping_address || {};
         const { data: newOrder } = await supabase
           .from("orders")
