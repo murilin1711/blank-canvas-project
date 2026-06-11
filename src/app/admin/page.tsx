@@ -700,7 +700,8 @@ export default function AdminPage() {
         body: { action: "quote", token, orderId: order.id },
       });
 
-      if (error || data?.error) throw new Error(error?.message || data?.error);
+      const errMsg = data?.error || error?.context?.responseText || error?.message;
+      if (errMsg || error) throw new Error(errMsg || "Erro desconhecido na edge function");
 
       setLabelServices(data.options || []);
       if (data.options?.length > 0) {
@@ -1455,6 +1456,14 @@ export default function AdminPage() {
           ...ordAddr,
           selected_shipping_method: ordAddr.selected_shipping_method || buAddr.selected_shipping_method,
         };
+        // Se o orders.shipping_address estava sem CEP mas o BU payment tem, atualiza no banco
+        // para que a edge function melhor-envio-label consiga encontrar o endereço
+        if (!ordAddr.cep && buAddr.cep) {
+          await supabase
+            .from("orders")
+            .update({ shipping_address: mergedAddr })
+            .eq("id", ord.id);
+        }
         setLinkedOrder({ ...ord, shipping_address: mergedAddr } as unknown as Order);
       }
     }
