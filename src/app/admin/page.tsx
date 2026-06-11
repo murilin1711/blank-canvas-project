@@ -729,7 +729,12 @@ export default function AdminPage() {
         body: { action: "generate", token, orderId: labelOrder.id, serviceId: labelSelectedService },
       });
 
-      if (error || data?.error) throw new Error(error?.message || data?.error);
+      let errMsg = data?.error;
+      if (!errMsg && error) {
+        try { errMsg = JSON.parse(error?.context?.responseText || "")?.error; } catch {}
+        errMsg = errMsg || error?.message;
+      }
+      if (errMsg) throw new Error(errMsg);
 
       setLabelResult({ labelUrl: data.labelUrl, trackingCode: data.trackingCode });
       toast.success("Etiqueta gerada com sucesso!");
@@ -807,14 +812,60 @@ export default function AdminPage() {
     const token = getAdminToken();
     if (!token) { handleLogout(); return; }
     try {
-      const { error } = await supabase
+      // Busca dados completos do BU payment
+      const { data: buFull } = await supabase
         .from("bolsa_uniforme_payments")
-        .update({ shipping_payment_status: "paid" })
+        .select("*")
+        .eq("id", paymentId)
+        .single();
+
+      // Verifica se o orders vinculado ainda existe
+      let orderId = buFull?.order_id;
+      if (orderId) {
+        const { data: existingOrder } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("id", orderId)
+          .single();
+        if (!existingOrder) orderId = null; // foi deletado
+      }
+
+      // Se não há orders vinculado, cria um agora
+      if (!orderId && buFull) {
+        const buAddr = (buFull.shipping_address as Record<string, any>) || {};
+        const { data: newOrder } = await supabase
+          .from("orders")
+          .insert({
+            user_id: buFull.user_id,
+            subtotal: Number(buFull.total_amount) || 0,
+            shipping: Number(buFull.shipping_amount) || 0,
+            total: (Number(buFull.total_amount) || 0) + (Number(buFull.shipping_amount) || 0),
+            shipping_address: buAddr,
+            status: "paid",
+            payment_method: "bolsa_uniforme",
+          })
+          .select()
+          .single();
+        if (newOrder) orderId = newOrder.id;
+      }
+
+      // Atualiza o BU payment
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({
+          shipping_payment_status: "paid",
+          ...(orderId ? { order_id: orderId } : {}),
+        })
         .eq("id", paymentId);
-      if (error) throw error;
-      setBolsaPayments(prev => prev.map(p => p.id === paymentId ? { ...p, shipping_payment_status: "paid" } : p));
-      setSelectedPayment(prev => prev ? { ...prev, shipping_payment_status: "paid" } : prev);
+
+      setBolsaPayments(prev => prev.map(p =>
+        p.id === paymentId ? { ...p, shipping_payment_status: "paid", order_id: orderId ?? p.order_id } : p
+      ));
+      setSelectedPayment(prev => prev ? { ...prev, shipping_payment_status: "paid", order_id: orderId ?? prev.order_id } : prev);
       toast.success("Frete marcado como pago!");
+
+      // Recarrega detalhes para mostrar linkedOrder atualizado
+      if (selectedPayment) openPaymentDetails(selectedPayment);
     } catch (err: any) {
       toast.error("Erro ao atualizar: " + err.message);
     }
