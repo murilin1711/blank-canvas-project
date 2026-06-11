@@ -645,6 +645,22 @@ export default function AdminPage() {
     }
   };
 
+  const handleDeleteOrder = async (id: string) => {
+    if (!confirm("Excluir este pedido permanentemente? Esta ação não pode ser desfeita.")) return;
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+      const res = await supabase.functions.invoke("admin-data", {
+        body: { action: "delete_order", token, data: { id } },
+      });
+      if (res.error || res.data?.error) throw new Error(res.error?.message || res.data?.error);
+      toast.success("Pedido excluído.");
+      setOrders(prev => prev.filter(o => o.id !== id));
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir pedido");
+    }
+  };
+
   const handleSaveTracking = async (order: Order) => {
     const trackingCode = trackingInputs[order.id]?.trim();
     if (!trackingCode) { toast.error("Digite o código de rastreio"); return; }
@@ -1753,6 +1769,13 @@ export default function AdminPage() {
                                     {refundingOrderId === order.id ? "..." : "Reembolsar"}
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Excluir
+                                </button>
                               </div>
                             </td>
                           </tr>

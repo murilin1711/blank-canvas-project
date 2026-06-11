@@ -185,6 +185,10 @@ Deno.serve(async (req: Request) => {
       } else {
         result = { success: true };
       }
+    } else if (action === 'delete_order') {
+      await supabase.from("order_items").delete().eq("order_id", data.id);
+      await supabase.from("orders").delete().eq("id", data.id);
+      result = { success: true };
     } else if (action === 'update_order_status') {
       await supabase.from("orders").update({ status: data.status, updated_at: new Date().toISOString() }).eq("id", data.id);
 
