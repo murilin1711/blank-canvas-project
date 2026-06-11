@@ -231,6 +231,9 @@ export default function AdminPage() {
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [savingTrackingId, setSavingTrackingId] = useState<string | null>(null);
 
+  // Linked order for BU modal
+  const [linkedOrder, setLinkedOrder] = useState<Order | null>(null);
+
   // Expand order items inline
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
 
@@ -1266,13 +1269,13 @@ export default function AdminPage() {
 
   // Filter orders by category
   const filterOrdersByCategory = (ordersList: Order[], selectedCategories: string[]) => {
-    if (selectedCategories.length === 0) return ordersList;
+    const filtered = ordersList.filter(o => o.payment_method !== "bolsa_uniforme");
+    if (selectedCategories.length === 0) return filtered;
+    const ordersList2 = filtered;
     
-    return ordersList.filter(order => {
+    return ordersList2.filter(order => {
       const orderItems = order.order_items || [];
-      // Check if any item in the order matches the selected categories
       return orderItems.some(item => {
-        // Find the product to get its category
         const product = products.find(p => p.name === item.product_name);
         return product && product.category && selectedCategories.includes(product.category);
       });
@@ -1428,9 +1431,19 @@ export default function AdminPage() {
     setSelectedPayment(payment);
     setShowDetailsModal(true);
     setLoadingPaymentDetails(true);
+    setLinkedOrder(null);
 
     const fullPayment = await fetchBolsaPaymentDetails(payment.id);
     if (fullPayment) setSelectedPayment(fullPayment);
+
+    if (payment.order_id) {
+      const { data: ord } = await supabase
+        .from("orders")
+        .select("*, order_items(*)")
+        .eq("id", payment.order_id)
+        .single();
+      if (ord) setLinkedOrder(ord as unknown as Order);
+    }
 
     setLoadingPaymentDetails(false);
   };
@@ -2832,6 +2845,85 @@ export default function AdminPage() {
                     <XCircle className="w-4 h-4" />
                     Rejeitar
                   </button>
+                </div>
+              )}
+
+              {/* Pedido vinculado (frete pago) */}
+              {linkedOrder && (
+                <div className="mt-6 border-t border-gray-200 pt-6">
+                  <p className="text-sm font-semibold text-gray-700 mb-4">Pedido #{linkedOrder.id.slice(0, 8).toUpperCase()}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Status do pedido */}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Status do Pedido</p>
+                      <select
+                        value={linkedOrder.status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          setLinkedOrder(prev => prev ? { ...prev, status: newStatus } : prev);
+                          await updateOrderStatus(linkedOrder.id, newStatus);
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(linkedOrder.status).color}`}
+                      >
+                        {ORDER_STATUSES.map(s => (
+                          <option key={s.value} value={s.value}>{s.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Embalagem */}
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Embalagem</p>
+                      {(() => {
+                        const pkg = getPackageLabel(
+                          (linkedOrder.order_items || []).map(i => ({ productName: i.product_name, quantity: i.quantity })),
+                          products
+                        );
+                        return (
+                          <div>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pkg.color}`}>{pkg.label}</span>
+                            {pkg.dims && <p className="text-xs text-gray-500 mt-0.5">{pkg.dims.w}×{pkg.dims.l}×{pkg.dims.h} cm</p>}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Código de rastreio */}
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-1">Código de Rastreio</p>
+                    {linkedOrder.tracking_code ? (
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm bg-gray-100 px-3 py-1.5 rounded-lg">{linkedOrder.tracking_code}</span>
+                        <button
+                          onClick={() => setTrackingInputs(prev => ({ ...prev, [linkedOrder.id]: linkedOrder.tracking_code || "" }))}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Alterar
+                        </button>
+                      </div>
+                    ) : null}
+                    {(!linkedOrder.tracking_code || trackingInputs[linkedOrder.id] !== undefined) && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="text"
+                          placeholder="ex: BR123456789BR"
+                          value={trackingInputs[linkedOrder.id] ?? ""}
+                          onChange={(e) => setTrackingInputs(prev => ({ ...prev, [linkedOrder.id]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSaveTracking(linkedOrder); }}
+                          className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={() => handleSaveTracking(linkedOrder)}
+                          disabled={savingTrackingId === linkedOrder.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          {savingTrackingId === linkedOrder.id ? "..." : "Salvar"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </motion.div>
