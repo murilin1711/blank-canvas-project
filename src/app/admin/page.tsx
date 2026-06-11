@@ -559,7 +559,8 @@ export default function AdminPage() {
     if (bolsaPayments.length === 0) return;
     const missing = [...new Set(bolsaPayments.map(p => p.user_id).filter(id => id && !orderCpfs[id]))];
     if (missing.length === 0) return;
-    supabase.from("profiles").select("user_id, cpf").in("user_id", missing).then(({ data }) => {
+    supabase.from("profiles").select("user_id, cpf").in("user_id", missing).then(({ data, error }) => {
+      console.log("[CPF bolsa] profiles query result:", { data, error, missing });
       if (!data) return;
       const updates: Record<string, string> = {};
       data.forEach(p => { if (p.cpf) updates[p.user_id] = p.cpf; });
