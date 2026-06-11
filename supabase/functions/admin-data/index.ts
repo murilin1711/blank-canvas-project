@@ -185,6 +185,50 @@ Deno.serve(async (req: Request) => {
       } else {
         result = { success: true };
       }
+    } else if (action === 'mark_shipping_paid') {
+      const { bolsaPaymentId } = data;
+      // Verifica se o orders vinculado existe
+      const { data: buPayment } = await supabase
+        .from("bolsa_uniforme_payments")
+        .select("*")
+        .eq("id", bolsaPaymentId)
+        .single();
+
+      let orderId = buPayment?.order_id || null;
+      if (orderId) {
+        const { data: existingOrder } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("id", orderId)
+          .single();
+        if (!existingOrder) orderId = null;
+      }
+
+      // Cria orders se não existir
+      if (!orderId && buPayment) {
+        const buAddr = buPayment.shipping_address || {};
+        const { data: newOrder } = await supabase
+          .from("orders")
+          .insert({
+            user_id: buPayment.user_id,
+            subtotal: Number(buPayment.total_amount) || 0,
+            shipping: Number(buPayment.shipping_amount) || 0,
+            total: (Number(buPayment.total_amount) || 0) + (Number(buPayment.shipping_amount) || 0),
+            shipping_address: buAddr,
+            status: "paid",
+            payment_method: "bolsa_uniforme",
+          })
+          .select()
+          .single();
+        if (newOrder) orderId = newOrder.id;
+      }
+
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ shipping_payment_status: "paid", ...(orderId ? { order_id: orderId } : {}) })
+        .eq("id", bolsaPaymentId);
+
+      result = { success: true, orderId };
     } else if (action === 'delete_order') {
       await supabase.from("order_items").delete().eq("order_id", data.id);
       await supabase.from("orders").delete().eq("id", data.id);
