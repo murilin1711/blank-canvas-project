@@ -33,7 +33,14 @@ Deno.serve(async (req: Request) => {
         .select("id, user_id, order_id, total_amount, shipping_amount, shipping_payment_status, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
         .order("created_at", { ascending: true });
 
-      result = { bolsaPayments: d || [] };
+      const payments = d || [];
+      const userIds = [...new Set(payments.map((p: any) => p.user_id).filter(Boolean))];
+      let cpfMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, cpf").in("user_id", userIds);
+        (profs || []).forEach((p: any) => { if (p.cpf) cpfMap[p.user_id] = p.cpf; });
+      }
+      result = { bolsaPayments: payments.map((p: any) => ({ ...p, customer_cpf: cpfMap[p.user_id] ?? null })) };
     } else if (action === 'get_bolsa_payment_details') {
       const paymentId = data?.id;
       if (!paymentId) {
@@ -46,7 +53,12 @@ Deno.serve(async (req: Request) => {
         .eq("id", paymentId)
         .maybeSingle();
 
-      result = { bolsaPayment: d };
+      let customer_cpf = null;
+      if (d?.user_id) {
+        const { data: prof } = await supabase.from("profiles").select("cpf").eq("user_id", d.user_id).maybeSingle();
+        customer_cpf = prof?.cpf ?? null;
+      }
+      result = { bolsaPayment: d ? { ...d, customer_cpf } : null };
     } else if (action === 'get_orders') {
       const { data: d } = await supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
       result = { orders: d || [] };

@@ -60,6 +60,7 @@ interface BolsaUniformePayment {
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
+  customer_cpf?: string | null;
   total_amount: number;
   shipping_amount?: number;
   shipping_payment_status?: string | null;
@@ -2058,10 +2059,10 @@ export default function AdminPage() {
                                           <span className="text-gray-900">{payment.customer_email}</span>
                                         </div>
                                       )}
-                                      {orderCpfs[payment.user_id] && (
+                                      {payment.customer_cpf && (
                                         <div className="flex items-center gap-2 text-sm">
                                           <span className="text-gray-500">CPF:</span>
-                                          <span className="text-gray-900">{orderCpfs[payment.user_id]}</span>
+                                          <span className="text-gray-900">{payment.customer_cpf}</span>
                                         </div>
                                       )}
                                       <div className="flex items-center gap-2 text-sm">
@@ -2816,10 +2817,10 @@ export default function AdminPage() {
                       <p className="font-medium text-gray-900">{selectedPayment.customer_email}</p>
                     </div>
                   )}
-                  {selectedPayment.user_id && orderCpfs[selectedPayment.user_id] && (
+                  {selectedPayment.customer_cpf && (
                     <div>
                       <p className="text-sm text-gray-500">CPF</p>
-                      <p className="font-medium text-gray-900">{orderCpfs[selectedPayment.user_id]}</p>
+                      <p className="font-medium text-gray-900">{selectedPayment.customer_cpf}</p>
                     </div>
                   )}
                   <div>
