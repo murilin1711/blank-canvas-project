@@ -1425,11 +1425,17 @@ export default function AdminPage() {
     }));
   };
 
-  const togglePaymentExpanded = (id: string) => {
-    setExpandedPayments(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
+  const togglePaymentExpanded = async (payment: BolsaUniformePayment) => {
+    const id = payment.id;
+    setExpandedPayments(prev => ({ ...prev, [id]: !prev[id] }));
+    if (!expandedPayments[id] && !orderCpfs[payment.user_id]) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("cpf")
+        .eq("user_id", payment.user_id)
+        .single();
+      if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [payment.user_id]: prof.cpf! }));
+    }
   };
 
   const toggleCustomerExpanded = (id: string) => {
@@ -1758,7 +1764,7 @@ export default function AdminPage() {
                                       .select("cpf")
                                       .eq("user_id", order.user_id)
                                       .single();
-                                    if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf }));
+                                    if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
                                   }
                                 }}
                                 className="flex items-center gap-1 text-[#2e3091] hover:underline font-medium"
@@ -1975,7 +1981,7 @@ export default function AdminPage() {
                         <div key={payment.id} className="transition-all">
                           <div 
                             className="flex items-center gap-4 px-4 py-3 cursor-pointer hover:bg-gray-50"
-                            onClick={() => togglePaymentExpanded(payment.id)}
+                            onClick={() => togglePaymentExpanded(payment)}
                           >
                             <button className="p-1 hover:bg-gray-200 rounded transition-colors">
                               {isExpanded ? (
@@ -2107,6 +2113,16 @@ export default function AdminPage() {
                                         );
                                       })()}
                                     </div>
+                                  </div>
+
+                                  {/* CPF e endereço */}
+                                  <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+                                    {orderCpfs[payment.user_id] && (
+                                      <span><span className="font-medium text-gray-700">CPF:</span> {orderCpfs[payment.user_id]}</span>
+                                    )}
+                                    {(payment.shipping_address as any)?.cep && (
+                                      <span><span className="font-medium text-gray-700">Endereço:</span> {(payment.shipping_address as any).street}, {(payment.shipping_address as any).number}{(payment.shipping_address as any).complement ? ` - ${(payment.shipping_address as any).complement}` : ""} — {(payment.shipping_address as any).neighborhood}, {(payment.shipping_address as any).city}/{(payment.shipping_address as any).state} — CEP {(payment.shipping_address as any).cep}</span>
+                                    )}
                                   </div>
 
                                   <div className="mt-3 flex flex-wrap gap-2">
