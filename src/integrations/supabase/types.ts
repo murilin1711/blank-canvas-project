@@ -356,6 +356,7 @@ export type Database = {
           status: string
           subtotal: number
           total: number
+          tracking_code: string | null
           updated_at: string
           user_id: string
         }
@@ -369,6 +370,7 @@ export type Database = {
           status?: string
           subtotal: number
           total: number
+          tracking_code?: string | null
           updated_at?: string
           user_id: string
         }
@@ -382,6 +384,7 @@ export type Database = {
           status?: string
           subtotal?: number
           total?: number
+          tracking_code?: string | null
           updated_at?: string
           user_id?: string
         }
