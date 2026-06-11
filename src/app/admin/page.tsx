@@ -60,6 +60,7 @@ interface BolsaUniformePayment {
   customer_name: string;
   customer_phone: string;
   customer_email: string | null;
+  customer_cpf?: string | null;
   total_amount: number;
   shipping_amount?: number;
   shipping_payment_status?: string | null;
@@ -559,13 +560,9 @@ export default function AdminPage() {
     if (bolsaPayments.length === 0) return;
     const missing = [...new Set(bolsaPayments.map(p => p.user_id).filter(id => id && !orderCpfs[id]))];
     if (missing.length === 0) return;
-    supabase.from("profiles").select("user_id, cpf").in("user_id", missing).then(({ data, error }) => {
-      console.log("[CPF bolsa] profiles query result:", { data, error, missing });
-      if (!data) return;
-      const updates: Record<string, string> = {};
-      data.forEach(p => { if (p.cpf) updates[p.user_id] = p.cpf; });
-      if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
-    });
+    const updates: Record<string, string> = {};
+    bolsaPayments.forEach(p => { if (p.customer_cpf) updates[p.user_id] = p.customer_cpf; });
+    if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
   }, [bolsaPayments]);
 
   // Load section on demand when tab changes
