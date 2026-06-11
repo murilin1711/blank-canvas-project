@@ -207,7 +207,7 @@ function buildBlocks(items: any[], productMap: Record<number, any>): {
         // Somente acessórios (com ou sem grandes)
         const total = smallAcc + largeAcc;
         blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
-        if (total >= 10) {
+        if (total > 10) {
           // Mais de 10 → dois ziplocks P
           blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
         }
@@ -351,16 +351,20 @@ function calcPackageDims(
 ): Dims {
   if (!blocks.length) return { w: 30, l: 40, h: 15 };
 
-  const d = bestDims(sortBlocks(blocks));
-
   if (contentType === "only_shoes") {
-    // Calçados: dimensões reais + 1 cm de margem de segurança
+    // Calçados são rígidos — lado a lado apenas, nunca empilhados
+    const sorted = sortBlocks(blocks);
+    const sbs  = sideBySide(sorted);
+    const sbsl = sideBySideL(sorted);
+    const best = (sbs.w * sbs.l * sbs.h) <= (sbsl.w * sbsl.l * sbsl.h) ? sbs : sbsl;
     return {
-      w: Math.max(d.w + 1, 10),
-      l: Math.max(d.l + 1, 10),
-      h: Math.max(d.h + 1, 1),
+      w: Math.max(best.w + 1, 10),
+      l: Math.max(best.l + 1, 10),
+      h: Math.max(best.h + 1, 1),
     };
   }
+
+  const d = bestDims(sortBlocks(blocks));
 
   // Vestuário, acessórios ou misto: dimensões reais sem margem adicional
   return {
@@ -404,6 +408,8 @@ serve(async (req) => {
     let length: number;
     let weight: number;
 
+    let meProducts: any[];
+
     if (productIds.length > 0) {
       const { data: productRows } = await supabase
         .from("products")
@@ -416,36 +422,49 @@ serve(async (req) => {
       const { blocks, contentType, shoeCount, weightKg } =
         buildBlocks(items || [], productMap);
 
-      const dims = calcPackageDims(blocks, contentType);
+      if (contentType === "shoes_clothing" && shoeCount > 2) {
+        // Máximo 2 sapatos por pacote quando há roupa — excedente vai em pacote separado
+        const rigidBlocks = blocks.filter((b: Block) => b.rigid);
+        const softBlocks  = blocks.filter((b: Block) => !b.rigid);
 
-      width  = dims.w;
-      length = dims.l;
-      height = dims.h;
-      weight = weightKg;
+        const mainShoeBlocks     = rigidBlocks.slice(0, 2);
+        const overflowShoeBlocks = rigidBlocks.slice(2);
 
-      console.log("[ME-QUOTE] Packing result:", JSON.stringify({ contentType, shoeCount, blocks, dims: { width, length, height }, weight }, null, 2));
+        const mainDims     = calcPackageDims([...mainShoeBlocks, ...softBlocks], "shoes_clothing");
+        const overflowDims = calcPackageDims(overflowShoeBlocks, "only_shoes");
+
+        const overflowWeight = Math.max(weightKg * (overflowShoeBlocks.length / rigidBlocks.length), 0.1);
+        const mainWeight     = Math.max(weightKg - overflowWeight, 0.1);
+
+        console.log("[ME-QUOTE] Split 2-pacotes:", JSON.stringify({ mainDims, overflowDims, mainWeight, overflowWeight }));
+
+        meProducts = [
+          { id: "main",     width: mainDims.w,     height: mainDims.h,     length: mainDims.l,     weight: mainWeight,     insurance_value: totalValue, quantity: 1 },
+          { id: "overflow", width: overflowDims.w, height: overflowDims.h, length: overflowDims.l, weight: overflowWeight, insurance_value: 0.01,       quantity: 1 },
+        ];
+
+        width = mainDims.w; length = mainDims.l; height = mainDims.h; weight = mainWeight;
+      } else {
+        const dims = calcPackageDims(blocks, contentType);
+        width = dims.w; length = dims.l; height = dims.h; weight = weightKg;
+
+        console.log("[ME-QUOTE] Packing result:", JSON.stringify({ contentType, shoeCount, dims: { width, length, height }, weight }));
+
+        meProducts = [{ id: "uniforms", width, height, length, weight, insurance_value: totalValue, quantity: 1 }];
+      }
     } else {
       const totalQty = (items || []).reduce((s: number, i: any) => s + (i.quantity || 1), 0) || 1;
       weight = Math.max(0.3 * totalQty, 0.3);
       height = Math.min(5 + (totalQty - 1) * 2, 50);
       width  = 30;
       length = 40;
+      meProducts = [{ id: "uniforms", width, height, length, weight, insurance_value: totalValue, quantity: 1 }];
     }
 
     const calcBody = {
       from: { postal_code: STORE_CEP },
       to: { postal_code: destCep.replace(/\D/g, "") },
-      products: [
-        {
-          id: "uniforms",
-          width,
-          height,
-          length,
-          weight,
-          insurance_value: totalValue,
-          quantity: 1,
-        },
-      ],
+      products: meProducts,
     };
 
     console.log("[ME-QUOTE] Payload enviado ao Melhor Envios:", JSON.stringify(calcBody, null, 2));

@@ -134,10 +134,15 @@ function bestDims(blocks: Block[]): Dims {
 
 function calcDims(blocks: Block[], contentType: string): Dims {
   if (!blocks.length) return { w: 30, l: 40, h: 15 };
-  const d = bestDims(sortBlocks(blocks));
   if (contentType === "only_shoes") {
-    return { w: Math.max(d.w + 1, 10), l: Math.max(d.l + 1, 10), h: Math.max(d.h + 1, 1) };
+    // Calçados são rígidos — lado a lado apenas, nunca empilhados
+    const sorted = sortBlocks(blocks);
+    const sbs  = sideBySide(sorted);
+    const sbsl = sideBySideL(sorted);
+    const best = volume(sbs) <= volume(sbsl) ? sbs : sbsl;
+    return { w: Math.max(best.w + 1, 10), l: Math.max(best.l + 1, 10), h: Math.max(best.h + 1, 1) };
   }
+  const d = bestDims(sortBlocks(blocks));
   return { w: Math.max(d.w, 10), l: Math.max(d.l, 10), h: Math.max(d.h, 1) };
 }
 
@@ -198,7 +203,7 @@ function buildBlocks(
         blocks.push({ ...ZIPLOCK_M, h: ACC_H, rigid: false });
       } else {
         blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
-        if (accSmall + accLarge >= 10) blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
+        if (accSmall + accLarge > 10) blocks.push({ ...ZIPLOCK_P, h: ACC_H, rigid: false });
       }
     } else {
       if (accLarge > 0) {
@@ -251,6 +256,21 @@ export function getPackageLabel(
   const { blocks, contentType, shoeCount } = buildBlocks(items, byName);
 
   if (!blocks.length) return { label: "—", color: "bg-gray-100 text-gray-500", dims: null };
+
+  // Overflow: sapatos + roupa com mais de 2 sapatos → 2 pacotes
+  if (contentType === "shoes_clothing" && shoeCount > 2) {
+    const rigidBlocks   = blocks.filter(b => b.rigid);
+    const softBlocks    = blocks.filter(b => !b.rigid);
+    const mainBlocks    = [...rigidBlocks.slice(0, 2), ...softBlocks];
+    const overflowBlocks = rigidBlocks.slice(2);
+
+    const mainDims = calcDims(mainBlocks, "shoes_clothing");
+    const overflowCount = overflowBlocks.length;
+    const overflowEnv = overflowCount === 1 ? "Envelope P" : overflowCount === 2 ? "Envelope M" : "Envelope G";
+
+    const rounded = { w: Math.ceil(mainDims.w), l: Math.ceil(mainDims.l), h: Math.ceil(mainDims.h) };
+    return { label: `Envelope G + ${overflowEnv}`, color: "bg-red-100 text-red-700", dims: rounded };
+  }
 
   const dims = calcDims(blocks, contentType);
   const label = envelopeLabel(dims, contentType, shoeCount);
