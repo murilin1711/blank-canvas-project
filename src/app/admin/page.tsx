@@ -236,6 +236,7 @@ export default function AdminPage() {
 
   // Expand order items inline
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [orderCpfs, setOrderCpfs] = useState<Record<string, string>>({});
 
   // Feedback edit states
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -1748,7 +1749,18 @@ export default function AdminPage() {
                             <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
                             <td className="px-6 py-4 text-sm">
                               <button
-                                onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                onClick={async () => {
+                                  const newId = expandedOrderId === order.id ? null : order.id;
+                                  setExpandedOrderId(newId);
+                                  if (newId && !orderCpfs[order.user_id]) {
+                                    const { data: prof } = await supabase
+                                      .from("profiles")
+                                      .select("cpf")
+                                      .eq("user_id", order.user_id)
+                                      .single();
+                                    if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf }));
+                                  }
+                                }}
                                 className="flex items-center gap-1 text-[#2e3091] hover:underline font-medium"
                               >
                                 {order.order_items?.length || 0} produtos ({order.order_items?.reduce((s, i) => s + (i.quantity || 1), 0) || 0} itens)
@@ -1866,6 +1878,15 @@ export default function AdminPage() {
                                       <p className="font-medium text-gray-900">{formatCurrency(item.price)}</p>
                                     </div>
                                   ))}
+                                </div>
+                                {/* CPF e endereço */}
+                                <div className="mt-3 pt-3 border-t border-blue-200 flex flex-wrap gap-4 text-sm text-gray-600">
+                                  {orderCpfs[order.user_id] && (
+                                    <span><span className="font-medium text-gray-700">CPF:</span> {orderCpfs[order.user_id]}</span>
+                                  )}
+                                  {order.shipping_address?.cep && (
+                                    <span><span className="font-medium text-gray-700">Endereço:</span> {order.shipping_address.street}, {order.shipping_address.number}{order.shipping_address.complement ? ` - ${order.shipping_address.complement}` : ""} — {order.shipping_address.neighborhood}, {order.shipping_address.city}/{order.shipping_address.state} — CEP {order.shipping_address.cep}</span>
+                                  )}
                                 </div>
                                 {/* Tracking code */}
                                 <div className="mt-3 pt-3 border-t border-blue-200">

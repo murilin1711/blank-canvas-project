@@ -270,7 +270,7 @@ function buildLabeledBlocks(
         blocks.push({ ...ZIPLOCK_M_DIMS, h: ACC_H, rigid: false, kind: "ziplock_m", label: "ZIP M\nAcess." });
       } else {
         blocks.push({ ...ZIPLOCK_P_DIMS, h: ACC_H, rigid: false, kind: "ziplock_p", label: "ZIP P\nAcess." });
-        if (accSmall + accLarge >= 10) {
+        if (accSmall + accLarge > 10) {
           blocks.push({ ...ZIPLOCK_P_DIMS, h: ACC_H, rigid: false, kind: "ziplock_p", label: "ZIP P\nAcess." });
         }
       }
