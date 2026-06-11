@@ -52,8 +52,9 @@ serve(async (req) => {
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+      let resolvedOrderId = orderId;
+
       if (orderId) {
-        // Update specific order by ID
         const { error } = await supabase
           .from("orders")
           .update({ status: "paid" })
@@ -84,9 +85,37 @@ serve(async (req) => {
               .update({ status: "paid" })
               .eq("id", orders[0].id);
 
+            resolvedOrderId = orders[0].id;
             console.log("[CHECK-PIX-PAYMENT] Order updated to paid via userId:", orders[0].id);
           }
         }
+      }
+
+      // Se o order pertence a um bolsa_uniforme_payment, marca o frete como pago
+      if (resolvedOrderId) {
+        const { data: buRecord } = await supabase
+          .from("bolsa_uniforme_payments")
+          .select("id")
+          .eq("order_id", resolvedOrderId)
+          .maybeSingle();
+
+        if (buRecord?.id) {
+          await supabase
+            .from("bolsa_uniforme_payments")
+            .update({ shipping_payment_status: "paid" })
+            .eq("id", buRecord.id);
+          console.log("[CHECK-PIX-PAYMENT] bolsa_uniforme_payments shipping marcado como pago:", buRecord.id);
+        }
+      }
+
+      // Verifica também pelo bolsa_payment_id nos metadados do pagamento MP
+      const bolsaPaymentIdFromMeta = payment.metadata?.bolsa_payment_id;
+      if (bolsaPaymentIdFromMeta) {
+        await supabase
+          .from("bolsa_uniforme_payments")
+          .update({ shipping_payment_status: "paid" })
+          .eq("id", bolsaPaymentIdFromMeta);
+        console.log("[CHECK-PIX-PAYMENT] bolsa_uniforme_payments shipping marcado via metadata:", bolsaPaymentIdFromMeta);
       }
     }
 

@@ -550,6 +550,13 @@ export default function AdminPage() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
         reloadSection('orders', true);
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bolsa_uniforme_payments' }, (payload) => {
+        const updated = payload.new as any;
+        setBolsaPayments(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p));
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bolsa_uniforme_payments' }, () => {
+        reloadSection('bolsa', true);
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

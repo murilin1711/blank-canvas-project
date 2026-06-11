@@ -36,6 +36,7 @@ interface MercadoPagoPixPaymentProps {
   onBack: () => void;
   bolsaPaymentId?: string | null;
   shippingMethod?: string;
+  onSuccess?: () => void;
 }
 
 export function MercadoPagoPixPayment({
@@ -50,6 +51,7 @@ export function MercadoPagoPixPayment({
   onBack,
   bolsaPaymentId,
   shippingMethod,
+  onSuccess,
 }: MercadoPagoPixPaymentProps) {
   const navigate = useNavigate();
   const { clearCart } = useCart();
@@ -153,8 +155,12 @@ export function MercadoPagoPixPayment({
 
         if (data?.approved) {
           toast.success("Pagamento confirmado!");
-          clearCart();
-          navigate("/checkout/sucesso");
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            clearCart();
+            navigate("/checkout/sucesso");
+          }
         }
       } catch (err) {
         console.error("Error checking payment status:", err);
@@ -196,8 +202,12 @@ export function MercadoPagoPixPayment({
 
       if (data?.approved) {
         toast.success("Pagamento confirmado!");
-        clearCart();
-        navigate("/checkout/sucesso");
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          clearCart();
+          navigate("/checkout/sucesso");
+        }
       } else {
         toast.info("Pagamento ainda não confirmado. Aguarde alguns instantes.");
       }

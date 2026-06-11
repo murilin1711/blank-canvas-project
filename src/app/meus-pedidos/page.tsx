@@ -56,10 +56,12 @@ interface BolsaPayment {
 function BolsaPaymentCard({
   payment,
   user,
+  userCpf,
   onRefresh,
 }: {
   payment: BolsaPayment;
   user: { id: string; email?: string; user_metadata?: Record<string, string> } | null;
+  userCpf: string;
   onRefresh: () => void;
 }) {
   const [showFreteModal, setShowFreteModal] = useState(false);
@@ -254,13 +256,17 @@ function BolsaPaymentCard({
                   items={[]}
                   customerEmail={user?.email || ""}
                   customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
-                  cpf=""
+                  cpf={userCpf}
                   total={payment.shipping_amount}
                   userId={user?.id || ""}
                   shippingAddress={{ cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "" }}
                   shipping={0}
                   bolsaPaymentId={payment.id}
                   onBack={() => setShowPix(false)}
+                  onSuccess={() => {
+                    closeFreteModal();
+                    onRefresh();
+                  }}
                 />
               )}
             </div>
@@ -321,6 +327,7 @@ export default function MeusPedidosPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [bolsaPayments, setBolsaPayments] = useState<BolsaPayment[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [userCpf, setUserCpf] = useState("");
 
   const fetchBolsaPayments = async (userId: string) => {
     const { data, error } = await supabase
@@ -331,6 +338,18 @@ export default function MeusPedidosPage() {
       .order("created_at", { ascending: false });
     if (!error) setBolsaPayments((data || []) as unknown as BolsaPayment[]);
   };
+
+  useEffect(() => {
+    if (user) {
+      const saved = localStorage.getItem("checkout_personal");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed?.cpf) setUserCpf(parsed.cpf);
+        } catch {}
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -439,6 +458,7 @@ export default function MeusPedidosPage() {
                 key={bp.id}
                 payment={bp}
                 user={user}
+                userCpf={userCpf}
                 onRefresh={() => fetchBolsaPayments(user.id)}
               />
             ))}
