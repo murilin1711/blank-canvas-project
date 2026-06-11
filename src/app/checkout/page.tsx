@@ -1273,6 +1273,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         state: address.state,
                       }}
                       shipping={shipping}
+                      shippingMethod={shippingMethod}
                       onBack={() => setShowPixPayment(false)}
                     />
 
@@ -1444,6 +1445,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         state: address.state,
                       }}
                       shipping={shipping}
+                      shippingMethod={shippingMethod}
                       onBack={() => setShowBolsaRemainderPix(false)}
                     />
 
@@ -1600,6 +1602,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           state: address.state,
                         }}
                         shipping={0}
+                        shippingMethod={shippingMethod}
                         onBack={() => setShowShippingPix(false)}
                         bolsaPaymentId={bolsaPaymentId}
                       />

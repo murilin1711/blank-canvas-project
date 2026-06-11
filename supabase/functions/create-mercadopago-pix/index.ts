@@ -49,7 +49,7 @@ serve(async (req) => {
     }
 
     const body: PixPaymentRequest = await req.json();
-    const { items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping, bolsaPaymentId } = body;
+    const { items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping, bolsaPaymentId, shippingMethod } = body;
 
     // Clean CPF (remove dots and dashes)
     const cleanCpf = cpf.replace(/\D/g, "");
@@ -134,7 +134,10 @@ serve(async (req) => {
           subtotal,
           shipping,
           total,
-          shipping_address: shippingAddress,
+          shipping_address: {
+            ...shippingAddress,
+            ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}),
+          },
           status: "pending",
           payment_method: "pix",
         })

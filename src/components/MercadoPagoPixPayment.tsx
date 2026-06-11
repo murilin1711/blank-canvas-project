@@ -35,6 +35,7 @@ interface MercadoPagoPixPaymentProps {
   shipping: number;
   onBack: () => void;
   bolsaPaymentId?: string | null;
+  shippingMethod?: string;
 }
 
 export function MercadoPagoPixPayment({
@@ -48,6 +49,7 @@ export function MercadoPagoPixPayment({
   shipping,
   onBack,
   bolsaPaymentId,
+  shippingMethod,
 }: MercadoPagoPixPaymentProps) {
   const navigate = useNavigate();
   const { clearCart } = useCart();
@@ -82,6 +84,7 @@ export function MercadoPagoPixPayment({
           shippingAddress,
           shipping,
           ...(bolsaPaymentId ? { bolsaPaymentId } : {}),
+          ...(shippingMethod ? { shippingMethod } : {}),
         },
       });
 
