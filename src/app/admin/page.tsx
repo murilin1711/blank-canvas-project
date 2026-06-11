@@ -2905,7 +2905,19 @@ export default function AdminPage() {
                   {!linkedOrder.shipping_address?.label_url && linkedOrder.shipping_address?.cep && (
                     <div className="mt-4">
                       <button
-                        onClick={() => { setShowDetailsModal(false); openLabelModal(linkedOrder); }}
+                        onClick={() => {
+                          const orderWithMethod = {
+                            ...linkedOrder,
+                            shipping_address: {
+                              ...linkedOrder.shipping_address,
+                              selected_shipping_method:
+                                linkedOrder.shipping_address?.selected_shipping_method ||
+                                selectedPayment?.shipping_address?.selected_shipping_method,
+                            },
+                          };
+                          setShowDetailsModal(false);
+                          openLabelModal(orderWithMethod as Order);
+                        }}
                         className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         <Printer className="w-4 h-4" />

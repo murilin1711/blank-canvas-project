@@ -1796,6 +1796,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           neighborhood: address.neighborhood,
                           city: address.city,
                           state: address.state,
+                          selected_shipping_method: shippingMethod,
                         },
                         status: "pending",
                       } as any).select("id").single();
