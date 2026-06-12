@@ -974,11 +974,6 @@ export default function AdminPage() {
     const selectedMethod = addr.selected_shipping_method as string | undefined;
     const meServiceId = selectedMethod?.startsWith("me-") ? parseInt(selectedMethod.slice(3)) : null;
 
-    if (!meServiceId) {
-      toast.error("Este pedido não usou Melhor Envio — não é possível gerar etiqueta aqui.");
-      return;
-    }
-
     const syntheticOrder: Order = {
       id: payment.order_id,
       user_id: payment.user_id,
@@ -991,13 +986,18 @@ export default function AdminPage() {
       created_at: payment.created_at,
     };
 
-    // Abre o modal sem cotar — usa o serviço que o cliente escolheu
-    setLabelOrder(syntheticOrder);
-    setLabelServices([]);
-    setLabelSelectedService(meServiceId);
-    setLabelResult(null);
-    setLabelLoadingQuote(false);
-    setLabelPresetServiceName(`Serviço ID ${meServiceId} (escolha do cliente)`);
+    if (meServiceId) {
+      // Pula cotação — usa o serviço que o cliente escolheu
+      setLabelOrder(syntheticOrder);
+      setLabelServices([]);
+      setLabelSelectedService(meServiceId);
+      setLabelResult(null);
+      setLabelLoadingQuote(false);
+      setLabelPresetServiceName(`Serviço ID ${meServiceId} (escolha do cliente)`);
+    } else {
+      // Serviço desconhecido ou antigo — cota normalmente
+      openLabelModal(syntheticOrder);
+    }
   };
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
