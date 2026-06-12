@@ -221,6 +221,8 @@ export default function AdminPage() {
   const [labelSelectedService, setLabelSelectedService] = useState<number | null>(null);
   const [labelGenerating, setLabelGenerating] = useState(false);
   const [labelResult, setLabelResult] = useState<{ labelUrl: string | null; trackingCode: string | null } | null>(null);
+  // Quando true, pula a cotação e usa o serviço pré-selecionado (bolsa uniforme)
+  const [labelPresetServiceName, setLabelPresetServiceName] = useState<string | null>(null);
 
   // Packing illustration modal
   const [packingOrder, setPackingOrder] = useState<Order | null>(null);
@@ -806,6 +808,7 @@ export default function AdminPage() {
     setLabelServices([]);
     setLabelSelectedService(null);
     setLabelResult(null);
+    setLabelPresetServiceName(null);
     setLabelLoadingQuote(true);
 
     try {
@@ -855,12 +858,27 @@ export default function AdminPage() {
       setLabelResult({ labelUrl: data.labelUrl, trackingCode: data.trackingCode });
       toast.success("Etiqueta gerada com sucesso!");
 
-      // Atualizar lista de pedidos localmente
+      const updatedAddr = { ...labelOrder.shipping_address, label_url: data.labelUrl, tracking_code: data.trackingCode, me_order_id: data.meOrderId };
+
+      // Atualizar lista de pedidos normais
       setOrders(prev => prev.map(o =>
         o.id === labelOrder.id
-          ? { ...o, status: "separating", shipping_address: { ...o.shipping_address, label_url: data.labelUrl, tracking_code: data.trackingCode, me_order_id: data.meOrderId } }
+          ? { ...o, status: "separating", shipping_address: updatedAddr }
           : o
       ));
+
+      // Atualizar bolsa payments se for um order vinculado
+      if (labelOrder.payment_method === "bolsa_uniforme") {
+        const orderId = labelOrder.id;
+        setBolsaPayments(prev => prev.map(p => p.order_id === orderId ? { ...p, shipping_address: updatedAddr } : p));
+        setBolsaOrderData(prev => {
+          const cur = prev[orderId];
+          return cur ? { ...prev, [orderId]: { ...cur, status: "separating" } } : prev;
+        });
+        if (data.trackingCode) {
+          setBolsaOrderData(prev => ({ ...prev, [orderId]: { ...(prev[orderId] || { status: "separating" }), tracking_code: data.trackingCode } }));
+        }
+      }
     } catch (err: any) {
       toast.error(`Erro ao gerar etiqueta: ${err.message}`);
     } finally {
@@ -952,7 +970,15 @@ export default function AdminPage() {
       toast.error("Pedido ainda não foi criado. Aprove o pagamento primeiro.");
       return;
     }
-    // Montar objeto Order mínimo — o edge function busca os dados completos via service role
+    const addr = (payment.shipping_address || {}) as any;
+    const selectedMethod = addr.selected_shipping_method as string | undefined;
+    const meServiceId = selectedMethod?.startsWith("me-") ? parseInt(selectedMethod.slice(3)) : null;
+
+    if (!meServiceId) {
+      toast.error("Este pedido não usou Melhor Envio — não é possível gerar etiqueta aqui.");
+      return;
+    }
+
     const syntheticOrder: Order = {
       id: payment.order_id,
       user_id: payment.user_id,
@@ -961,10 +987,17 @@ export default function AdminPage() {
       total: (Number(payment.total_amount) || 0) + (Number(payment.shipping_amount) || 0),
       status: "paid",
       payment_method: "bolsa_uniforme",
-      shipping_address: payment.shipping_address || {},
+      shipping_address: addr,
       created_at: payment.created_at,
     };
-    openLabelModal(syntheticOrder);
+
+    // Abre o modal sem cotar — usa o serviço que o cliente escolheu
+    setLabelOrder(syntheticOrder);
+    setLabelServices([]);
+    setLabelSelectedService(meServiceId);
+    setLabelResult(null);
+    setLabelLoadingQuote(false);
+    setLabelPresetServiceName(`Serviço ID ${meServiceId} (escolha do cliente)`);
   };
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
@@ -3388,7 +3421,19 @@ export default function AdminPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Serviço de entrega
                     </label>
-                    {/* Serviço escolhido pelo cliente */}
+
+                    {/* Modo bolsa uniforme: serviço pré-selecionado, sem cotação */}
+                    {labelPresetServiceName ? (
+                      <div className="flex items-center gap-2 px-3 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+                        <Check className="w-4 h-4 flex-shrink-0" />
+                        <div>
+                          <p className="font-semibold">Serviço escolhido pelo cliente</p>
+                          <p className="text-xs text-green-700">{labelPresetServiceName}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                    {/* Serviço escolhido pelo cliente (modo cotação normal) */}
                     {(() => {
                       const selectedMethod = labelOrder?.shipping_address?.selected_shipping_method as string | undefined;
                       if (!selectedMethod || !selectedMethod.startsWith("me-")) return null;
@@ -3452,6 +3497,8 @@ export default function AdminPage() {
                           );
                         })}
                       </div>
+                    )}
+                      </>
                     )}
                   </div>
 
