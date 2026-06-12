@@ -443,6 +443,44 @@ export default function MeusPedidosPage() {
     if (!loading) fetchOrders();
   }, [user, loading]);
 
+  // Realtime: atualiza orders quando admin muda status/rastreio
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`meus-pedidos-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as any;
+          setOrders(prev =>
+            prev.map(o => o.id === updated.id ? { ...o, ...updated } : o)
+          );
+          // Atualiza também order_status/order_tracking_code nos bolsaPayments vinculados
+          setBolsaPayments(prev =>
+            prev.map(p => p.order_id === updated.id
+              ? { ...p, order_status: updated.status, order_tracking_code: updated.tracking_code ?? null }
+              : p
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "bolsa_uniforme_payments", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const updated = payload.new as any;
+          setBolsaPayments(prev =>
+            prev.map(p => p.id === updated.id ? { ...p, ...updated } : p)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   if (loading || (user && loadingOrders)) {
     return (
       <main className="min-h-screen bg-white pt-[120px]">
@@ -576,7 +614,7 @@ export default function MeusPedidosPage() {
                             {order.tracking_code}
                           </span>
                           <a
-                            href={`https://rastreamento.correios.com.br/app/index.php`}
+                            href={`https://rastreamento.correios.com.br/app/index.php?objeto=${order.tracking_code}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-sm px-3 py-1.5 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors whitespace-nowrap"
