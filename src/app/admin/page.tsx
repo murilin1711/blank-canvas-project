@@ -850,10 +850,14 @@ export default function AdminPage() {
 
       let errMsg = data?.error;
       if (!errMsg && error) {
-        try { errMsg = JSON.parse(error?.context?.responseText || "")?.error; } catch {}
-        errMsg = errMsg || error?.message;
+        try {
+          const parsed = JSON.parse(error?.context?.responseText || "");
+          errMsg = parsed?.error || parsed?.message || JSON.stringify(parsed);
+        } catch {}
+        errMsg = errMsg || error?.context?.responseText || error?.message;
       }
       if (errMsg) throw new Error(errMsg);
+      if (!data) throw new Error("Edge function não retornou dados");
 
       setLabelResult({ labelUrl: data.labelUrl, trackingCode: data.trackingCode });
       toast.success("Etiqueta gerada com sucesso!");
