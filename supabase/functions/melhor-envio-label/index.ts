@@ -464,7 +464,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: getValidDocument(meProfile.document || meProfile.company_document),
+          document: getValidDocument(meProfile.document || meProfile.company_document) || FALLBACK_CPF_SENDER,
           address: senderAddress.address || "Rua Guimaraes Natal",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "50",
