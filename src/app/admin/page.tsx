@@ -595,10 +595,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (bolsaPayments.length === 0) return;
     const updates: Record<string, string> = {};
-    // Primeiro: lê do shipping_address.cpf (sem query extra)
     bolsaPayments.forEach(p => {
-      const addr = p.shipping_address as any;
-      if (addr?.cpf && p.user_id) updates[p.user_id] = addr.cpf;
+      if (!p.user_id) return;
+      // customer_cpf já vem resolvido pela edge function (profiles → shipping_address fallback)
+      const cpf = (p as any).customer_cpf || (p.shipping_address as any)?.cpf;
+      if (cpf) updates[p.user_id] = cpf;
     });
     if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
     // Fallback: busca em profiles para os que ainda não têm
@@ -615,6 +616,31 @@ export default function AdminPage() {
         if (Object.keys(profileUpdates).length > 0) setOrderCpfs(prev => ({ ...prev, ...profileUpdates }));
       });
   }, [bolsaPayments]);
+
+  // Busca CPFs em lote sempre que orders mudar
+  useEffect(() => {
+    if (orders.length === 0) return;
+    const updates: Record<string, string> = {};
+    // Primeiro: lê do shipping_address.cpf (sem query extra)
+    orders.forEach(o => {
+      const addr = o.shipping_address as any;
+      if (addr?.cpf && o.user_id) updates[o.user_id] = addr.cpf;
+    });
+    if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
+    // Fallback: busca em profiles para os que ainda não têm
+    const missing = [...new Set(orders.map(o => o.user_id).filter(id => id && !updates[id] && !orderCpfs[id]))];
+    if (missing.length === 0) return;
+    supabase
+      .from("profiles")
+      .select("user_id, cpf")
+      .in("user_id", missing)
+      .then(({ data }) => {
+        if (!data) return;
+        const profileUpdates: Record<string, string> = {};
+        data.forEach(p => { if (p.cpf) profileUpdates[p.user_id] = p.cpf; });
+        if (Object.keys(profileUpdates).length > 0) setOrderCpfs(prev => ({ ...prev, ...profileUpdates }));
+      });
+  }, [orders]);
 
   // Load section on demand when tab changes
   useEffect(() => {
@@ -1928,12 +1954,17 @@ export default function AdminPage() {
                                   const newId = expandedOrderId === order.id ? null : order.id;
                                   setExpandedOrderId(newId);
                                   if (newId && !orderCpfs[order.user_id]) {
-                                    const { data: prof } = await supabase
-                                      .from("profiles")
-                                      .select("cpf")
-                                      .eq("user_id", order.user_id)
-                                      .single();
-                                    if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
+                                    const addrCpf = (order.shipping_address as any)?.cpf;
+                                    if (addrCpf) {
+                                      setOrderCpfs(prev => ({ ...prev, [order.user_id]: addrCpf }));
+                                    } else {
+                                      const { data: prof } = await supabase
+                                        .from("profiles")
+                                        .select("cpf")
+                                        .eq("user_id", order.user_id)
+                                        .single();
+                                      if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
+                                    }
                                   }
                                 }}
                                 className="flex items-center gap-1 text-[#2e3091] hover:underline font-medium"
@@ -2239,10 +2270,10 @@ export default function AdminPage() {
                                           <span className="text-gray-900">{payment.customer_email}</span>
                                         </div>
                                       )}
-                                      {orderCpfs[payment.user_id] && (
+                                      {(orderCpfs[payment.user_id] || payment.customer_cpf || (payment.shipping_address as any)?.cpf) && (
                                         <div className="flex items-center gap-2 text-sm">
                                           <span className="text-gray-500">CPF:</span>
-                                          <span className="text-gray-900">{orderCpfs[payment.user_id]}</span>
+                                          <span className="text-gray-900">{orderCpfs[payment.user_id] || payment.customer_cpf || (payment.shipping_address as any)?.cpf}</span>
                                         </div>
                                       )}
                                       <div className="flex items-center gap-2 text-sm">
@@ -2309,8 +2340,8 @@ export default function AdminPage() {
 
                                   {/* CPF e endereço */}
                                   <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
-                                    {orderCpfs[payment.user_id] && (
-                                      <span><span className="font-medium text-gray-700">CPF:</span> {orderCpfs[payment.user_id]}</span>
+                                    {(orderCpfs[payment.user_id] || payment.customer_cpf || (payment.shipping_address as any)?.cpf) && (
+                                      <span><span className="font-medium text-gray-700">CPF:</span> {orderCpfs[payment.user_id] || payment.customer_cpf || (payment.shipping_address as any)?.cpf}</span>
                                     )}
                                     {(payment.shipping_address as any)?.cep && (
                                       <span><span className="font-medium text-gray-700">Endereço:</span> {(payment.shipping_address as any).street}, {(payment.shipping_address as any).number}{(payment.shipping_address as any).complement ? ` - ${(payment.shipping_address as any).complement}` : ""} — {(payment.shipping_address as any).neighborhood}, {(payment.shipping_address as any).city}/{(payment.shipping_address as any).state} — CEP {(payment.shipping_address as any).cep}</span>
@@ -3047,10 +3078,10 @@ export default function AdminPage() {
                       <p className="font-medium text-gray-900">{selectedPayment.customer_email}</p>
                     </div>
                   )}
-                  {selectedPayment.user_id && orderCpfs[selectedPayment.user_id] && (
+                  {(orderCpfs[selectedPayment.user_id] || selectedPayment.customer_cpf || (selectedPayment.shipping_address as any)?.cpf) && (
                     <div>
                       <p className="text-sm text-gray-500">CPF</p>
-                      <p className="font-medium text-gray-900">{orderCpfs[selectedPayment.user_id]}</p>
+                      <p className="font-medium text-gray-900">{orderCpfs[selectedPayment.user_id] || selectedPayment.customer_cpf || (selectedPayment.shipping_address as any)?.cpf}</p>
                     </div>
                   )}
                   <div>

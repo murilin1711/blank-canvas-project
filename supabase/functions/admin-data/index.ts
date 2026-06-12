@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
       // IMPORTANT: do not send qr_code_image in the list payload (it's a large base64 string)
       const { data: d } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("id, user_id, order_id, total_amount, shipping_amount, shipping_payment_status, items, notes, password, status, customer_name, customer_phone, customer_email, created_at, updated_at, processed_at, processed_by")
+        .select("id, user_id, order_id, total_amount, shipping_amount, shipping_payment_status, items, notes, password, status, customer_name, customer_phone, customer_email, shipping_address, created_at, updated_at, processed_at, processed_by")
         .order("created_at", { ascending: true });
 
       const payments = d || [];
@@ -40,7 +40,11 @@ Deno.serve(async (req: Request) => {
         const { data: profs } = await supabase.from("profiles").select("user_id, cpf").in("user_id", userIds);
         (profs || []).forEach((p: any) => { if (p.cpf) cpfMap[p.user_id] = p.cpf; });
       }
-      result = { bolsaPayments: payments.map((p: any) => ({ ...p, customer_cpf: cpfMap[p.user_id] ?? null })) };
+      // Fallback: usa shipping_address.cpf se o perfil não tiver CPF
+      result = { bolsaPayments: payments.map((p: any) => {
+        const addrCpf = (p.shipping_address as any)?.cpf ?? null;
+        return { ...p, customer_cpf: cpfMap[p.user_id] ?? addrCpf };
+      }) };
     } else if (action === 'get_bolsa_payment_details') {
       const paymentId = data?.id;
       if (!paymentId) {
@@ -342,7 +346,8 @@ Deno.serve(async (req: Request) => {
 
       result = { success: true };
     } else if (action === 'update_tracking_code') {
-      await supabase.from("orders").update({ tracking_code: data.trackingCode, status: "shipped", updated_at: new Date().toISOString() }).eq("id", data.id);
+      const { error: trackingUpdateError } = await supabase.from("orders").update({ tracking_code: data.trackingCode, status: "shipped", updated_at: new Date().toISOString() }).eq("id", data.id);
+      if (trackingUpdateError) throw new Error(trackingUpdateError.message);
 
       // Envia email de rastreio
       try {
