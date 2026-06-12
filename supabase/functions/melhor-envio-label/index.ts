@@ -307,14 +307,13 @@ function isValidCNPJ(cnpj: string): boolean {
   return true;
 }
 
-function getValidDocument(doc: string, preferCpf = false): string {
+const FALLBACK_CPF_SENDER    = "00000000191"; // fallback para loja
+const FALLBACK_CPF_RECIPIENT = "00000000272"; // fallback para cliente
+
+function getValidDocument(doc: string): string {
   const clean = (doc || "").replace(/\D/g, "");
-  if (isValidCPF(clean) || isValidCNPJ(clean)) {
-    return clean;
-  }
-  // CPF válido de fallback (aceito pela ME quando CNPJ não está disponível)
-  if (preferCpf || clean.length <= 11) return "00000000191";
-  return "00000000191";
+  if (isValidCPF(clean) || isValidCNPJ(clean)) return clean;
+  return "";
 }
 
 // ── Admin token validation ────────────────────────────────────────────────────
@@ -465,7 +464,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: getValidDocument(meProfile.document || meProfile.company_document),
+          document: getValidDocument(meProfile.document || meProfile.company_document) || FALLBACK_CPF_SENDER,
           address: senderAddress.address || "Rua Guimaraes Natal",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "50",
@@ -479,7 +478,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: getValidDocument(addr.cpf || profile?.cpf, true),
+          document: getValidDocument(addr.cpf || profile?.cpf) || FALLBACK_CPF_RECIPIENT,
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
