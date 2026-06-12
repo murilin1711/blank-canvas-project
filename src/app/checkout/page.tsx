@@ -342,7 +342,16 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
       if (!savePersonalData) {
         localStorage.removeItem("checkout_personal");
       }
-      
+
+      // Persiste CPF e telefone no perfil para o admin poder visualizar
+      if (user) {
+        supabase
+          .from("profiles")
+          .update({ cpf: personal.cpf, phone: personal.phone })
+          .eq("user_id", user.id)
+          .then(() => {});
+      }
+
       setCompletedSteps([...completedSteps, "login"]);
       setCurrentStep("entrega");
       scrollToStepContent();
