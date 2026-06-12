@@ -307,6 +307,7 @@ function isValidCNPJ(cnpj: string): boolean {
   return true;
 }
 
+// CPFs válidos distintos para fallback (remetente e destinatário nunca podem ser iguais)
 const FALLBACK_CPF_SENDER    = "00000000191"; // fallback para loja
 const FALLBACK_CPF_RECIPIENT = "00000000272"; // fallback para cliente
 
@@ -433,9 +434,10 @@ serve(async (req) => {
         .single();
 
       const addr = order.shipping_address || {};
+
+      // Tenta buscar CPF do cliente de todas as fontes possíveis
       const clientCpf = (addr.cpf || profile?.cpf || "").replace(/\D/g, "");
       console.log("[ME-LABEL] clientCpf sources — addr.cpf:", addr.cpf, "| profile.cpf:", profile?.cpf, "| resolved:", clientCpf);
-
       const destCep = (addr.cep || "").replace(/\D/g, "");
       if (!destCep) throw new Error("CEP de destino não encontrado no pedido");
 
@@ -448,6 +450,7 @@ serve(async (req) => {
           meProfile = await meProfileRes.json();
           console.log("[ME-LABEL] meProfile.document:", meProfile.document, "| company.document:", meProfile.company?.document);
           senderAddress = (meProfile.addresses || [])[0] || {};
+          console.log("[ME-LABEL] meProfile.document:", meProfile.document, "| company.document:", meProfile.company?.document);
         }
       } catch {
         // usa fallback abaixo
