@@ -91,58 +91,97 @@ serve(async (req) => {
       });
     }
 
-    // Pagamento de frete do Bolsa Uniforme
+    // ── Resolve o orderId via external_reference (preferencial) ou metadata ──
+    const externalRef = payment.external_reference as string | undefined;
     const bolsaPaymentId = payment.metadata?.bolsa_payment_id;
-    if (bolsaPaymentId) {
+    const metaOrderId = payment.metadata?.order_id;
+
+    let orderId: string | null = null;
+
+    // Tenta via external_reference primeiro (mais confiável)
+    if (externalRef?.startsWith("order-")) {
+      orderId = externalRef.replace("order-", "");
+    } else if (externalRef?.startsWith("bu-")) {
+      const buId = externalRef.replace("bu-", "");
+      const { data: buPayment } = await supabase
+        .from("bolsa_uniforme_payments")
+        .select("order_id")
+        .eq("id", buId)
+        .single();
+      orderId = buPayment?.order_id ?? null;
+      // Marca frete como pago (idempotente)
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ shipping_payment_status: "paid" })
+        .eq("id", buId)
+        .eq("shipping_payment_status", "pending"); // só atualiza se ainda pendente
+    } else if (bolsaPaymentId) {
+      // Fallback para pagamentos antigos sem external_reference
       const { data: buPayment } = await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
         .eq("id", bolsaPaymentId)
         .select("order_id")
         .single();
-      // Se há um orders vinculado, marca como pago também
-      if (buPayment?.order_id) {
-        await supabase
-          .from("orders")
-          .update({ status: "paid", payment_provider_id: String(paymentId) })
-          .eq("id", buPayment.order_id);
-      }
-      console.log("[MERCADOPAGO-WEBHOOK] Bolsa frete marcado como pago:", bolsaPaymentId);
-      return new Response(JSON.stringify({ success: true, bolsaPaymentId }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      orderId = buPayment?.order_id ?? null;
+    } else if (metaOrderId) {
+      orderId = metaOrderId;
+    } else {
+      // Último fallback: order pendente mais recente do usuário
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("payment_method", "pix")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      orderId = orders?.[0]?.id ?? null;
     }
 
-    // Pagamento normal — busca e atualiza o pedido
-    const { data: orders, error: findError } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("payment_method", "pix")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    if (findError || !orders || orders.length === 0) {
-      console.error("[MERCADOPAGO-WEBHOOK] Order not found:", findError);
+    if (!orderId) {
+      console.error("[MERCADOPAGO-WEBHOOK] Could not resolve orderId");
       return new Response(JSON.stringify({ error: "Order not found" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 404,
       });
     }
 
-    const orderId = orders[0].id;
+    // Se é frete BU e já atualizou o shipping_payment_status, pode encerrar aqui
+    if (externalRef?.startsWith("bu-") || bolsaPaymentId) {
+      if (orderId) {
+        await supabase
+          .from("orders")
+          .update({ status: "paid", payment_provider_id: String(paymentId) })
+          .eq("id", orderId)
+          .eq("status", "pending");
+      }
+      console.log("[MERCADOPAGO-WEBHOOK] Bolsa frete pago, orderId:", orderId);
+      return new Response(JSON.stringify({ success: true, orderId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
-    // Update order status to paid
-    const { error: updateError } = await supabase
+    // Update order status — só atualiza se ainda pending (evita duplo processamento)
+    const { data: updatedRows, error: updateError } = await supabase
       .from("orders")
       .update({ status: "paid", payment_provider_id: String(paymentId) })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .eq("status", "pending")
+      .select("id");
 
     if (updateError) {
       console.error("[MERCADOPAGO-WEBHOOK] Error updating order:", updateError);
       throw updateError;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      console.log("[MERCADOPAGO-WEBHOOK] Order already processed, skipping:", orderId);
+      return new Response(JSON.stringify({ success: true, orderId, alreadyProcessed: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     console.log("[MERCADOPAGO-WEBHOOK] Order updated to paid:", orderId);

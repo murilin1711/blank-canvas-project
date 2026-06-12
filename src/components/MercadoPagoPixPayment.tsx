@@ -56,7 +56,11 @@ export function MercadoPagoPixPayment({
   const navigate = useNavigate();
   const { clearCart } = useCart();
   
+  // Chave de sessão para persistir QR Code durante refresh
+  const sessionKey = `pix_${bolsaPaymentId ?? userId}_${total}`;
+
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentData, setPaymentData] = useState<{
     paymentId: string;
@@ -66,12 +70,40 @@ export function MercadoPagoPixPayment({
     orderId?: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState<number>(10 * 60); // 10 minutes
+  const [timeRemaining, setTimeRemaining] = useState<number>(10 * 60);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
+  const applyPaymentData = useCallback((data: typeof paymentData) => {
+    if (!data) return;
+    setPaymentData(data);
+    if (data.expirationDate) {
+      const remaining = Math.max(0, Math.floor((new Date(data.expirationDate).getTime() - Date.now()) / 1000));
+      setTimeRemaining(Math.min(remaining, 10 * 60));
+    }
+  }, []);
+
   // Create Pix payment
-  const createPixPayment = useCallback(async () => {
+  const createPixPayment = useCallback(async (force = false) => {
+    if (isGenerating) return;
+
+    // Tenta reutilizar QR Code da sessão (evita nova cobrança em refresh)
+    if (!force) {
+      try {
+        const cached = sessionStorage.getItem(sessionKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const expMs = parsed.expirationDate ? new Date(parsed.expirationDate).getTime() : 0;
+          if (expMs > Date.now() + 30_000) {
+            applyPaymentData(parsed);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+
+    setIsGenerating(true);
     setIsLoading(true);
     setError(null);
 
@@ -91,36 +123,23 @@ export function MercadoPagoPixPayment({
         },
       });
 
-      if (error) {
-        throw new Error(error.message || "Erro ao criar pagamento Pix");
-      }
+      if (error) throw new Error(error.message || "Erro ao criar pagamento Pix");
+      if (!data?.qrCodeBase64 || !data?.qrCode) throw new Error("Dados do QR Code não disponíveis");
 
-      if (!data?.qrCodeBase64 || !data?.qrCode) {
-        throw new Error("Dados do QR Code não disponíveis");
-      }
-
-      setPaymentData(data);
-      
-      // Calculate time remaining based on expiration date
-      // Mercado Pago returns 24h expiration, but we cap at 10min for better UX
-      if (data.expirationDate) {
-        const expirationTime = new Date(data.expirationDate).getTime();
-        const now = Date.now();
-        const remaining = Math.max(0, Math.floor((expirationTime - now) / 1000));
-        // Cap at 10 minutes (600 seconds) for display purposes
-        setTimeRemaining(Math.min(remaining, 10 * 60));
-      }
+      sessionStorage.setItem(sessionKey, JSON.stringify(data));
+      applyPaymentData(data);
     } catch (err) {
       console.error("Error creating Pix payment:", err);
       setError(err instanceof Error ? err.message : "Erro ao criar pagamento");
     } finally {
       setIsLoading(false);
+      setIsGenerating(false);
     }
-  }, [items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping]);
+  }, [items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping, isGenerating, sessionKey, applyPaymentData]);
 
   useEffect(() => {
     createPixPayment();
-  }, [createPixPayment]);
+  }, []); // só na montagem
 
   // Bloqueia fechamento acidental enquanto aguarda confirmação
   useEffect(() => {
@@ -167,6 +186,7 @@ export function MercadoPagoPixPayment({
 
         if (data?.approved) {
           setPaymentConfirmed(true);
+          sessionStorage.removeItem(sessionKey);
           toast.success("Pagamento confirmado!");
           if (onSuccess) {
             onSuccess();
@@ -275,10 +295,11 @@ export function MercadoPagoPixPayment({
               Voltar
             </button>
             <button
-              onClick={createPixPayment}
-              className="px-6 py-3 bg-[#2e3091] text-white rounded-full text-body-sm font-medium hover:bg-[#252a7a] transition-colors"
+              onClick={() => createPixPayment(true)}
+              disabled={isGenerating}
+              className="px-6 py-3 bg-[#2e3091] text-white rounded-full text-body-sm font-medium hover:bg-[#252a7a] transition-colors disabled:opacity-60"
             >
-              Tentar novamente
+              {isGenerating ? "Gerando Pix…" : "Tentar novamente"}
             </button>
           </div>
         </div>
@@ -307,10 +328,11 @@ export function MercadoPagoPixPayment({
               Voltar
             </button>
             <button
-              onClick={createPixPayment}
-              className="px-6 py-3 bg-[#2e3091] text-white rounded-full text-body-sm font-medium hover:bg-[#252a7a] transition-colors"
+              onClick={() => createPixPayment(true)}
+              disabled={isGenerating}
+              className="px-6 py-3 bg-[#2e3091] text-white rounded-full text-body-sm font-medium hover:bg-[#252a7a] transition-colors disabled:opacity-60"
             >
-              Gerar novo QR Code
+              {isGenerating ? "Gerando Pix…" : "Gerar novo QR Code"}
             </button>
           </div>
         </div>
