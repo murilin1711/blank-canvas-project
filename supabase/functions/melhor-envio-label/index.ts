@@ -478,7 +478,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: getValidDocument(addr.cpf || profile?.cpf, true),
+          document: getValidDocument(addr.cpf || profile?.cpf) || FALLBACK_CPF_RECIPIENT,
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
