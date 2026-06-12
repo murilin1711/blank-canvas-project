@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Copy, Check, Clock, X, QrCode, Smartphone } from "lucide-react";
+import { Copy, Check, Clock, X, QrCode, Smartphone, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
@@ -68,6 +68,7 @@ export function MercadoPagoPixPayment({
   const [copied, setCopied] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number>(10 * 60); // 10 minutes
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   // Create Pix payment
   const createPixPayment = useCallback(async () => {
@@ -121,6 +122,17 @@ export function MercadoPagoPixPayment({
     createPixPayment();
   }, [createPixPayment]);
 
+  // Bloqueia fechamento acidental enquanto aguarda confirmação
+  useEffect(() => {
+    if (!paymentData || paymentConfirmed || timeRemaining <= 0) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [paymentData, paymentConfirmed, timeRemaining]);
+
   // Countdown timer
   useEffect(() => {
     if (!paymentData || timeRemaining <= 0) return;
@@ -154,6 +166,7 @@ export function MercadoPagoPixPayment({
         }
 
         if (data?.approved) {
+          setPaymentConfirmed(true);
           toast.success("Pagamento confirmado!");
           if (onSuccess) {
             onSuccess();
@@ -201,6 +214,7 @@ export function MercadoPagoPixPayment({
       }
 
       if (data?.approved) {
+        setPaymentConfirmed(true);
         toast.success("Pagamento confirmado!");
         if (onSuccess) {
           onSuccess();
@@ -312,13 +326,24 @@ export function MercadoPagoPixPayment({
           <img src={pixLogo} alt="Pix" className="h-6" />
           <h2 className="text-h3 font-medium text-text-primary">Pague com Pix</h2>
         </div>
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
-        >
-          <X className="w-4 h-4" />
-          Voltar
-        </button>
+        {/* Botão Voltar só aparece se ainda não há QR Code gerado */}
+        {!paymentData && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-sm text-text-muted hover:text-text-primary transition-colors"
+          >
+            <X className="w-4 h-4" />
+            Voltar
+          </button>
+        )}
+      </div>
+
+      {/* Banner: não feche a tela */}
+      <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
+        <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <p className="text-sm font-semibold text-red-700">
+          Não feche nem atualize esta tela — aguardando confirmação do pagamento.
+        </p>
       </div>
 
       {/* Timer */}
