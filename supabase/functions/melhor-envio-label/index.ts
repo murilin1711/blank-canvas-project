@@ -307,12 +307,14 @@ function isValidCNPJ(cnpj: string): boolean {
   return true;
 }
 
-function getValidDocument(doc: string): string {
+function getValidDocument(doc: string, preferCpf = false): string {
   const clean = (doc || "").replace(/\D/g, "");
   if (isValidCPF(clean) || isValidCNPJ(clean)) {
     return clean;
   }
-  return "01184449000110"; // Fallback to GM Minas CNPJ
+  // CPF válido de fallback (aceito pela ME quando CNPJ não está disponível)
+  if (preferCpf || clean.length <= 11) return "00000000191";
+  return "00000000191";
 }
 
 // ── Admin token validation ────────────────────────────────────────────────────
@@ -477,7 +479,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: getValidDocument(profile?.cpf),
+          document: getValidDocument(addr.cpf || profile?.cpf, true),
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
@@ -491,7 +493,7 @@ serve(async (req) => {
           ? (order.order_items || []).map((item: any) => ({
               name: item.product_name || "Uniforme",
               quantity: item.quantity || 1,
-              unitaryValue: item.price || 50,
+              unitary_value: item.price || 50,
             }))
           : [
               {
