@@ -49,6 +49,8 @@ interface BolsaPayment {
   notes: string | null;
   order_id: string | null;
   items: BolsaItem[];
+  order_status?: string | null;
+  order_tracking_code?: string | null;
 }
 
 // ---- BolsaPaymentCard ----
@@ -78,6 +80,16 @@ function BolsaPaymentCard({
   const aguardando =
     !fretePendente && payment.status === "pending";
   const rejeitado = payment.status === "rejected";
+  const aprovado = payment.status === "approved";
+
+  const deliveryStatusLabel: Record<string, { label: string; color: string; icon: string }> = {
+    paid:       { label: "Pagamento aprovado", color: "bg-green-100 text-green-800",   icon: "✓" },
+    separating: { label: "Preparando envio",   color: "bg-blue-100 text-blue-800",     icon: "📦" },
+    shipped:    { label: "Enviado",             color: "bg-purple-100 text-purple-800", icon: "🚚" },
+    delivered:  { label: "Entregue",            color: "bg-green-100 text-green-800",   icon: "✓" },
+    refunded:   { label: "Reembolsado",         color: "bg-red-100 text-red-800",       icon: "↩" },
+  };
+  const deliveryStatus = payment.order_status ? deliveryStatusLabel[payment.order_status] : null;
 
   const closeFreteModal = () => {
     setShowFreteModal(false);
@@ -110,6 +122,16 @@ function BolsaPaymentCard({
               <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 flex items-center gap-1">
                 <XCircle className="w-3.5 h-3.5" />
                 Rejeitado
+              </span>
+            )}
+            {aprovado && deliveryStatus && (
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${deliveryStatus.color}`}>
+                {deliveryStatus.icon} {deliveryStatus.label}
+              </span>
+            )}
+            {aprovado && !deliveryStatus && (
+              <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                ✓ Aprovado
               </span>
             )}
           </div>
@@ -158,6 +180,26 @@ function BolsaPaymentCard({
               <p className="text-sm text-blue-600">⏳ Cartão Bolsa Uniforme: aguardando aprovação</p>
             )}
           </div>
+
+          {/* Código de rastreio */}
+          {payment.order_tracking_code && (
+            <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+              <p className="text-sm font-medium text-purple-800 mb-2 flex items-center gap-1.5">
+                🚚 Código de Rastreio
+              </p>
+              <p className="font-mono text-base bg-white border border-purple-300 px-3 py-2 rounded-lg tracking-widest text-gray-900 text-center">
+                {payment.order_tracking_code}
+              </p>
+              <a
+                href={`https://www.linkcorreios.com.br/?id=${payment.order_tracking_code}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 flex items-center justify-center gap-1.5 text-sm text-purple-700 hover:text-purple-900 underline underline-offset-2 transition-colors"
+              >
+                Rastrear nos Correios
+              </a>
+            </div>
+          )}
 
           {/* Ações */}
           <div className="mt-4">
@@ -334,9 +376,25 @@ export default function MeusPedidosPage() {
       .from("bolsa_uniforme_payments")
       .select("id, created_at, status, total_amount, shipping_amount, shipping_payment_status, notes, order_id, items")
       .eq("user_id", userId)
-      .neq("status", "approved")
       .order("created_at", { ascending: false });
-    if (!error) setBolsaPayments((data || []) as unknown as BolsaPayment[]);
+    if (error || !data) return;
+
+    // Busca status e tracking dos orders vinculados em batch
+    const orderIds = data.map(p => p.order_id).filter((id): id is string => !!id);
+    let orderMap: Record<string, { status: string; tracking_code: string | null }> = {};
+    if (orderIds.length > 0) {
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id, status, tracking_code")
+        .in("id", orderIds);
+      (orders || []).forEach(o => { orderMap[o.id] = { status: o.status, tracking_code: o.tracking_code ?? null }; });
+    }
+
+    setBolsaPayments(data.map(p => ({
+      ...p,
+      order_status: p.order_id ? orderMap[p.order_id]?.status ?? null : null,
+      order_tracking_code: p.order_id ? orderMap[p.order_id]?.tracking_code ?? null : null,
+    })) as unknown as BolsaPayment[]);
   };
 
   useEffect(() => {
