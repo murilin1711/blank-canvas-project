@@ -235,6 +235,9 @@ export default function AdminPage() {
   // Linked order for BU modal
   const [linkedOrder, setLinkedOrder] = useState<Order | null>(null);
 
+  // Status de entrega e rastreio dos orders vinculados a bolsa payments (keyed by order_id)
+  const [bolsaOrderData, setBolsaOrderData] = useState<Record<string, { status: string; tracking_code: string | null }>>({});
+
   // Expand order items inline
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [orderCpfs, setOrderCpfs] = useState<Record<string, string>>({});
@@ -569,6 +572,23 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
+  // Carrega status/tracking dos orders vinculados em lote
+  useEffect(() => {
+    if (bolsaPayments.length === 0) return;
+    const orderIds = [...new Set(bolsaPayments.map(p => p.order_id).filter((id): id is string => !!id && !bolsaOrderData[id]))];
+    if (orderIds.length === 0) return;
+    supabase
+      .from("orders")
+      .select("id, status, tracking_code")
+      .in("id", orderIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const updates: Record<string, { status: string; tracking_code: string | null }> = {};
+        data.forEach(o => { updates[o.id] = { status: o.status, tracking_code: o.tracking_code ?? null }; });
+        if (Object.keys(updates).length > 0) setBolsaOrderData(prev => ({ ...prev, ...updates }));
+      });
+  }, [bolsaPayments]);
+
   // Busca CPFs em lote sempre que bolsaPayments mudar
   useEffect(() => {
     if (bolsaPayments.length === 0) return;
@@ -703,6 +723,38 @@ export default function AdminPage() {
     } catch (err: any) {
       toast.error(err.message || "Erro ao excluir pedido");
     }
+  };
+
+  const handleSaveBolsaTracking = async (payment: BolsaUniformePayment) => {
+    const orderId = payment.order_id;
+    if (!orderId) { toast.error("Pedido vinculado não encontrado"); return; }
+    const trackingCode = trackingInputs[orderId]?.trim();
+    if (!trackingCode) { toast.error("Digite o código de rastreio"); return; }
+    setSavingTrackingId(orderId);
+    try {
+      const token = getAdminToken();
+      if (!token) { handleLogout(); return; }
+      const res = await supabase.functions.invoke("admin-data", {
+        body: { action: "update_tracking_code", token, data: { id: orderId, trackingCode } },
+      });
+      if (res.error || res.data?.error) throw new Error(res.error?.message || res.data?.error);
+      toast.success("Código de rastreio salvo! Status → Enviado");
+      setBolsaOrderData(prev => ({ ...prev, [orderId]: { status: "shipped", tracking_code: trackingCode } }));
+      setLinkedOrder(prev => prev ? { ...prev, tracking_code: trackingCode, status: "shipped" } : prev);
+      setTrackingInputs(prev => { const n = { ...prev }; delete n[orderId]; return n; });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao salvar código");
+    } finally {
+      setSavingTrackingId(null);
+    }
+  };
+
+  const handleBolsaOrderStatus = async (payment: BolsaUniformePayment, status: string) => {
+    const orderId = payment.order_id;
+    if (!orderId) { toast.error("Pedido vinculado não encontrado"); return; }
+    setBolsaOrderData(prev => ({ ...prev, [orderId]: { ...prev[orderId], status } }));
+    setLinkedOrder(prev => prev ? { ...prev, status } : prev);
+    await updateOrderStatus(orderId, status);
   };
 
   const handleSaveTracking = async (order: Order) => {
@@ -1544,7 +1596,9 @@ export default function AdminPage() {
             .update({ shipping_address: mergedAddr })
             .eq("id", ord.id);
         }
-        setLinkedOrder({ ...ord, shipping_address: mergedAddr } as unknown as Order);
+        const mergedOrder = { ...ord, shipping_address: mergedAddr } as unknown as Order;
+        setLinkedOrder(mergedOrder);
+        setBolsaOrderData(prev => ({ ...prev, [ord.id]: { status: ord.status, tracking_code: ord.tracking_code ?? null } }));
       }
     }
 
@@ -2185,6 +2239,55 @@ export default function AdminPage() {
                                       <span><span className="font-medium text-gray-700">Endereço:</span> {(payment.shipping_address as any).street}, {(payment.shipping_address as any).number}{(payment.shipping_address as any).complement ? ` - ${(payment.shipping_address as any).complement}` : ""} — {(payment.shipping_address as any).neighborhood}, {(payment.shipping_address as any).city}/{(payment.shipping_address as any).state} — CEP {(payment.shipping_address as any).cep}</span>
                                     )}
                                   </div>
+
+                                  {/* Status de entrega + rastreio (só quando há order vinculado) */}
+                                  {payment.order_id && payment.status === 'approved' && (() => {
+                                    const od = bolsaOrderData[payment.order_id];
+                                    return (
+                                      <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-gray-100 pt-3">
+                                        <div>
+                                          <p className="text-xs text-gray-500 mb-1">Status de entrega</p>
+                                          <select
+                                            value={od?.status ?? "paid"}
+                                            onChange={(e) => { e.stopPropagation(); handleBolsaOrderStatus(payment, e.target.value); }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(od?.status ?? "paid").color}`}
+                                          >
+                                            {ORDER_STATUSES.map(s => (
+                                              <option key={s.value} value={s.value}>{s.label}</option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="flex-1 min-w-[220px]">
+                                          <p className="text-xs text-gray-500 mb-1">Código de rastreio</p>
+                                          {od?.tracking_code && trackingInputs[payment.order_id] === undefined ? (
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{od.tracking_code}</span>
+                                              <button onClick={(e) => { e.stopPropagation(); setTrackingInputs(prev => ({ ...prev, [payment.order_id!]: od.tracking_code! })); }} className="text-xs text-blue-600 hover:underline">Alterar</button>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                              <input
+                                                type="text"
+                                                placeholder="ex: BR123456789BR"
+                                                value={trackingInputs[payment.order_id] ?? ""}
+                                                onChange={(e) => setTrackingInputs(prev => ({ ...prev, [payment.order_id!]: e.target.value }))}
+                                                onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(payment); }}
+                                                className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                              />
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); handleSaveBolsaTracking(payment); }}
+                                                disabled={savingTrackingId === payment.order_id}
+                                                className="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                              >
+                                                {savingTrackingId === payment.order_id ? "..." : "Salvar"}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
 
                                   <div className="mt-3 flex flex-wrap gap-2">
                                     <a
