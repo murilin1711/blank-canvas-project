@@ -463,7 +463,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: meProfile.document || meProfile.company_document || "00000000000",
+          document: getValidDocument(meProfile.document || meProfile.company_document),
           address: senderAddress.address || "Rua Guimaraes Natal",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "50",
@@ -477,7 +477,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: (profile?.cpf || "").replace(/\D/g, "") || "00000000000",
+          document: getValidDocument(profile?.cpf),
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
@@ -487,11 +487,19 @@ serve(async (req) => {
           postal_code: destCep,
           note: `Pedido #${orderId.slice(0, 8)}`,
         },
-        products: (order.order_items || []).map((item: any) => ({
-          name: item.product_name || "Uniforme",
-          quantity: item.quantity || 1,
-          unitaryValue: item.price || 50,
-        })),
+        products: (order.order_items || []).length > 0
+          ? (order.order_items || []).map((item: any) => ({
+              name: item.product_name || "Uniforme",
+              quantity: item.quantity || 1,
+              unitaryValue: item.price || 50,
+            }))
+          : [
+              {
+                name: "Uniforme",
+                quantity: 1,
+                unitaryValue: totalValue,
+              }
+            ],
         volumes: {
           height: packDims.h,
           width: packDims.w,
