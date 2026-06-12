@@ -433,6 +433,9 @@ serve(async (req) => {
         .single();
 
       const addr = order.shipping_address || {};
+      const clientCpf = (addr.cpf || profile?.cpf || "").replace(/\D/g, "");
+      console.log("[ME-LABEL] clientCpf sources — addr.cpf:", addr.cpf, "| profile.cpf:", profile?.cpf, "| resolved:", clientCpf);
+
       const destCep = (addr.cep || "").replace(/\D/g, "");
       if (!destCep) throw new Error("CEP de destino não encontrado no pedido");
 
@@ -443,6 +446,7 @@ serve(async (req) => {
         const meProfileRes = await meFetch("/me", meToken, { method: "GET" });
         if (meProfileRes.ok) {
           meProfile = await meProfileRes.json();
+          console.log("[ME-LABEL] meProfile.document:", meProfile.document, "| company.document:", meProfile.company?.document);
           senderAddress = (meProfile.addresses || [])[0] || {};
         }
       } catch {
@@ -464,7 +468,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: getValidDocument(meProfile.document || meProfile.company_document) || FALLBACK_CPF_SENDER,
+          document: getValidDocument(meProfile.company?.document || meProfile.document) || FALLBACK_CPF_SENDER,
           address: senderAddress.address || "Rua Guimaraes Natal",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "50",
@@ -478,7 +482,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: getValidDocument(addr.cpf || profile?.cpf) || FALLBACK_CPF_RECIPIENT,
+          document: getValidDocument(clientCpf) || FALLBACK_CPF_RECIPIENT,
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
