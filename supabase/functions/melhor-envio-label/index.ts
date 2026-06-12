@@ -259,6 +259,62 @@ async function calcDimsFromOrder(
 
 // ============================================================
 
+function isValidCPF(cpf: string): boolean {
+  const stripped = (cpf || "").replace(/\D/g, "");
+  if (stripped.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(stripped)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(stripped[i]) * (10 - i);
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10) remainder = 0;
+  if (remainder !== parseInt(stripped[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(stripped[i]) * (11 - i);
+  remainder = (sum * 10) % 11;
+  if (remainder === 10) remainder = 0;
+  if (remainder !== parseInt(stripped[10])) return false;
+  return true;
+}
+
+function isValidCNPJ(cnpj: string): boolean {
+  const stripped = (cnpj || "").replace(/\D/g, "");
+  if (stripped.length !== 14) return false;
+  if (/^(\d)\1{13}$/.test(stripped)) return false;
+  
+  let size = stripped.length - 2;
+  let numbers = stripped.substring(0, size);
+  const digits = stripped.substring(size);
+  let sum = 0;
+  let pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(0))) return false;
+  
+  size = size + 1;
+  numbers = stripped.substring(0, size);
+  sum = 0;
+  pos = size - 7;
+  for (let i = size; i >= 1; i--) {
+    sum += parseInt(numbers.charAt(size - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+  if (result !== parseInt(digits.charAt(1))) return false;
+  
+  return true;
+}
+
+function getValidDocument(doc: string): string {
+  const clean = (doc || "").replace(/\D/g, "");
+  if (isValidCPF(clean) || isValidCNPJ(clean)) {
+    return clean;
+  }
+  return "01184449000110"; // Fallback to GM Minas CNPJ
+}
+
 // ── Admin token validation ────────────────────────────────────────────────────
 function validateAdminToken(token: string): boolean {
   try {
@@ -407,7 +463,7 @@ serve(async (req) => {
           name: meProfile.firstname ? `${meProfile.firstname} ${meProfile.lastname || ""}`.trim() : "GM Minas",
           phone: meProfile.phone || "62999999999",
           email: meProfile.email || "samuelclodes@gmail.com",
-          document: meProfile.document || meProfile.company_document || "00000000000",
+          document: getValidDocument(meProfile.document || meProfile.company_document),
           address: senderAddress.address || "Rua Guimaraes Natal",
           complement: senderAddress.complement || "",
           number: senderAddress.number || "50",
@@ -421,7 +477,7 @@ serve(async (req) => {
           name: profile?.name || "Cliente",
           phone: (profile?.phone || "").replace(/\D/g, "") || "62999999999",
           email: profile?.email || "cliente@email.com",
-          document: (profile?.cpf || "").replace(/\D/g, "") || "00000000000",
+          document: getValidDocument(profile?.cpf),
           address: addr.street || addr.rua || "Rua não informada",
           complement: addr.complement || addr.complemento || "",
           number: addr.number || addr.numero || "S/N",
@@ -431,11 +487,19 @@ serve(async (req) => {
           postal_code: destCep,
           note: `Pedido #${orderId.slice(0, 8)}`,
         },
-        products: (order.order_items || []).map((item: any) => ({
-          name: item.product_name || "Uniforme",
-          quantity: item.quantity || 1,
-          unitaryValue: item.price || 50,
-        })),
+        products: (order.order_items || []).length > 0
+          ? (order.order_items || []).map((item: any) => ({
+              name: item.product_name || "Uniforme",
+              quantity: item.quantity || 1,
+              unitaryValue: item.price || 50,
+            }))
+          : [
+              {
+                name: "Uniforme",
+                quantity: 1,
+                unitaryValue: totalValue,
+              }
+            ],
         volumes: {
           height: packDims.h,
           width: packDims.w,
