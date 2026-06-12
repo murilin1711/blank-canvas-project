@@ -1815,6 +1815,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           city: address.city,
                           state: address.state,
                           selected_shipping_method: shippingMethod,
+                          cpf: personal.cpf,
                         },
                         status: "pending",
                       } as any).select("id").single();

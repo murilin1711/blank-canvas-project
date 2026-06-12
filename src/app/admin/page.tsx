@@ -572,7 +572,15 @@ export default function AdminPage() {
   // Busca CPFs em lote sempre que bolsaPayments mudar
   useEffect(() => {
     if (bolsaPayments.length === 0) return;
-    const missing = [...new Set(bolsaPayments.map(p => p.user_id).filter(id => id && !orderCpfs[id]))];
+    const updates: Record<string, string> = {};
+    // Primeiro: lê do shipping_address.cpf (sem query extra)
+    bolsaPayments.forEach(p => {
+      const addr = p.shipping_address as any;
+      if (addr?.cpf && p.user_id) updates[p.user_id] = addr.cpf;
+    });
+    if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
+    // Fallback: busca em profiles para os que ainda não têm
+    const missing = [...new Set(bolsaPayments.map(p => p.user_id).filter(id => id && !updates[id] && !orderCpfs[id]))];
     if (missing.length === 0) return;
     supabase
       .from("profiles")
@@ -580,9 +588,9 @@ export default function AdminPage() {
       .in("user_id", missing)
       .then(({ data }) => {
         if (!data) return;
-        const updates: Record<string, string> = {};
-        data.forEach(p => { if (p.cpf) updates[p.user_id] = p.cpf; });
-        if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
+        const profileUpdates: Record<string, string> = {};
+        data.forEach(p => { if (p.cpf) profileUpdates[p.user_id] = p.cpf; });
+        if (Object.keys(profileUpdates).length > 0) setOrderCpfs(prev => ({ ...prev, ...profileUpdates }));
       });
   }, [bolsaPayments]);
 
@@ -1461,12 +1469,17 @@ export default function AdminPage() {
     const id = payment.id;
     setExpandedPayments(prev => ({ ...prev, [id]: !prev[id] }));
     if (!expandedPayments[id] && !orderCpfs[payment.user_id]) {
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("cpf")
-        .eq("user_id", payment.user_id)
-        .single();
-      if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [payment.user_id]: prof.cpf! }));
+      const addrCpf = (payment.shipping_address as any)?.cpf;
+      if (addrCpf) {
+        setOrderCpfs(prev => ({ ...prev, [payment.user_id]: addrCpf }));
+      } else {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("cpf")
+          .eq("user_id", payment.user_id)
+          .single();
+        if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [payment.user_id]: prof.cpf! }));
+      }
     }
   };
 
@@ -1536,8 +1549,13 @@ export default function AdminPage() {
     }
 
     if (payment.user_id && !orderCpfs[payment.user_id]) {
-      const { data: prof } = await supabase.from("profiles").select("cpf").eq("user_id", payment.user_id).single();
-      if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [payment.user_id]: prof.cpf! }));
+      const addrCpf = (payment.shipping_address as any)?.cpf;
+      if (addrCpf) {
+        setOrderCpfs(prev => ({ ...prev, [payment.user_id]: addrCpf }));
+      } else {
+        const { data: prof } = await supabase.from("profiles").select("cpf").eq("user_id", payment.user_id).single();
+        if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [payment.user_id]: prof.cpf! }));
+      }
     }
 
     setLoadingPaymentDetails(false);
