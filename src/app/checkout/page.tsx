@@ -1605,6 +1605,15 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         shippingMethod={shippingMethod}
                         onBack={() => setShowShippingPix(false)}
                         bolsaPaymentId={bolsaPaymentId}
+                        onSuccess={async () => {
+                          if (bolsaPaymentId) {
+                            await supabase.from("bolsa_uniforme_payments" as any)
+                              .update({ shipping_payment_status: "paid" } as any)
+                              .eq("id", bolsaPaymentId);
+                          }
+                          setShippingPaid(true);
+                          setShowShippingPix(false);
+                        }}
                       />
                     ) : (
                       <>

@@ -562,6 +562,13 @@ export default function AdminPage() {
     return () => { supabase.removeChannel(channel); };
   }, [isAuthenticated]);
 
+  // Fallback polling: re-fetches bolsa payments every 30s in case realtime is not enabled for the table
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => reloadSection('bolsa', true), 30_000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   // Busca CPFs em lote sempre que bolsaPayments mudar
   useEffect(() => {
     if (bolsaPayments.length === 0) return;
