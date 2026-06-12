@@ -244,6 +244,57 @@ Deno.serve(async (req: Request) => {
         .eq("id", bolsaPaymentId);
 
       result = { success: true, orderId };
+    } else if (action === 'update_bolsa_order_status') {
+      // Atualiza status de entrega de um bolsa payment — cria o order vinculado se ainda não existir
+      const { bolsaPaymentId, status, trackingCode } = data;
+      const { data: buPayment } = await supabase
+        .from("bolsa_uniforme_payments")
+        .select("*")
+        .eq("id", bolsaPaymentId)
+        .single();
+      if (!buPayment) throw new Error("Pagamento não encontrado");
+
+      let orderId = buPayment.order_id || null;
+
+      // Cria order se não existir
+      if (!orderId) {
+        const { data: newOrder } = await supabase
+          .from("orders")
+          .insert({
+            user_id: buPayment.user_id,
+            status: "paid",
+            payment_method: "bolsa_uniforme",
+            subtotal: Number(buPayment.total_amount) || 0,
+            shipping: Number(buPayment.shipping_amount) || 0,
+            total: (Number(buPayment.total_amount) || 0) + (Number(buPayment.shipping_amount) || 0),
+            shipping_address: buPayment.shipping_address,
+          })
+          .select()
+          .single();
+        if (newOrder) {
+          orderId = newOrder.id;
+          const rawItems: any[] = Array.isArray(buPayment.items) ? buPayment.items : [];
+          const orderItems = rawItems.map((item: any) => ({
+            order_id: newOrder.id,
+            product_id: item.productId || item.product_id || 0,
+            product_name: item.productName || item.product_name || "",
+            product_image: item.productImage || item.product_image || "",
+            price: item.price || 0,
+            size: item.size || "",
+            quantity: item.quantity || 1,
+          }));
+          if (orderItems.length > 0) await supabase.from("order_items").insert(orderItems);
+          await supabase.from("bolsa_uniforme_payments").update({ order_id: newOrder.id }).eq("id", bolsaPaymentId);
+        }
+      }
+
+      if (!orderId) throw new Error("Não foi possível criar o pedido vinculado");
+
+      const updatePayload: any = { status, updated_at: new Date().toISOString() };
+      if (trackingCode) updatePayload.tracking_code = trackingCode;
+      await supabase.from("orders").update(updatePayload).eq("id", orderId);
+
+      result = { success: true, orderId };
     } else if (action === 'delete_order') {
       await supabase.from("order_items").delete().eq("order_id", data.id);
       await supabase.from("orders").delete().eq("id", data.id);
