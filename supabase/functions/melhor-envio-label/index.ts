@@ -307,14 +307,13 @@ function isValidCNPJ(cnpj: string): boolean {
   return true;
 }
 
-function getValidDocument(doc: string, preferCpf = false): string {
+const FALLBACK_CPF_SENDER    = "00000000191"; // fallback para loja
+const FALLBACK_CPF_RECIPIENT = "00000000272"; // fallback para cliente
+
+function getValidDocument(doc: string): string {
   const clean = (doc || "").replace(/\D/g, "");
-  if (isValidCPF(clean) || isValidCNPJ(clean)) {
-    return clean;
-  }
-  // CPF válido de fallback (aceito pela ME quando CNPJ não está disponível)
-  if (preferCpf || clean.length <= 11) return "00000000191";
-  return "00000000191";
+  if (isValidCPF(clean) || isValidCNPJ(clean)) return clean;
+  return "";
 }
 
 // ── Admin token validation ────────────────────────────────────────────────────
