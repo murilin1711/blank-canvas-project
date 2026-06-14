@@ -296,7 +296,14 @@ Deno.serve(async (req: Request) => {
 
       const updatePayload: any = { status, updated_at: new Date().toISOString() };
       if (trackingCode) updatePayload.tracking_code = trackingCode;
-      await supabase.from("orders").update(updatePayload).eq("id", orderId);
+      const { data: updatedBolsaOrder, error: bolsaOrderUpdateError } = await supabase
+        .from("orders")
+        .update(updatePayload)
+        .eq("id", orderId)
+        .select("id, status, tracking_code")
+        .single();
+      if (bolsaOrderUpdateError) throw new Error(`Erro ao atualizar pedido bolsa: ${bolsaOrderUpdateError.message}`);
+      if (!updatedBolsaOrder) throw new Error("Pedido vinculado não encontrado");
 
       result = { success: true, orderId };
     } else if (action === 'delete_order') {
@@ -304,7 +311,14 @@ Deno.serve(async (req: Request) => {
       await supabase.from("orders").delete().eq("id", data.id);
       result = { success: true };
     } else if (action === 'update_order_status') {
-      await supabase.from("orders").update({ status: data.status, updated_at: new Date().toISOString() }).eq("id", data.id);
+      const { data: updatedOrder, error: statusUpdateError } = await supabase
+        .from("orders")
+        .update({ status: data.status, updated_at: new Date().toISOString() })
+        .eq("id", data.id)
+        .select("id, status")
+        .single();
+      if (statusUpdateError) throw new Error(`Erro ao atualizar status: ${statusUpdateError.message}`);
+      if (!updatedOrder) throw new Error("Pedido não encontrado");
 
       // Envia email de atualização de status
       try {
@@ -346,8 +360,14 @@ Deno.serve(async (req: Request) => {
 
       result = { success: true };
     } else if (action === 'update_tracking_code') {
-      const { error: trackingUpdateError } = await supabase.from("orders").update({ tracking_code: data.trackingCode, status: "shipped", updated_at: new Date().toISOString() }).eq("id", data.id);
-      if (trackingUpdateError) throw new Error(trackingUpdateError.message);
+      const { data: updatedTracking, error: trackingUpdateError } = await supabase
+        .from("orders")
+        .update({ tracking_code: data.trackingCode, status: "shipped", updated_at: new Date().toISOString() })
+        .eq("id", data.id)
+        .select("id, status, tracking_code")
+        .single();
+      if (trackingUpdateError) throw new Error(`Erro ao salvar rastreio: ${trackingUpdateError.message}`);
+      if (!updatedTracking) throw new Error("Pedido não encontrado");
 
       // Envia email de rastreio
       try {
