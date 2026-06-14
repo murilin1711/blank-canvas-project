@@ -710,9 +710,9 @@ export default function AdminPage() {
       }
       
       toast.success("Status atualizado!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating order status:", error);
-      toast.error("Erro ao atualizar status");
+      toast.error(`Erro ao atualizar status: ${error?.message || String(error)}`);
       reloadSection('orders');
     }
   };
@@ -965,9 +965,9 @@ export default function AdminPage() {
       }
 
       toast.success(status === 'approved' ? "Pagamento aprovado! Pedido criado." : "Status atualizado!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating payment:", error);
-      toast.error("Erro ao atualizar pagamento");
+      toast.error(`Erro ao atualizar pagamento: ${error?.message || String(error)}`);
       reloadSection('bolsa');
     }
   };
