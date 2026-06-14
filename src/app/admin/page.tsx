@@ -574,21 +574,17 @@ export default function AdminPage() {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  // Carrega status/tracking dos orders vinculados em lote
+  // Carrega status/tracking dos orders vinculados a partir dos dados da edge function
   useEffect(() => {
     if (bolsaPayments.length === 0) return;
-    const orderIds = [...new Set(bolsaPayments.map(p => p.order_id).filter((id): id is string => !!id && !bolsaOrderData[id]))];
-    if (orderIds.length === 0) return;
-    supabase
-      .from("orders")
-      .select("id, status, tracking_code")
-      .in("id", orderIds)
-      .then(({ data }) => {
-        if (!data) return;
-        const updates: Record<string, { status: string; tracking_code: string | null }> = {};
-        data.forEach(o => { updates[o.id] = { status: o.status, tracking_code: o.tracking_code ?? null }; });
-        if (Object.keys(updates).length > 0) setBolsaOrderData(prev => ({ ...prev, ...updates }));
-      });
+    const updates: Record<string, { status: string; tracking_code: string | null }> = {};
+    bolsaPayments.forEach(p => {
+      if (!p.order_id) return;
+      const orderStatus = (p as any).order_status;
+      const orderTracking = (p as any).order_tracking_code ?? null;
+      if (orderStatus) updates[p.order_id] = { status: orderStatus, tracking_code: orderTracking };
+    });
+    if (Object.keys(updates).length > 0) setBolsaOrderData(prev => ({ ...prev, ...updates }));
   }, [bolsaPayments]);
 
   // Busca CPFs em lote sempre que bolsaPayments mudar

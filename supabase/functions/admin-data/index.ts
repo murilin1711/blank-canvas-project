@@ -40,10 +40,18 @@ Deno.serve(async (req: Request) => {
         const { data: profs } = await supabase.from("profiles").select("user_id, cpf").in("user_id", userIds);
         (profs || []).forEach((p: any) => { if (p.cpf) cpfMap[p.user_id] = p.cpf; });
       }
+      // Busca status/tracking dos orders vinculados
+      const linkedOrderIds = [...new Set(payments.map((p: any) => p.order_id).filter(Boolean))];
+      let orderStatusMap: Record<string, { status: string; tracking_code: string | null }> = {};
+      if (linkedOrderIds.length > 0) {
+        const { data: linkedOrders } = await supabase.from("orders").select("id, status, tracking_code").in("id", linkedOrderIds);
+        (linkedOrders || []).forEach((o: any) => { orderStatusMap[o.id] = { status: o.status, tracking_code: o.tracking_code ?? null }; });
+      }
       // Fallback: usa shipping_address.cpf se o perfil não tiver CPF
       result = { bolsaPayments: payments.map((p: any) => {
         const addrCpf = (p.shipping_address as any)?.cpf ?? null;
-        return { ...p, customer_cpf: cpfMap[p.user_id] ?? addrCpf };
+        const orderData = p.order_id ? (orderStatusMap[p.order_id] ?? null) : null;
+        return { ...p, customer_cpf: cpfMap[p.user_id] ?? addrCpf, order_status: orderData?.status ?? null, order_tracking_code: orderData?.tracking_code ?? null };
       }) };
     } else if (action === 'get_bolsa_payment_details') {
       const paymentId = data?.id;
