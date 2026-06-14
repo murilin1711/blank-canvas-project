@@ -1,0 +1,1 @@
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='orders' AND policyname='Service can update orders') THEN CREATE POLICY "Service can update orders" ON public.orders FOR UPDATE USING (true) WITH CHECK (true); END IF; END $$;
