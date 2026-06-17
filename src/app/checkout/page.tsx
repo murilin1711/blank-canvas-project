@@ -1822,6 +1822,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           quantity: item.quantity,
                           schoolSlug: item.schoolSlug,
                         })),
+                        shipping_service_name: getShippingLabel(),
                         shipping_address: {
                           cep: address.cep,
                           street: address.street,

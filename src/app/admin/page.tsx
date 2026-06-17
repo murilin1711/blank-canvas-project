@@ -1083,6 +1083,7 @@ export default function AdminPage() {
     const addr = (payment.shipping_address || {}) as any;
     const selectedMethod = addr.selected_shipping_method as string | undefined;
     const meServiceId = selectedMethod?.startsWith("me-") ? parseInt(selectedMethod.slice(3)) : null;
+    const serviceName = (payment as any).shipping_service_name as string | undefined;
 
     const syntheticOrder: Order = {
       id: payment.order_id,
@@ -1096,8 +1097,18 @@ export default function AdminPage() {
       created_at: payment.created_at,
     };
 
-    // Sempre cota para obter nomes reais dos serviços e pré-selecionar o do cliente
-    openLabelModal(syntheticOrder);
+    if (meServiceId && serviceName) {
+      // Mostra serviço salvo no checkout sem precisar cotar novamente
+      setLabelOrder(syntheticOrder);
+      setLabelServices([]);
+      setLabelSelectedService(meServiceId);
+      setLabelResult(null);
+      setLabelLoadingQuote(false);
+      setLabelPresetServiceName(`${serviceName} — ${formatCurrency(Number(payment.shipping_amount) || 0)}`);
+    } else {
+      // Fallback: cota para obter nomes dos serviços
+      openLabelModal(syntheticOrder);
+    }
   };
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
