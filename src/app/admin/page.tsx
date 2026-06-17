@@ -36,7 +36,8 @@ import {
   Layers,
   BarChart3,
   Send,
-  FileText
+  FileText,
+  Copy
 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -248,6 +249,7 @@ export default function AdminPage() {
   // Order details modal
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderModal, setShowOrderModal] = useState(false);
+  const [wppSummaryText, setWppSummaryText] = useState<string | null>(null);
 
   // Orders search/filter
   const [ordersSearch, setOrdersSearch] = useState("");
@@ -828,15 +830,7 @@ export default function AdminPage() {
       ? payment.items.reduce((acc: number, i: any) => acc + i.price * i.quantity, 0)
       : 0;
     const message = `*Pagamento Bolsa Uniforme*\n\n*1. Nome:* ${name}\n*2. CPF:* ${cpf}\n*3. Telefone:* ${phone}\n*4. E-mail:* ${payment.customer_email || "—"}\n*5. Endereço:* ${address}\n\n*Produtos:*\n${items}\n\n*Valor dos produtos:* ${formatCurrency(productTotal)}`;
-    const cleanPhone = phone.replace(/\D/g, "");
-    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    const encodedMsg = encodeURIComponent(message);
-    if (cleanPhone) {
-      window.open(`https://wa.me/${fullPhone}?text=${encodedMsg}`, "_blank");
-    } else {
-      navigator.clipboard.writeText(message);
-      toast.success("Resumo copiado para a área de transferência!");
-    }
+    setWppSummaryText(message);
   };
 
   const handleSaveBolsaTracking = async (payment: BolsaUniformePayment) => {
@@ -1658,17 +1652,7 @@ export default function AdminPage() {
     const subtotal = formatCurrency(Number(order.subtotal));
 
     const message = `*Pedido #${order.id.slice(0, 8)}*\n\n*Nome:* ${name}\n*CPF:* ${cpf}\n*Telefone:* ${phone}\n*E-mail:* ${email}\n*Endereço:* ${address}\n\n*Produtos:*\n${items}\n\n*Valor dos produtos:* ${subtotal}`;
-
-    const cleanPhone = phone.replace(/\D/g, "");
-    const fullPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-    const encodedMsg = encodeURIComponent(message);
-
-    if (cleanPhone) {
-      window.open(`https://wa.me/${fullPhone}?text=${encodedMsg}`, "_blank");
-    } else {
-      navigator.clipboard.writeText(message);
-      toast.success("Resumo copiado para a área de transferência!");
-    }
+    setWppSummaryText(message);
   };
 
   const formatCurrency = (value: number) => {
@@ -2197,7 +2181,7 @@ export default function AdminPage() {
                         <tbody className="divide-y divide-gray-100">
                           {filteredOrders.map((order, index) => {
                             const addr = order.shipping_address as any;
-                            const customerName = addr?.name || "—";
+                            const customerName = addr?.name || orderProfiles[order.user_id]?.name || "—";
                             return (
                               <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-4 py-3 text-sm font-semibold text-gray-500">#{index + 1}</td>
@@ -2286,7 +2270,7 @@ export default function AdminPage() {
                         <tbody className="divide-y divide-teal-50">
                           {filteredOrders.map((order, index) => {
                             const addr = order.shipping_address as any;
-                            const customerName = addr?.name || "—";
+                            const customerName = addr?.name || orderProfiles[order.user_id]?.name || "—";
                             return (
                               <tr key={order.id} className="hover:bg-teal-50/40 transition-colors">
                                 <td className="px-4 py-3 text-sm font-semibold text-teal-600">#{index + 1}</td>
@@ -2369,7 +2353,7 @@ export default function AdminPage() {
                         <tbody className="divide-y divide-orange-50">
                           {filteredOrders.map((order, index) => {
                             const addr = order.shipping_address as any;
-                            const customerName = addr?.name || "—";
+                            const customerName = addr?.name || orderProfiles[order.user_id]?.name || "—";
                             const statusInfo = getExchangeStatusInfo(order.status);
                             return (
                               <tr key={order.id} className="hover:bg-orange-50/40 transition-colors">
@@ -3539,6 +3523,51 @@ export default function AdminPage() {
                   Salvar
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* WPP Summary Modal */}
+      <AnimatePresence>
+        {wppSummaryText !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+            onClick={() => setWppSummaryText(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-full max-w-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Resumo para WhatsApp</h2>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(wppSummaryText); toast.success("Copiado!"); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copiar tudo
+                  </button>
+                  <button
+                    onClick={() => setWppSummaryText(null)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+              <textarea
+                readOnly
+                value={wppSummaryText}
+                className="w-full h-72 p-4 text-sm font-mono border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-[#2e3091] bg-gray-50"
+              />
             </motion.div>
           </motion.div>
         )}
