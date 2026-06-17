@@ -131,11 +131,12 @@ serve(async (req) => {
       }
 
       for (const item of orderItems) {
-        await supabase.rpc("decrement_stock", {
-          p_product_id: item.product_id,
-          p_size: item.size,
-          p_qty: item.quantity,
-        }).catch((e: any) => console.error("Stock decrement error:", e));
+        try {
+          const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+          if (stockRow) {
+            await supabase.from("product_stock").update({ quantity: Math.max(0, stockRow.quantity - item.quantity), updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+          }
+        } catch (e: any) { console.error("Stock decrement error:", e); }
       }
 
       try {
@@ -251,11 +252,12 @@ serve(async (req) => {
 
       // Decrementa estoque
       for (const item of orderItems) {
-        await supabase.rpc("decrement_stock", {
-          p_product_id: item.product_id,
-          p_size: item.size,
-          p_qty: item.quantity,
-        }).catch((e: any) => console.error("Stock decrement error:", e));
+        try {
+          const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+          if (stockRow) {
+            await supabase.from("product_stock").update({ quantity: Math.max(0, stockRow.quantity - item.quantity), updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+          }
+        } catch (e: any) { console.error("Stock decrement error:", e); }
       }
 
       // Envia email de confirmação

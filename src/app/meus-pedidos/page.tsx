@@ -524,6 +524,7 @@ export default function MeusPedidosPage() {
       paid: { label: "Pagamento aprovado", color: "bg-green-100 text-green-800" },
       separating: { label: "Preparando envio", color: "bg-blue-100 text-blue-800" },
       shipped: { label: "Enviado", color: "bg-purple-100 text-purple-800" },
+      delivered: { label: "Pedido entregue", color: "bg-teal-100 text-teal-800" },
       refunded: { label: "Reembolsado", color: "bg-red-100 text-red-800" },
     };
     return statusMap[status] || { label: status, color: "bg-gray-100 text-gray-800" };
@@ -562,6 +563,29 @@ export default function MeusPedidosPage() {
             {/* Pedidos normais */}
             {orders.map((order) => {
               const status = getStatusLabel(order.status);
+
+              if (order.status === "delivered") {
+                return (
+                  <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden border-l-4 border-teal-400">
+                    <div className="p-6 sm:p-8 text-center">
+                      <div className="text-5xl mb-4">🎉</div>
+                      <h3 className="text-lg font-semibold text-teal-700 mb-4">
+                        Pedido #{order.id.slice(0, 8).toUpperCase()} — Entregue
+                      </h3>
+                      <p className="text-gray-700 leading-relaxed text-sm sm:text-base max-w-xl mx-auto mb-6">
+                        Que bom que seu pedido chegou! 😊 Agradecemos de coração por confiar na Goiás Minas Uniformes. Ficamos muito felizes em fazer parte da sua jornada escolar e em poder contribuir para que você receba seus uniformes com praticidade e segurança. Muito obrigado pela preferência! 💙
+                      </p>
+                      <button
+                        onClick={() => navigate("/escolas/colegio-militar")}
+                        className="inline-flex items-center gap-2 bg-[#2e3091] text-white px-6 py-3 rounded-xl font-medium hover:bg-[#252a7a] transition-colors"
+                      >
+                        Fazer Novo Pedido
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={order.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
                   <div className="p-6 border-b border-gray-100">

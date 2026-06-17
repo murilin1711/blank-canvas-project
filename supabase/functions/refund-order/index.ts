@@ -40,12 +40,13 @@ serve(async (req) => {
       });
     }
 
-    // Fetch order
+    // Fetch order and its items for stock restore
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select("id, total, payment_method, payment_provider_id, status")
       .eq("id", orderId)
       .single();
+    const { data: orderItemsForRestore } = await supabase.from("order_items").select("product_id, size, quantity").eq("order_id", orderId);
 
     if (orderError || !order) {
       return new Response(JSON.stringify({ error: "Order not found" }), {
@@ -82,6 +83,16 @@ serve(async (req) => {
 
       await supabase.from("orders").update({ status: "refunded" }).eq("id", orderId);
 
+      // Restaura estoque
+      if (orderItemsForRestore) {
+        for (const item of orderItemsForRestore) {
+          try {
+            const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+            if (stockRow) await supabase.from("product_stock").update({ quantity: stockRow.quantity + item.quantity, updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+          } catch (e) { console.error("Stock restore error:", e); }
+        }
+      }
+
       return new Response(JSON.stringify({ success: true, provider: "stripe", refundId: refund.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -108,6 +119,16 @@ serve(async (req) => {
       }
 
       await supabase.from("orders").update({ status: "refunded" }).eq("id", orderId);
+
+      // Restaura estoque
+      if (orderItemsForRestore) {
+        for (const item of orderItemsForRestore) {
+          try {
+            const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+            if (stockRow) await supabase.from("product_stock").update({ quantity: stockRow.quantity + item.quantity, updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+          } catch (e) { console.error("Stock restore error:", e); }
+        }
+      }
 
       return new Response(JSON.stringify({ success: true, provider: "mercadopago", refundId: mpData.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

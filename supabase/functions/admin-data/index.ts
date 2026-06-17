@@ -165,8 +165,12 @@ Deno.serve(async (req: Request) => {
 
             // Decrementa estoque
             for (const item of orderItems) {
-              await supabase.rpc("decrement_stock", { p_product_id: item.product_id, p_size: item.size, p_qty: item.quantity })
-                .catch((e: any) => console.error("Stock decrement error:", e));
+              try {
+                const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+                if (stockRow) {
+                  await supabase.from("product_stock").update({ quantity: Math.max(0, stockRow.quantity - item.quantity), updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+                }
+              } catch (e: any) { console.error("Stock decrement error:", e); }
             }
 
             // Envia email de confirmação do Bolsa Uniforme
@@ -315,6 +319,18 @@ Deno.serve(async (req: Request) => {
 
       result = { success: true, orderId };
     } else if (action === 'delete_order') {
+      // Restaura estoque antes de deletar
+      const { data: itemsToRestore } = await supabase.from("order_items").select("product_id, size, quantity").eq("order_id", data.id);
+      if (itemsToRestore) {
+        for (const item of itemsToRestore) {
+          try {
+            const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+            if (stockRow) {
+              await supabase.from("product_stock").update({ quantity: stockRow.quantity + item.quantity, updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+            }
+          } catch (e: any) { console.error("Stock restore error:", e); }
+        }
+      }
       await supabase.from("order_items").delete().eq("order_id", data.id);
       await supabase.from("orders").delete().eq("id", data.id);
       result = { success: true };
@@ -443,6 +459,9 @@ Deno.serve(async (req: Request) => {
       result = { success: true };
     } else if (action === 'delete_category') {
       await supabase.from("products").update({ category: null }).eq("category", data.category);
+      result = { success: true };
+    } else if (action === 'delete_bolsa_payment') {
+      await supabase.from("bolsa_uniforme_payments").delete().eq("id", data.id);
       result = { success: true };
     } else {
       return new Response(JSON.stringify({ error: 'Ação desconhecida' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
