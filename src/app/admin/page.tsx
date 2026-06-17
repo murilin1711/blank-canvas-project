@@ -1096,18 +1096,8 @@ export default function AdminPage() {
       created_at: payment.created_at,
     };
 
-    if (meServiceId) {
-      // Pula cotação — usa o serviço que o cliente escolheu
-      setLabelOrder(syntheticOrder);
-      setLabelServices([]);
-      setLabelSelectedService(meServiceId);
-      setLabelResult(null);
-      setLabelLoadingQuote(false);
-      setLabelPresetServiceName(`Serviço ID ${meServiceId} (escolha do cliente)`);
-    } else {
-      // Serviço desconhecido ou antigo — cota normalmente
-      openLabelModal(syntheticOrder);
-    }
+    // Sempre cota para obter nomes reais dos serviços e pré-selecionar o do cliente
+    openLabelModal(syntheticOrder);
   };
 
   const toggleFeedbackVisibility = async (id: string, currentVisibility: boolean) => {
