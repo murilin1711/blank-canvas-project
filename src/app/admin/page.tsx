@@ -1603,17 +1603,33 @@ export default function AdminPage() {
   const openOrderDetails = async (order: Order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
-    if (!orderCpfs[order.user_id]) {
-      const addrCpf = (order.shipping_address as any)?.cpf;
-      if (addrCpf) {
+    const addr = order.shipping_address as any;
+    const needsProfile = !orderCpfs[order.user_id] || !addr?.name || !addr?.phone || !addr?.email;
+    if (needsProfile && order.user_id) {
+      const addrCpf = addr?.cpf;
+      if (addrCpf && addr?.name && addr?.phone && addr?.email) {
         setOrderCpfs(prev => ({ ...prev, [order.user_id]: addrCpf }));
       } else {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("cpf")
+          .select("cpf, name, email, phone")
           .eq("user_id", order.user_id)
           .single();
-        if (prof?.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
+        if (prof) {
+          if (prof.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
+          if (!addr?.name || !addr?.phone || !addr?.email) {
+            setSelectedOrder(prev => prev ? {
+              ...prev,
+              shipping_address: {
+                ...(prev.shipping_address as any),
+                name: addr?.name || prof.name || "",
+                email: addr?.email || prof.email || "",
+                phone: addr?.phone || prof.phone || "",
+                cpf: addr?.cpf || prof.cpf || "",
+              }
+            } : prev);
+          }
+        }
       }
     }
   };
