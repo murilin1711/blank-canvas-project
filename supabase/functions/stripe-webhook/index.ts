@@ -82,6 +82,20 @@ serve(async (req) => {
         0
       );
 
+      // Idempotency: skip if order already exists for this payment intent
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("payment_provider_id", paymentIntent.id)
+        .maybeSingle();
+      if (existingOrder) {
+        console.log("Order already exists for payment_intent", paymentIntent.id, "— skipping duplicate");
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
@@ -191,6 +205,20 @@ serve(async (req) => {
         (acc: number, item: any) => acc + item.price * item.qty,
         0
       );
+
+      // Idempotency: skip if order already exists for this payment intent
+      const { data: existingOrderCs } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("payment_provider_id", paymentIntentId)
+        .maybeSingle();
+      if (existingOrderCs) {
+        console.log("Order already exists for payment_intent", paymentIntentId, "— skipping duplicate");
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       // Create order
       const { data: order, error: orderError } = await supabase
