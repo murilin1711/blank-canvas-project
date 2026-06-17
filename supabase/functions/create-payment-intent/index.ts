@@ -88,6 +88,24 @@ serve(async (req) => {
       }
     }
 
+    // Reutiliza payment intent pendente se existir um recente para o mesmo cliente/valor
+    if (customerId) {
+      const existingPIs = await stripe.paymentIntents.list({ customer: customerId, limit: 10 });
+      const reusable = existingPIs.data.find(pi =>
+        pi.amount === totalAmount &&
+        (pi.status === "requires_payment_method" || pi.status === "requires_confirmation") &&
+        pi.metadata?.flow === "direct_pi" &&
+        pi.metadata?.userId === userId
+      );
+      if (reusable) {
+        console.log("[CREATE-PAYMENT-INTENT] Reusing existing payment intent", reusable.id);
+        return new Response(
+          JSON.stringify({ clientSecret: reusable.client_secret, paymentIntentId: reusable.id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+        );
+      }
+    }
+
     // Create payment intent - using automatic_payment_methods for flexibility
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalAmount,

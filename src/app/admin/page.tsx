@@ -2203,6 +2203,11 @@ export default function AdminPage() {
                                       <span className="text-gray-500">Total:</span>
                                       <span className="font-bold text-gray-900">{formatCurrency(Number(order.total))}</span>
                                     </div>
+                                    <div className="pt-0.5">
+                                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${order.payment_method === "pix" ? "bg-green-100 text-green-700" : order.payment_method === "boleto" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}>
+                                        {order.payment_method === "pix" ? "PIX" : order.payment_method === "boleto" ? "Boleto" : "Cartão"}
+                                      </span>
+                                    </div>
                                   </div>
                                 </td>
                                 <td className="px-4 py-3">
@@ -3326,6 +3331,12 @@ export default function AdminPage() {
                       <div className="flex justify-between pt-2 border-t border-gray-200">
                         <span className="font-semibold text-gray-700">Total:</span>
                         <span className="font-bold text-[#2e3091] text-base">{formatCurrency(Number(order.total))}</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-gray-100">
+                        <span className="text-gray-500">Pagamento:</span>
+                        <span className="font-medium text-gray-900">
+                          {order.payment_method === "pix" ? "PIX" : order.payment_method === "boleto" ? "Boleto" : order.payment_method === "card" ? "Cartão" : order.payment_method || "—"}
+                        </span>
                       </div>
                     </div>
                   </div>
