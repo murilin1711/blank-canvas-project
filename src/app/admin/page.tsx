@@ -264,9 +264,13 @@ export default function AdminPage() {
   const [exchangeDateFrom, setExchangeDateFrom] = useState("");
   const [exchangeDateTo, setExchangeDateTo] = useState("");
   const [orderCpfs, setOrderCpfs] = useState<Record<string, string>>({});
+  const [orderProfiles, setOrderProfiles] = useState<Record<string, { name: string; email: string; phone: string }>>({});
 
   // Pedidos Stripe sub-tab
   const [pedidosSubTab, setPedidosSubTab] = useState<"ativos" | "entregues" | "devolucoes">("ativos");
+
+  // Bolsa Uniforme sub-tab
+  const [bolsaSubTab, setBolsaSubTab] = useState<"ativos" | "entregues" | "devolucoes">("ativos");
 
   // Bolsa Uniforme search/filter
   const [bolsaSearch, setBolsaSearch] = useState("");
@@ -651,28 +655,34 @@ export default function AdminPage() {
       });
   }, [bolsaPayments]);
 
-  // Busca CPFs em lote sempre que orders mudar
+  // Busca dados de perfil em lote sempre que orders mudar
   useEffect(() => {
     if (orders.length === 0) return;
-    const updates: Record<string, string> = {};
-    // Primeiro: lê do shipping_address.cpf (sem query extra)
+    const cpfUpdates: Record<string, string> = {};
     orders.forEach(o => {
       const addr = o.shipping_address as any;
-      if (addr?.cpf && o.user_id) updates[o.user_id] = addr.cpf;
+      if (addr?.cpf && o.user_id) cpfUpdates[o.user_id] = addr.cpf;
     });
-    if (Object.keys(updates).length > 0) setOrderCpfs(prev => ({ ...prev, ...updates }));
-    // Fallback: busca em profiles para os que ainda não têm
-    const missing = [...new Set(orders.map(o => o.user_id).filter(id => id && !updates[id] && !orderCpfs[id]))];
-    if (missing.length === 0) return;
+    if (Object.keys(cpfUpdates).length > 0) setOrderCpfs(prev => ({ ...prev, ...cpfUpdates }));
+
+    const allUserIds = [...new Set(orders.map(o => o.user_id).filter(Boolean))];
+    if (allUserIds.length === 0) return;
     supabase
       .from("profiles")
-      .select("user_id, cpf")
-      .in("user_id", missing)
+      .select("user_id, cpf, name, email, phone")
+      .in("user_id", allUserIds)
       .then(({ data }) => {
         if (!data) return;
-        const profileUpdates: Record<string, string> = {};
-        data.forEach(p => { if (p.cpf) profileUpdates[p.user_id] = p.cpf; });
-        if (Object.keys(profileUpdates).length > 0) setOrderCpfs(prev => ({ ...prev, ...profileUpdates }));
+        const newCpfs: Record<string, string> = {};
+        const newProfiles: Record<string, { name: string; email: string; phone: string }> = {};
+        data.forEach(p => {
+          if (p.cpf) newCpfs[p.user_id] = p.cpf;
+          if (p.name || p.email || p.phone) {
+            newProfiles[p.user_id] = { name: p.name || "", email: p.email || "", phone: p.phone || "" };
+          }
+        });
+        if (Object.keys(newCpfs).length > 0) setOrderCpfs(prev => ({ ...prev, ...newCpfs }));
+        if (Object.keys(newProfiles).length > 0) setOrderProfiles(prev => ({ ...prev, ...newProfiles }));
       });
   }, [orders]);
 
@@ -1603,34 +1613,16 @@ export default function AdminPage() {
   const openOrderDetails = async (order: Order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
-    const addr = order.shipping_address as any;
-    const needsProfile = !orderCpfs[order.user_id] || !addr?.name || !addr?.phone || !addr?.email;
-    if (needsProfile && order.user_id) {
-      const addrCpf = addr?.cpf;
-      if (addrCpf && addr?.name && addr?.phone && addr?.email) {
-        setOrderCpfs(prev => ({ ...prev, [order.user_id]: addrCpf }));
-      } else {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("cpf, name, email, phone")
-          .eq("user_id", order.user_id)
-          .single();
-        if (prof) {
-          if (prof.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
-          if (!addr?.name || !addr?.phone || !addr?.email) {
-            setSelectedOrder(prev => prev ? {
-              ...prev,
-              shipping_address: {
-                ...(prev.shipping_address as any),
-                name: addr?.name || prof.name || "",
-                email: addr?.email || prof.email || "",
-                phone: addr?.phone || prof.phone || "",
-                cpf: addr?.cpf || prof.cpf || "",
-              }
-            } : prev);
-          }
-        }
-      }
+    if (!order.user_id) return;
+    if (orderProfiles[order.user_id] && orderCpfs[order.user_id]) return;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("cpf, name, email, phone")
+      .eq("user_id", order.user_id)
+      .single();
+    if (prof) {
+      if (prof.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
+      setOrderProfiles(prev => ({ ...prev, [order.user_id]: { name: prof.name || "", email: prof.email || "", phone: prof.phone || "" } }));
     }
   };
 
@@ -1654,10 +1646,11 @@ export default function AdminPage() {
 
   const openOrderWppSummary = (order: Order) => {
     const addr = order.shipping_address as any;
-    const name = addr?.name || "—";
+    const prof = orderProfiles[order.user_id];
+    const name = addr?.name || prof?.name || "—";
     const cpf = orderCpfs[order.user_id] || addr?.cpf || "—";
-    const phone = addr?.phone || "—";
-    const email = addr?.email || "—";
+    const phone = addr?.phone || prof?.phone || "—";
+    const email = addr?.email || prof?.email || "—";
     const address = addr?.cep
       ? `${addr.street}, ${addr.number}${addr.complement ? ` - ${addr.complement}` : ""}, ${addr.neighborhood}, ${addr.city}/${addr.state}, CEP ${addr.cep}`
       : "—";
@@ -2432,14 +2425,104 @@ export default function AdminPage() {
           })()}
 
           {/* Bolsa Uniforme Tab */}
-          {activeTab === "bolsa-uniforme" && (
-            <div className="space-y-6">
+          {activeTab === "bolsa-uniforme" && (() => {
+            const exchangeStatusValues = ['exchange_requested', 'exchange_received', 'exchange_resent'];
+            const allBolsa = filterBolsaByCategory(bolsaPayments, bolsaSelectedCategories);
+            const countBolsaAtivos = allBolsa.filter(p => {
+              const key = p.order_id || `pending-${p.id}`;
+              const s = bolsaOrderData[key]?.status;
+              return s !== 'delivered' && !exchangeStatusValues.includes(s || '');
+            }).length;
+            const countBolsaEntregues = allBolsa.filter(p => {
+              const key = p.order_id || `pending-${p.id}`;
+              return bolsaOrderData[key]?.status === 'delivered';
+            }).length;
+            const countBolsaDevolucoes = allBolsa.filter(p => {
+              const key = p.order_id || `pending-${p.id}`;
+              return exchangeStatusValues.includes(bolsaOrderData[key]?.status || '');
+            }).length;
+
+            const renderBolsaRow = (payment: BolsaUniformePayment, index: number, accentClass = "bg-[#2e3091]", hoverClass = "hover:bg-gray-50") => (
+              <div key={payment.id} className={`flex items-center gap-4 px-4 py-3 transition-colors ${hoverClass}`}>
+                <div className="flex-1 flex items-center gap-4 min-w-0">
+                  <span className="text-sm font-medium text-gray-900 truncate">
+                    #{index + 1} - {payment.customer_name}
+                  </span>
+                  <span className="text-sm text-gray-500 hidden sm:inline">
+                    {formatCurrency(Number(payment.total_amount))}
+                    {Number(payment.shipping_amount) > 0 && (
+                      <span className="text-xs text-gray-400 ml-1">(frete: {formatCurrency(Number(payment.shipping_amount))})</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Clock className="w-3.5 h-3.5" />
+                  {formatTime(payment.created_at)}
+                </div>
+                <select
+                  value={payment.status}
+                  onChange={(e) => { e.stopPropagation(); updatePaymentStatus(payment.id, e.target.value); }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getBolsaStatusInfo(payment.status).color}`}
+                >
+                  {BOLSA_STATUSES.map(s => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+                {payment.status === 'approved' && (() => {
+                  const orderKey = payment.order_id || `pending-${payment.id}`;
+                  const od = bolsaOrderData[orderKey];
+                  return (
+                    <select
+                      value={od?.status ?? "paid"}
+                      onChange={(e) => { e.stopPropagation(); handleBolsaOrderStatus(payment, e.target.value); }}
+                      onClick={(e) => e.stopPropagation()}
+                      className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(od?.status ?? "paid").color}`}
+                    >
+                      {ORDER_STATUSES.map(s => (
+                        <option key={s.value} value={s.value}>{s.label}</option>
+                      ))}
+                    </select>
+                  );
+                })()}
+                <button
+                  onClick={(e) => { e.stopPropagation(); openPaymentDetails(payment); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${accentClass} text-white rounded-lg transition-colors shrink-0`}
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  Ver detalhes
+                </button>
+              </div>
+            );
+
+            const currentSearch = bolsaSubTab === "ativos" ? bolsaSearch : bolsaSubTab === "entregues" ? bolsaDeliveredSearch : exchangeSearch;
+            const setCurrentSearch = bolsaSubTab === "ativos" ? setBolsaSearch : bolsaSubTab === "entregues" ? setBolsaDeliveredSearch : setExchangeSearch;
+            const currentDateFrom = bolsaSubTab === "ativos" ? bolsaDateFrom : bolsaSubTab === "entregues" ? bolsaDeliveredDateFrom : exchangeDateFrom;
+            const setCurrentDateFrom = bolsaSubTab === "ativos" ? setBolsaDateFrom : bolsaSubTab === "entregues" ? setBolsaDeliveredDateFrom : setExchangeDateFrom;
+            const currentDateTo = bolsaSubTab === "ativos" ? bolsaDateTo : bolsaSubTab === "entregues" ? bolsaDeliveredDateTo : exchangeDateTo;
+            const setCurrentDateTo = bolsaSubTab === "ativos" ? setBolsaDateTo : bolsaSubTab === "entregues" ? setBolsaDeliveredDateTo : setExchangeDateTo;
+
+            const clearFilters = () => {
+              if (bolsaSubTab === "ativos") { setBolsaSearch(""); setBolsaDateFrom(""); setBolsaDateTo(""); }
+              else if (bolsaSubTab === "entregues") { setBolsaDeliveredSearch(""); setBolsaDeliveredDateFrom(""); setBolsaDeliveredDateTo(""); }
+              else { setExchangeSearch(""); setExchangeDateFrom(""); setExchangeDateTo(""); }
+            };
+
+            const applyFilters = (list: BolsaUniformePayment[]) => {
+              let r = [...list].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              if (currentSearch.trim()) { const q = currentSearch.toLowerCase(); r = r.filter(p => (p.customer_name || "").toLowerCase().includes(q)); }
+              if (currentDateFrom) { const from = new Date(currentDateFrom); r = r.filter(p => new Date(p.created_at) >= from); }
+              if (currentDateTo) { const to = new Date(currentDateTo); to.setHours(23, 59, 59, 999); r = r.filter(p => new Date(p.created_at) <= to); }
+              return r;
+            };
+
+            return (
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-start justify-between gap-4 mb-3">
+                  <div className="flex items-start justify-between gap-4 mb-4">
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">Pagamentos Bolsa Uniforme</h2>
-                      <p className="text-sm text-gray-500 mt-1">Gerencie todos os pagamentos via Bolsa Uniforme</p>
+                      <p className="text-sm text-gray-500 mt-0.5">Gerencie todos os pagamentos via Bolsa Uniforme</p>
                     </div>
                     <CategoryFilter
                       categories={availableCategories}
@@ -2448,265 +2531,99 @@ export default function AdminPage() {
                       label="Filtrar por categoria"
                     />
                   </div>
+
+                  {/* Sub-tabs */}
+                  <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-4">
+                    <button
+                      onClick={() => setBolsaSubTab("ativos")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${bolsaSubTab === "ativos" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Pedidos {countBolsaAtivos > 0 && <span className="ml-1 bg-[#2e3091] text-white rounded-full px-1.5 py-0.5 text-[10px]">{countBolsaAtivos}</span>}
+                    </button>
+                    <button
+                      onClick={() => setBolsaSubTab("entregues")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${bolsaSubTab === "entregues" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Entregues {countBolsaEntregues > 0 && <span className="ml-1 bg-teal-600 text-white rounded-full px-1.5 py-0.5 text-[10px]">{countBolsaEntregues}</span>}
+                    </button>
+                    <button
+                      onClick={() => setBolsaSubTab("devolucoes")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${bolsaSubTab === "devolucoes" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Devoluções {countBolsaDevolucoes > 0 && <span className="ml-1 bg-orange-500 text-white rounded-full px-1.5 py-0.5 text-[10px]">{countBolsaDevolucoes}</span>}
+                    </button>
+                  </div>
+
+                  {/* Busca + filtros */}
                   <div className="flex flex-wrap gap-2">
                     <input
                       type="text"
                       placeholder="Buscar por nome do cliente..."
-                      value={bolsaSearch}
-                      onChange={(e) => setBolsaSearch(e.target.value)}
-                      className="flex-1 min-w-[180px] text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400/30 bg-white"
+                      value={currentSearch}
+                      onChange={(e) => setCurrentSearch(e.target.value)}
+                      className="flex-1 min-w-[180px] text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
                     />
                     <div className="flex items-center gap-1.5">
                       <label className="text-xs text-gray-500 whitespace-nowrap">De:</label>
-                      <input
-                        type="date"
-                        value={bolsaDateFrom}
-                        onChange={(e) => setBolsaDateFrom(e.target.value)}
-                        className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400/30 bg-white"
-                      />
+                      <input type="date" value={currentDateFrom} onChange={(e) => setCurrentDateFrom(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30" />
                     </div>
                     <div className="flex items-center gap-1.5">
                       <label className="text-xs text-gray-500 whitespace-nowrap">Até:</label>
-                      <input
-                        type="date"
-                        value={bolsaDateTo}
-                        onChange={(e) => setBolsaDateTo(e.target.value)}
-                        className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-gray-400/30 bg-white"
-                      />
+                      <input type="date" value={currentDateTo} onChange={(e) => setCurrentDateTo(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30" />
                     </div>
-                    {(bolsaSearch || bolsaDateFrom || bolsaDateTo) && (
-                      <button
-                        onClick={() => { setBolsaSearch(""); setBolsaDateFrom(""); setBolsaDateTo(""); }}
-                        className="text-xs text-gray-600 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                      >
+                    {(currentSearch || currentDateFrom || currentDateTo) && (
+                      <button onClick={clearFilters} className="text-xs text-gray-500 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1">
                         <X className="w-3.5 h-3.5" /> Limpar
                       </button>
                     )}
                   </div>
                 </div>
 
-                {(() => {
-                  let filteredBolsa = filterBolsaByCategory(bolsaPayments, bolsaSelectedCategories)
-                    .filter(p => {
-                      const orderKey = p.order_id || `pending-${p.id}`;
-                      return bolsaOrderData[orderKey]?.status !== 'delivered';
-                    })
-                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                  if (bolsaSearch.trim()) {
-                    const q = bolsaSearch.toLowerCase();
-                    filteredBolsa = filteredBolsa.filter(p => (p.customer_name || "").toLowerCase().includes(q));
-                  }
-                  if (bolsaDateFrom) {
-                    const from = new Date(bolsaDateFrom);
-                    filteredBolsa = filteredBolsa.filter(p => new Date(p.created_at) >= from);
-                  }
-                  if (bolsaDateTo) {
-                    const to = new Date(bolsaDateTo);
-                    to.setHours(23, 59, 59, 999);
-                    filteredBolsa = filteredBolsa.filter(p => new Date(p.created_at) <= to);
-                  }
-
-                  if (filteredBolsa.length === 0) return (
+                {bolsaSubTab === "ativos" && (() => {
+                  const list = applyFilters(allBolsa.filter(p => {
+                    const key = p.order_id || `pending-${p.id}`;
+                    const s = bolsaOrderData[key]?.status;
+                    return s !== 'delivered' && !exchangeStatusValues.includes(s || '');
+                  }));
+                  if (list.length === 0) return (
                     <div className="p-12 text-center">
                       <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">
-                        {bolsaSelectedCategories.length > 0 || bolsaSearch || bolsaDateFrom || bolsaDateTo
-                          ? "Nenhum pagamento encontrado para os filtros aplicados"
-                          : "Nenhum pagamento Bolsa Uniforme"}
-                      </p>
+                      <p className="text-gray-500">Nenhum pagamento Bolsa Uniforme ativo</p>
                     </div>
                   );
+                  return <div className="divide-y divide-gray-100">{list.map((p, i) => renderBolsaRow(p, i, "bg-[#2e3091] hover:bg-[#252a7a]", "hover:bg-gray-50"))}</div>;
+                })()}
 
-                  return (
-                  <div className="divide-y divide-gray-100">
-                    {filteredBolsa.map((payment, index) => {
-                      return (
-                        <div key={payment.id} className="transition-all">
-                          <div
-                            className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50"
-                          >
-                            <div className="flex-1 flex items-center gap-4 min-w-0">
-                              <span className="text-sm font-medium text-gray-900 truncate">
-                                #{index + 1} - {payment.customer_name}
-                              </span>
-                              <span className="text-sm text-gray-500 hidden sm:inline">
-                                {formatCurrency(Number(payment.total_amount))}
-                                {Number(payment.shipping_amount) > 0 && (
-                                  <span className="text-xs text-gray-400 ml-1">(frete: {formatCurrency(Number(payment.shipping_amount))})</span>
-                                )}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                              <Clock className="w-3.5 h-3.5" />
-                              {formatTime(payment.created_at)}
-                            </div>
-                            
-                            <select
-                              value={payment.status}
-                              onChange={(e) => { e.stopPropagation(); updatePaymentStatus(payment.id, e.target.value); }}
-                              onClick={(e) => e.stopPropagation()}
-                              className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getBolsaStatusInfo(payment.status).color}`}
-                            >
-                              {BOLSA_STATUSES.map(s => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                              ))}
-                            </select>
-
-                            {payment.status === 'approved' && (() => {
-                              const orderKey = payment.order_id || `pending-${payment.id}`;
-                              const od = bolsaOrderData[orderKey];
-                              return (
-                                <select
-                                  value={od?.status ?? "paid"}
-                                  onChange={(e) => { e.stopPropagation(); handleBolsaOrderStatus(payment, e.target.value); }}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className={`px-2 py-0.5 rounded-full text-xs font-medium border-0 cursor-pointer ${getStatusInfo(od?.status ?? "paid").color}`}
-                                >
-                                  {ORDER_STATUSES.map(s => (
-                                    <option key={s.value} value={s.value}>{s.label}</option>
-                                  ))}
-                                </select>
-                              );
-                            })()}
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openPaymentDetails(payment);
-                              }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-[#2e3091] text-white rounded-lg hover:bg-[#252a7a] transition-colors"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              Ver detalhes
-                            </button>
-                          </div>
-
-                        </div>
-                      );
-                    })}
-                  </div>
+                {bolsaSubTab === "entregues" && (() => {
+                  const list = applyFilters(allBolsa.filter(p => {
+                    const key = p.order_id || `pending-${p.id}`;
+                    return bolsaOrderData[key]?.status === 'delivered';
+                  }));
+                  if (list.length === 0) return (
+                    <div className="p-12 text-center">
+                      <Check className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Nenhum pedido entregue encontrado</p>
+                    </div>
                   );
+                  return <div className="divide-y divide-teal-50">{list.map((p, i) => renderBolsaRow(p, i, "bg-teal-600 hover:bg-teal-700", "hover:bg-teal-50/40"))}</div>;
+                })()}
+
+                {bolsaSubTab === "devolucoes" && (() => {
+                  const list = applyFilters(allBolsa.filter(p => {
+                    const key = p.order_id || `pending-${p.id}`;
+                    return exchangeStatusValues.includes(bolsaOrderData[key]?.status || '');
+                  }));
+                  if (list.length === 0) return (
+                    <div className="p-12 text-center">
+                      <RefreshCw className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Nenhum pedido em devolução encontrado</p>
+                    </div>
+                  );
+                  return <div className="divide-y divide-orange-50">{list.map((p, i) => renderBolsaRow(p, i, "bg-orange-600 hover:bg-orange-700", "hover:bg-orange-50/40"))}</div>;
                 })()}
               </div>
-
-              {/* Bolsa Uniforme Recebidos */}
-              {(() => {
-                const deliveredBolsa = filterBolsaByCategory(bolsaPayments, bolsaSelectedCategories).filter(p => {
-                  const orderKey = p.order_id || `pending-${p.id}`;
-                  return bolsaOrderData[orderKey]?.status === 'delivered';
-                });
-                if (deliveredBolsa.length === 0 && !bolsaDeliveredSearch && !bolsaDeliveredDateFrom && !bolsaDeliveredDateTo) return null;
-
-                const totalDelivered = deliveredBolsa.length;
-                let filteredDelivered = [...deliveredBolsa];
-                if (bolsaDeliveredSearch.trim()) {
-                  const q = bolsaDeliveredSearch.toLowerCase();
-                  filteredDelivered = filteredDelivered.filter(p => (p.customer_name || "").toLowerCase().includes(q));
-                }
-                if (bolsaDeliveredDateFrom) {
-                  const from = new Date(bolsaDeliveredDateFrom);
-                  filteredDelivered = filteredDelivered.filter(p => new Date(p.created_at) >= from);
-                }
-                if (bolsaDeliveredDateTo) {
-                  const to = new Date(bolsaDeliveredDateTo);
-                  to.setHours(23, 59, 59, 999);
-                  filteredDelivered = filteredDelivered.filter(p => new Date(p.created_at) <= to);
-                }
-
-                return (
-                  <div className="bg-white rounded-2xl border border-teal-200 overflow-hidden">
-                    <div className="p-4 border-b border-teal-100 bg-teal-50">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div>
-                          <h2 className="text-base font-semibold text-teal-800 flex items-center gap-2">
-                            <Check className="w-4 h-4" />
-                            Bolsa Uniforme Recebidos
-                          </h2>
-                          <p className="text-xs text-teal-600 mt-0.5">
-                            {totalDelivered} pedido{totalDelivered !== 1 ? 's' : ''} entregue{totalDelivered !== 1 ? 's' : ''}
-                            {filteredDelivered.length !== totalDelivered && ` · ${filteredDelivered.length} exibido${filteredDelivered.length !== 1 ? 's' : ''}`}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <input
-                          type="text"
-                          placeholder="Buscar por nome do cliente..."
-                          value={bolsaDeliveredSearch}
-                          onChange={(e) => setBolsaDeliveredSearch(e.target.value)}
-                          className="flex-1 min-w-[180px] text-sm border border-teal-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400/30 bg-white"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-xs text-teal-700 whitespace-nowrap">De:</label>
-                          <input
-                            type="date"
-                            value={bolsaDeliveredDateFrom}
-                            onChange={(e) => setBolsaDeliveredDateFrom(e.target.value)}
-                            className="text-sm border border-teal-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400/30 bg-white"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-xs text-teal-700 whitespace-nowrap">Até:</label>
-                          <input
-                            type="date"
-                            value={bolsaDeliveredDateTo}
-                            onChange={(e) => setBolsaDeliveredDateTo(e.target.value)}
-                            className="text-sm border border-teal-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400/30 bg-white"
-                          />
-                        </div>
-                        {(bolsaDeliveredSearch || bolsaDeliveredDateFrom || bolsaDeliveredDateTo) && (
-                          <button
-                            onClick={() => { setBolsaDeliveredSearch(""); setBolsaDeliveredDateFrom(""); setBolsaDeliveredDateTo(""); }}
-                            className="text-xs text-teal-700 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                          >
-                            <X className="w-3.5 h-3.5" /> Limpar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {filteredDelivered.length === 0 ? (
-                      <div className="p-8 text-center text-sm text-gray-400">
-                        Nenhum pedido entregue encontrado para os filtros aplicados.
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-teal-50">
-                        {filteredDelivered.map((payment, index) => (
-                          <div key={payment.id} className="flex items-center gap-4 px-4 py-3 hover:bg-teal-50/40 transition-colors">
-                            <div className="flex-1 flex items-center gap-4 min-w-0">
-                              <span className="text-sm font-semibold text-teal-600 shrink-0">#{index + 1}</span>
-                              <span className="text-sm font-medium text-gray-900 truncate">{payment.customer_name}</span>
-                              <span className="text-sm text-gray-500 hidden sm:inline">
-                                {formatCurrency(Number(payment.total_amount))}
-                                {Number(payment.shipping_amount) > 0 && (
-                                  <span className="text-xs text-gray-400 ml-1">(frete: {formatCurrency(Number(payment.shipping_amount))})</span>
-                                )}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
-                              <Clock className="w-3.5 h-3.5" />
-                              {formatTime(payment.created_at)}
-                            </div>
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700 shrink-0">
-                              Pedido Entregue
-                            </span>
-                            <button
-                              onClick={() => openPaymentDetails(payment)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors shrink-0"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              Ver detalhes
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Produtos Tab */}
           {activeTab === "produtos" && (
@@ -3288,9 +3205,10 @@ export default function AdminPage() {
         {showOrderModal && selectedOrder && (() => {
           const order = selectedOrder;
           const addr = order.shipping_address as any;
-          const customerName = addr?.name || "—";
-          const customerPhone = addr?.phone || "";
-          const customerEmail = addr?.email || "";
+          const prof = orderProfiles[order.user_id];
+          const customerName = addr?.name || prof?.name || "—";
+          const customerPhone = addr?.phone || prof?.phone || "";
+          const customerEmail = addr?.email || prof?.email || "";
           const cpf = orderCpfs[order.user_id] || addr?.cpf || "";
           return (
             <motion.div
