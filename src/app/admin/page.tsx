@@ -655,35 +655,26 @@ export default function AdminPage() {
       });
   }, [bolsaPayments]);
 
-  // Busca dados de perfil em lote sempre que orders mudar
+  // Popula orderCpfs e orderProfiles a partir do _profile que vem embutido em cada order pela edge function
   useEffect(() => {
     if (orders.length === 0) return;
-    const cpfUpdates: Record<string, string> = {};
+    const newCpfs: Record<string, string> = {};
+    const newProfiles: Record<string, { name: string; email: string; phone: string }> = {};
     orders.forEach(o => {
       const addr = o.shipping_address as any;
-      if (addr?.cpf && o.user_id) cpfUpdates[o.user_id] = addr.cpf;
+      const prof = (o as any)._profile;
+      const cpf = addr?.cpf || prof?.cpf;
+      if (cpf && o.user_id) newCpfs[o.user_id] = cpf;
+      if (o.user_id && (prof?.name || prof?.email || prof?.phone)) {
+        newProfiles[o.user_id] = {
+          name: addr?.name || prof?.name || "",
+          email: addr?.email || prof?.email || "",
+          phone: addr?.phone || prof?.phone || "",
+        };
+      }
     });
-    if (Object.keys(cpfUpdates).length > 0) setOrderCpfs(prev => ({ ...prev, ...cpfUpdates }));
-
-    const allUserIds = [...new Set(orders.map(o => o.user_id).filter(Boolean))];
-    if (allUserIds.length === 0) return;
-    supabase
-      .from("profiles")
-      .select("user_id, cpf, name, email, phone")
-      .in("user_id", allUserIds)
-      .then(({ data }) => {
-        if (!data) return;
-        const newCpfs: Record<string, string> = {};
-        const newProfiles: Record<string, { name: string; email: string; phone: string }> = {};
-        data.forEach(p => {
-          if (p.cpf) newCpfs[p.user_id] = p.cpf;
-          if (p.name || p.email || p.phone) {
-            newProfiles[p.user_id] = { name: p.name || "", email: p.email || "", phone: p.phone || "" };
-          }
-        });
-        if (Object.keys(newCpfs).length > 0) setOrderCpfs(prev => ({ ...prev, ...newCpfs }));
-        if (Object.keys(newProfiles).length > 0) setOrderProfiles(prev => ({ ...prev, ...newProfiles }));
-      });
+    if (Object.keys(newCpfs).length > 0) setOrderCpfs(prev => ({ ...prev, ...newCpfs }));
+    if (Object.keys(newProfiles).length > 0) setOrderProfiles(prev => ({ ...prev, ...newProfiles }));
   }, [orders]);
 
   // Load section on demand when tab changes
@@ -1610,19 +1601,26 @@ export default function AdminPage() {
     return `https://wa.me/${fullPhone}`;
   };
 
-  const openOrderDetails = async (order: Order) => {
+  const openOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setShowOrderModal(true);
+    // _profile já foi processado pelo useEffect ao carregar os orders
+    // Garante que está nos states caso o useEffect não tenha rodado ainda
     if (!order.user_id) return;
-    if (orderProfiles[order.user_id] && orderCpfs[order.user_id]) return;
-    const { data: prof } = await supabase
-      .from("profiles")
-      .select("cpf, name, email, phone")
-      .eq("user_id", order.user_id)
-      .single();
+    const prof = (order as any)._profile;
     if (prof) {
-      if (prof.cpf) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf! }));
-      setOrderProfiles(prev => ({ ...prev, [order.user_id]: { name: prof.name || "", email: prof.email || "", phone: prof.phone || "" } }));
+      const addr = order.shipping_address as any;
+      if (prof.cpf && !orderCpfs[order.user_id]) setOrderCpfs(prev => ({ ...prev, [order.user_id]: prof.cpf }));
+      if (!orderProfiles[order.user_id]) {
+        setOrderProfiles(prev => ({
+          ...prev,
+          [order.user_id]: {
+            name: addr?.name || prof.name || "",
+            email: addr?.email || prof.email || "",
+            phone: addr?.phone || prof.phone || "",
+          }
+        }));
+      }
     }
   };
 

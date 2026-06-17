@@ -73,7 +73,14 @@ Deno.serve(async (req: Request) => {
       result = { bolsaPayment: d ? { ...d, customer_cpf } : null };
     } else if (action === 'get_orders') {
       const { data: d } = await supabase.from("orders").select("*, order_items(*)").order("created_at", { ascending: false });
-      result = { orders: d || [] };
+      const orders = d || [];
+      const userIds = [...new Set(orders.map((o: any) => o.user_id).filter(Boolean))];
+      let profileMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, cpf, name, email, phone").in("user_id", userIds);
+        (profs || []).forEach((p: any) => { profileMap[p.user_id] = { cpf: p.cpf ?? null, name: p.name ?? null, email: p.email ?? null, phone: p.phone ?? null }; });
+      }
+      result = { orders: orders.map((o: any) => ({ ...o, _profile: profileMap[o.user_id] ?? null })) };
     } else if (action === 'get_products') {
       const { data: d } = await supabase.from("products").select("*").order("school_slug").order("display_order");
       result = { products: d || [] };
