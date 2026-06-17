@@ -30,6 +30,10 @@ interface PaymentIntentRequest {
     neighborhood: string;
     city: string;
     state: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    cpf?: string;
   };
   shipping: number;
   userId: string;

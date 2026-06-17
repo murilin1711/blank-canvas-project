@@ -1280,6 +1280,10 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         neighborhood: address.neighborhood,
                         city: address.city,
                         state: address.state,
+                        name: user?.user_metadata?.name || user?.email?.split("@")[0] || "",
+                        email: user?.email || "",
+                        phone: personal.phone,
+                        cpf: personal.cpf,
                       }}
                       shipping={shipping}
                       shippingMethod={shippingMethod}
@@ -1418,6 +1422,10 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             neighborhood: address.neighborhood,
                             city: address.city,
                             state: address.state,
+                            name: user?.user_metadata?.name || user?.email?.split("@")[0] || "",
+                            email: user?.email || "",
+                            phone: personal.phone,
+                            cpf: personal.cpf,
                           }}
                           shipping={shipping}
                           userId={user?.id || ""}
@@ -1495,6 +1503,10 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             neighborhood: address.neighborhood,
                             city: address.city,
                             state: address.state,
+                            name: user?.user_metadata?.name || user?.email?.split("@")[0] || "",
+                            email: user?.email || "",
+                            phone: personal.phone,
+                            cpf: personal.cpf,
                           }}
                           shipping={shipping}
                           userId={user?.id || ""}
@@ -1568,6 +1580,10 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                               neighborhood: address.neighborhood,
                               city: address.city,
                               state: address.state,
+                              name: user?.user_metadata?.name || user?.email?.split("@")[0] || "",
+                              email: user?.email || "",
+                              phone: personal.phone,
+                              cpf: personal.cpf,
                             }}
                             shipping={0}
                             userId={user?.id || ""}

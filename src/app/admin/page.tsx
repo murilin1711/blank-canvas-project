@@ -265,6 +265,9 @@ export default function AdminPage() {
   const [exchangeDateTo, setExchangeDateTo] = useState("");
   const [orderCpfs, setOrderCpfs] = useState<Record<string, string>>({});
 
+  // Pedidos Stripe sub-tab
+  const [pedidosSubTab, setPedidosSubTab] = useState<"ativos" | "entregues" | "devolucoes">("ativos");
+
   // Bolsa Uniforme search/filter
   const [bolsaSearch, setBolsaSearch] = useState("");
   const [bolsaDateFrom, setBolsaDateFrom] = useState("");
@@ -2046,8 +2049,17 @@ export default function AdminPage() {
         {/* Content */}
         <main className="flex-1 p-6 overflow-auto">
           {/* Pedidos Tab */}
-          {activeTab === "pedidos" && (
-            <div className="space-y-4">
+          {activeTab === "pedidos" && (() => {
+            const exchangeStatusValues = ['exchange_requested', 'exchange_received', 'exchange_resent'];
+            const allStripeOrders = orders.filter(o => o.payment_method !== 'bolsa_uniforme');
+            const countAtivos = allStripeOrders.filter(o => o.status !== 'delivered' && !exchangeStatusValues.includes(o.status)).length;
+            const countEntregues = allStripeOrders.filter(o => o.status === 'delivered').length;
+            const countDevolucoes = allStripeOrders.filter(o => exchangeStatusValues.includes(o.status)).length;
+
+            const getExchangeStatusInfo = (status: string) =>
+              EXCHANGE_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
+
+            return (
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 {/* Header */}
                 <div className="p-4 border-b border-gray-100">
@@ -2063,21 +2075,44 @@ export default function AdminPage() {
                       label="Filtrar por categoria"
                     />
                   </div>
+
+                  {/* Sub-tabs */}
+                  <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit mb-4">
+                    <button
+                      onClick={() => setPedidosSubTab("ativos")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pedidosSubTab === "ativos" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Pedidos {countAtivos > 0 && <span className="ml-1 bg-[#2e3091] text-white rounded-full px-1.5 py-0.5 text-[10px]">{countAtivos}</span>}
+                    </button>
+                    <button
+                      onClick={() => setPedidosSubTab("entregues")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pedidosSubTab === "entregues" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Entregues {countEntregues > 0 && <span className="ml-1 bg-teal-600 text-white rounded-full px-1.5 py-0.5 text-[10px]">{countEntregues}</span>}
+                    </button>
+                    <button
+                      onClick={() => setPedidosSubTab("devolucoes")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${pedidosSubTab === "devolucoes" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      Devoluções {countDevolucoes > 0 && <span className="ml-1 bg-orange-500 text-white rounded-full px-1.5 py-0.5 text-[10px]">{countDevolucoes}</span>}
+                    </button>
+                  </div>
+
                   {/* Busca + filtro de data */}
                   <div className="flex flex-wrap gap-2">
                     <input
                       type="text"
                       placeholder="Buscar por nome do cliente..."
-                      value={ordersSearch}
-                      onChange={(e) => setOrdersSearch(e.target.value)}
+                      value={pedidosSubTab === "ativos" ? ordersSearch : pedidosSubTab === "entregues" ? deliveredSearch : exchangeSearch}
+                      onChange={(e) => pedidosSubTab === "ativos" ? setOrdersSearch(e.target.value) : pedidosSubTab === "entregues" ? setDeliveredSearch(e.target.value) : setExchangeSearch(e.target.value)}
                       className="flex-1 min-w-[180px] text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
                     />
                     <div className="flex items-center gap-1.5">
                       <label className="text-xs text-gray-500 whitespace-nowrap">De:</label>
                       <input
                         type="date"
-                        value={ordersDateFrom}
-                        onChange={(e) => setOrdersDateFrom(e.target.value)}
+                        value={pedidosSubTab === "ativos" ? ordersDateFrom : pedidosSubTab === "entregues" ? deliveredDateFrom : exchangeDateFrom}
+                        onChange={(e) => pedidosSubTab === "ativos" ? setOrdersDateFrom(e.target.value) : pedidosSubTab === "entregues" ? setDeliveredDateFrom(e.target.value) : setExchangeDateFrom(e.target.value)}
                         className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
                       />
                     </div>
@@ -2085,55 +2120,57 @@ export default function AdminPage() {
                       <label className="text-xs text-gray-500 whitespace-nowrap">Até:</label>
                       <input
                         type="date"
-                        value={ordersDateTo}
-                        onChange={(e) => setOrdersDateTo(e.target.value)}
+                        value={pedidosSubTab === "ativos" ? ordersDateTo : pedidosSubTab === "entregues" ? deliveredDateTo : exchangeDateTo}
+                        onChange={(e) => pedidosSubTab === "ativos" ? setOrdersDateTo(e.target.value) : pedidosSubTab === "entregues" ? setDeliveredDateTo(e.target.value) : setExchangeDateTo(e.target.value)}
                         className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2e3091]/30"
                       />
                     </div>
-                    {(ordersSearch || ordersDateFrom || ordersDateTo) && (
-                      <button
-                        onClick={() => { setOrdersSearch(""); setOrdersDateFrom(""); setOrdersDateTo(""); }}
-                        className="text-xs text-gray-500 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                      >
-                        <X className="w-3.5 h-3.5" /> Limpar
-                      </button>
-                    )}
+                    {(() => {
+                      const hasFilter = pedidosSubTab === "ativos"
+                        ? (ordersSearch || ordersDateFrom || ordersDateTo)
+                        : pedidosSubTab === "entregues"
+                        ? (deliveredSearch || deliveredDateFrom || deliveredDateTo)
+                        : (exchangeSearch || exchangeDateFrom || exchangeDateTo);
+                      if (!hasFilter) return null;
+                      return (
+                        <button
+                          onClick={() => {
+                            if (pedidosSubTab === "ativos") { setOrdersSearch(""); setOrdersDateFrom(""); setOrdersDateTo(""); }
+                            else if (pedidosSubTab === "entregues") { setDeliveredSearch(""); setDeliveredDateFrom(""); setDeliveredDateTo(""); }
+                            else { setExchangeSearch(""); setExchangeDateFrom(""); setExchangeDateTo(""); }
+                          }}
+                          className="text-xs text-gray-500 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
+                        >
+                          <X className="w-3.5 h-3.5" /> Limpar
+                        </button>
+                      );
+                    })()}
                   </div>
                 </div>
 
-                {(() => {
-                  let filteredOrders = filterOrdersByCategory(orders, ordersSelectedCategories);
+                {/* Conteúdo da sub-aba ativa */}
+                {pedidosSubTab === "ativos" && (() => {
+                  let filteredOrders = filterOrdersByCategory(orders.filter(o => o.payment_method !== 'bolsa_uniforme'), ordersSelectedCategories);
+                  filteredOrders = filteredOrders.filter(o => o.status !== 'delivered' && !exchangeStatusValues.includes(o.status));
                   if (ordersSearch.trim()) {
                     const q = ordersSearch.toLowerCase();
-                    filteredOrders = filteredOrders.filter(o => {
-                      const name = ((o.shipping_address as any)?.name || "").toLowerCase();
-                      return name.includes(q);
-                    });
+                    filteredOrders = filteredOrders.filter(o => ((o.shipping_address as any)?.name || "").toLowerCase().includes(q));
                   }
                   if (ordersDateFrom) {
                     const from = new Date(ordersDateFrom);
                     filteredOrders = filteredOrders.filter(o => new Date(o.created_at) >= from);
                   }
                   if (ordersDateTo) {
-                    const to = new Date(ordersDateTo);
-                    to.setHours(23, 59, 59, 999);
+                    const to = new Date(ordersDateTo); to.setHours(23, 59, 59, 999);
                     filteredOrders = filteredOrders.filter(o => new Date(o.created_at) <= to);
                   }
-
-                  if (filteredOrders.length === 0) {
-                    return (
-                      <div className="p-12 text-center">
-                        <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500">Nenhum pedido encontrado</p>
-                      </div>
-                    );
-                  }
-
-                  const exchangeStatusValues = ['exchange_requested', 'exchange_received', 'exchange_resent'];
-                  const activeOrders = filteredOrders.filter(o => o.status !== 'delivered' && !exchangeStatusValues.includes(o.status));
-                  const deliveredOrders = filteredOrders.filter(o => o.status === 'delivered');
-
-                  const renderTable = (list: Order[], startIndex = 0) => (
+                  if (filteredOrders.length === 0) return (
+                    <div className="p-12 text-center">
+                      <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Nenhum pedido encontrado</p>
+                    </div>
+                  );
+                  return (
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-gray-50 border-b border-gray-100">
@@ -2147,12 +2184,12 @@ export default function AdminPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {list.map((order, index) => {
+                          {filteredOrders.map((order, index) => {
                             const addr = order.shipping_address as any;
                             const customerName = addr?.name || "—";
                             return (
                               <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-4 py-3 text-sm font-semibold text-gray-500">#{startIndex + index + 1}</td>
+                                <td className="px-4 py-3 text-sm font-semibold text-gray-500">#{index + 1}</td>
                                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{customerName}</td>
                                 <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
                                 <td className="px-4 py-3 text-sm">
@@ -2200,321 +2237,183 @@ export default function AdminPage() {
                       </table>
                     </div>
                   );
+                })()}
 
+                {pedidosSubTab === "entregues" && (() => {
+                  let filteredOrders = orders.filter(o => o.status === 'delivered' && o.payment_method !== 'bolsa_uniforme');
+                  if (deliveredSearch.trim()) {
+                    const q = deliveredSearch.toLowerCase();
+                    filteredOrders = filteredOrders.filter(o => ((o.shipping_address as any)?.name || "").toLowerCase().includes(q));
+                  }
+                  if (deliveredDateFrom) {
+                    const from = new Date(deliveredDateFrom);
+                    filteredOrders = filteredOrders.filter(o => new Date(o.created_at) >= from);
+                  }
+                  if (deliveredDateTo) {
+                    const to = new Date(deliveredDateTo); to.setHours(23, 59, 59, 999);
+                    filteredOrders = filteredOrders.filter(o => new Date(o.created_at) <= to);
+                  }
+                  if (filteredOrders.length === 0) return (
+                    <div className="p-12 text-center">
+                      <Check className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Nenhum pedido entregue encontrado</p>
+                    </div>
+                  );
                   return (
-                    <>
-                      {activeOrders.length === 0 && deliveredOrders.length === 0 ? null : renderTable(activeOrders)}
-                    </>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-teal-50 border-b border-teal-100">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase w-10">#</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Nome</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Data</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Valores</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-teal-50">
+                          {filteredOrders.map((order, index) => {
+                            const addr = order.shipping_address as any;
+                            const customerName = addr?.name || "—";
+                            return (
+                              <tr key={order.id} className="hover:bg-teal-50/40 transition-colors">
+                                <td className="px-4 py-3 text-sm font-semibold text-teal-600">#{index + 1}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{customerName}</td>
+                                <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
+                                <td className="px-4 py-3 text-sm">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <span>Pedido:</span>
+                                      <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <span>Frete:</span>
+                                      {Number(order.shipping) > 0
+                                        ? <span className="font-medium text-gray-900">{formatCurrency(Number(order.shipping))}</span>
+                                        : <span className="font-medium text-green-600">Grátis</span>}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-xs border-t border-teal-100 pt-0.5">
+                                      <span className="text-gray-500">Total:</span>
+                                      <span className="font-bold text-gray-900">{formatCurrency(Number(order.total))}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-700">
+                                    Pedido Entregue
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    onClick={() => openOrderDetails(order)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Ver Detalhes
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+
+                {pedidosSubTab === "devolucoes" && (() => {
+                  let filteredOrders = orders.filter(o => exchangeStatusValues.includes(o.status) && o.payment_method !== 'bolsa_uniforme');
+                  if (exchangeSearch.trim()) {
+                    const q = exchangeSearch.toLowerCase();
+                    filteredOrders = filteredOrders.filter(o => ((o.shipping_address as any)?.name || "").toLowerCase().includes(q));
+                  }
+                  if (exchangeDateFrom) {
+                    const from = new Date(exchangeDateFrom);
+                    filteredOrders = filteredOrders.filter(o => new Date(o.created_at) >= from);
+                  }
+                  if (exchangeDateTo) {
+                    const to = new Date(exchangeDateTo); to.setHours(23, 59, 59, 999);
+                    filteredOrders = filteredOrders.filter(o => new Date(o.created_at) <= to);
+                  }
+                  if (filteredOrders.length === 0) return (
+                    <div className="p-12 text-center">
+                      <RefreshCw className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Nenhum pedido em devolução encontrado</p>
+                    </div>
+                  );
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-orange-50 border-b border-orange-100">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase w-10">#</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Nome</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Data</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Valores</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Status</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-orange-50">
+                          {filteredOrders.map((order, index) => {
+                            const addr = order.shipping_address as any;
+                            const customerName = addr?.name || "—";
+                            const statusInfo = getExchangeStatusInfo(order.status);
+                            return (
+                              <tr key={order.id} className="hover:bg-orange-50/40 transition-colors">
+                                <td className="px-4 py-3 text-sm font-semibold text-orange-600">#{index + 1}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{customerName}</td>
+                                <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
+                                <td className="px-4 py-3 text-sm">
+                                  <div className="space-y-0.5">
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <span>Pedido:</span>
+                                      <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <span>Frete:</span>
+                                      {Number(order.shipping) > 0
+                                        ? <span className="font-medium text-gray-900">{formatCurrency(Number(order.shipping))}</span>
+                                        : <span className="font-medium text-green-600">Grátis</span>}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-xs border-t border-orange-100 pt-0.5">
+                                      <span className="text-gray-500">Total:</span>
+                                      <span className="font-bold text-gray-900">{formatCurrency(Number(order.total))}</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <select
+                                    value={order.status}
+                                    onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                                    className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${statusInfo.color}`}
+                                  >
+                                    {EXCHANGE_STATUSES.map(s => (
+                                      <option key={s.value} value={s.value}>{s.label}</option>
+                                    ))}
+                                  </select>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <button
+                                    onClick={() => openOrderDetails(order)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white text-xs font-medium rounded-lg hover:bg-orange-700 transition-colors whitespace-nowrap"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    Ver Detalhes
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   );
                 })()}
               </div>
-
-              {/* Pedidos Stripe Recebidos */}
-              {(() => {
-                let deliveredOrders = orders.filter(o =>
-                  o.status === 'delivered' && o.payment_method !== 'bolsa_uniforme'
-                );
-                if (deliveredOrders.length === 0 && !deliveredSearch && !deliveredDateFrom && !deliveredDateTo) return null;
-
-                // Aplica filtros
-                if (deliveredSearch.trim()) {
-                  const q = deliveredSearch.toLowerCase();
-                  deliveredOrders = deliveredOrders.filter(o =>
-                    ((o.shipping_address as any)?.name || "").toLowerCase().includes(q)
-                  );
-                }
-                if (deliveredDateFrom) {
-                  const from = new Date(deliveredDateFrom);
-                  deliveredOrders = deliveredOrders.filter(o => new Date(o.created_at) >= from);
-                }
-                if (deliveredDateTo) {
-                  const to = new Date(deliveredDateTo);
-                  to.setHours(23, 59, 59, 999);
-                  deliveredOrders = deliveredOrders.filter(o => new Date(o.created_at) <= to);
-                }
-
-                const totalDelivered = orders.filter(o => o.status === 'delivered' && o.payment_method !== 'bolsa_uniforme').length;
-
-                return (
-                  <div className="bg-white rounded-2xl border border-teal-200 overflow-hidden">
-                    {/* Header + filtros */}
-                    <div className="p-4 border-b border-teal-100 bg-teal-50">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div>
-                          <h2 className="text-base font-semibold text-teal-800 flex items-center gap-2">
-                            <Check className="w-4 h-4" />
-                            Pedidos Stripe Recebidos
-                          </h2>
-                          <p className="text-xs text-teal-600 mt-0.5">
-                            {totalDelivered} pedido{totalDelivered !== 1 ? 's' : ''} entregue{totalDelivered !== 1 ? 's' : ''}
-                            {deliveredOrders.length !== totalDelivered && ` · ${deliveredOrders.length} exibido${deliveredOrders.length !== 1 ? 's' : ''}`}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <input
-                          type="text"
-                          placeholder="Buscar por nome do cliente..."
-                          value={deliveredSearch}
-                          onChange={(e) => setDeliveredSearch(e.target.value)}
-                          className="flex-1 min-w-[180px] text-sm border border-teal-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400/30 bg-white"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-xs text-teal-700 whitespace-nowrap">De:</label>
-                          <input
-                            type="date"
-                            value={deliveredDateFrom}
-                            onChange={(e) => setDeliveredDateFrom(e.target.value)}
-                            className="text-sm border border-teal-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400/30 bg-white"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-xs text-teal-700 whitespace-nowrap">Até:</label>
-                          <input
-                            type="date"
-                            value={deliveredDateTo}
-                            onChange={(e) => setDeliveredDateTo(e.target.value)}
-                            className="text-sm border border-teal-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400/30 bg-white"
-                          />
-                        </div>
-                        {(deliveredSearch || deliveredDateFrom || deliveredDateTo) && (
-                          <button
-                            onClick={() => { setDeliveredSearch(""); setDeliveredDateFrom(""); setDeliveredDateTo(""); }}
-                            className="text-xs text-teal-700 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                          >
-                            <X className="w-3.5 h-3.5" /> Limpar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {deliveredOrders.length === 0 ? (
-                      <div className="p-8 text-center text-sm text-gray-400">
-                        Nenhum pedido entregue encontrado para os filtros aplicados.
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-teal-50/50 border-b border-teal-100">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase w-10">#</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Nome</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Data</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Valores</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Status</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-teal-600 uppercase">Ação</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-teal-50">
-                            {deliveredOrders.map((order, index) => {
-                              const addr = order.shipping_address as any;
-                              const customerName = addr?.name || "—";
-                              return (
-                                <tr key={order.id} className="hover:bg-teal-50/40 transition-colors">
-                                  <td className="px-4 py-3 text-sm font-semibold text-teal-600">#{index + 1}</td>
-                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{customerName}</td>
-                                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
-                                  <td className="px-4 py-3 text-sm">
-                                    <div className="space-y-0.5">
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                        <span>Pedido:</span>
-                                        <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                        <span>Frete:</span>
-                                        {Number(order.shipping) > 0
-                                          ? <span className="font-medium text-gray-900">{formatCurrency(Number(order.shipping))}</span>
-                                          : <span className="font-medium text-green-600">Grátis</span>}
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-xs border-t border-teal-100 pt-0.5">
-                                        <span className="text-gray-500">Total:</span>
-                                        <span className="font-bold text-gray-900">{formatCurrency(Number(order.total))}</span>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-700">
-                                      Pedido Entregue
-                                    </span>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <button
-                                      onClick={() => openOrderDetails(order)}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-lg hover:bg-teal-700 transition-colors whitespace-nowrap"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                      Ver Detalhes
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              {/* Devoluções */}
-              {(() => {
-                const exchangeStatusValues = ['exchange_requested', 'exchange_received', 'exchange_resent'];
-                let exchangeOrders = orders.filter(o =>
-                  exchangeStatusValues.includes(o.status) && o.payment_method !== 'bolsa_uniforme'
-                );
-                if (exchangeOrders.length === 0 && !exchangeSearch && !exchangeDateFrom && !exchangeDateTo) return null;
-
-                const totalExchange = exchangeOrders.length;
-
-                if (exchangeSearch.trim()) {
-                  const q = exchangeSearch.toLowerCase();
-                  exchangeOrders = exchangeOrders.filter(o =>
-                    ((o.shipping_address as any)?.name || "").toLowerCase().includes(q)
-                  );
-                }
-                if (exchangeDateFrom) {
-                  const from = new Date(exchangeDateFrom);
-                  exchangeOrders = exchangeOrders.filter(o => new Date(o.created_at) >= from);
-                }
-                if (exchangeDateTo) {
-                  const to = new Date(exchangeDateTo);
-                  to.setHours(23, 59, 59, 999);
-                  exchangeOrders = exchangeOrders.filter(o => new Date(o.created_at) <= to);
-                }
-
-                const getExchangeStatusInfo = (status: string) =>
-                  EXCHANGE_STATUSES.find(s => s.value === status) || { value: status, label: status, color: 'bg-gray-100 text-gray-700' };
-
-                return (
-                  <div className="bg-white rounded-2xl border border-orange-200 overflow-hidden">
-                    {/* Header + filtros */}
-                    <div className="p-4 border-b border-orange-100 bg-orange-50">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div>
-                          <h2 className="text-base font-semibold text-orange-800 flex items-center gap-2">
-                            <RefreshCw className="w-4 h-4" />
-                            Devoluções
-                          </h2>
-                          <p className="text-xs text-orange-600 mt-0.5">
-                            {totalExchange} pedido{totalExchange !== 1 ? 's' : ''} em devolução
-                            {exchangeOrders.length !== totalExchange && ` · ${exchangeOrders.length} exibido${exchangeOrders.length !== 1 ? 's' : ''}`}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <input
-                          type="text"
-                          placeholder="Buscar por nome do cliente..."
-                          value={exchangeSearch}
-                          onChange={(e) => setExchangeSearch(e.target.value)}
-                          className="flex-1 min-w-[180px] text-sm border border-orange-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400/30 bg-white"
-                        />
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-xs text-orange-700 whitespace-nowrap">De:</label>
-                          <input
-                            type="date"
-                            value={exchangeDateFrom}
-                            onChange={(e) => setExchangeDateFrom(e.target.value)}
-                            className="text-sm border border-orange-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400/30 bg-white"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-xs text-orange-700 whitespace-nowrap">Até:</label>
-                          <input
-                            type="date"
-                            value={exchangeDateTo}
-                            onChange={(e) => setExchangeDateTo(e.target.value)}
-                            className="text-sm border border-orange-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400/30 bg-white"
-                          />
-                        </div>
-                        {(exchangeSearch || exchangeDateFrom || exchangeDateTo) && (
-                          <button
-                            onClick={() => { setExchangeSearch(""); setExchangeDateFrom(""); setExchangeDateTo(""); }}
-                            className="text-xs text-orange-700 hover:text-red-600 px-2 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1"
-                          >
-                            <X className="w-3.5 h-3.5" /> Limpar
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {exchangeOrders.length === 0 ? (
-                      <div className="p-8 text-center text-sm text-gray-400">
-                        Nenhum pedido em devolução encontrado para os filtros aplicados.
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-orange-50/50 border-b border-orange-100">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase w-10">#</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Nome</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Data</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Valores</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Status</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-orange-600 uppercase">Ação</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-orange-50">
-                            {exchangeOrders.map((order, index) => {
-                              const addr = order.shipping_address as any;
-                              const customerName = addr?.name || "—";
-                              const statusInfo = getExchangeStatusInfo(order.status);
-                              return (
-                                <tr key={order.id} className="hover:bg-orange-50/40 transition-colors">
-                                  <td className="px-4 py-3 text-sm font-semibold text-orange-600">#{index + 1}</td>
-                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{customerName}</td>
-                                  <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(order.created_at)}</td>
-                                  <td className="px-4 py-3 text-sm">
-                                    <div className="space-y-0.5">
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                        <span>Pedido:</span>
-                                        <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                                        <span>Frete:</span>
-                                        {Number(order.shipping) > 0
-                                          ? <span className="font-medium text-gray-900">{formatCurrency(Number(order.shipping))}</span>
-                                          : <span className="font-medium text-green-600">Grátis</span>}
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-xs border-t border-orange-100 pt-0.5">
-                                        <span className="text-gray-500">Total:</span>
-                                        <span className="font-bold text-gray-900">{formatCurrency(Number(order.total))}</span>
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <select
-                                      value={order.status}
-                                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                                      className={`px-2 py-1 rounded-full text-xs font-medium border-0 cursor-pointer ${statusInfo.color}`}
-                                    >
-                                      {EXCHANGE_STATUSES.map(s => (
-                                        <option key={s.value} value={s.value}>{s.label}</option>
-                                      ))}
-                                    </select>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                    <button
-                                      onClick={() => openOrderDetails(order)}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white text-xs font-medium rounded-lg hover:bg-orange-700 transition-colors whitespace-nowrap"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                      Ver Detalhes
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+            );
+          })()}
 
           {/* Bolsa Uniforme Tab */}
           {activeTab === "bolsa-uniforme" && (
