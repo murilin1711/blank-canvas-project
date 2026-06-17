@@ -1730,24 +1730,28 @@ export default function AdminPage() {
     startOfWeek.setDate(now.getDate() - now.getDay());
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const paidOrders = orders.filter(o => o.status === "paid");
+    const confirmedStatuses = ['paid', 'processing', 'shipped', 'delivered', 'exchange_requested', 'exchange_received', 'exchange_resent'];
+    const confirmedOrders = orders.filter(o => confirmedStatuses.includes(o.status));
+    const approvedBolsa = bolsaPayments.filter(p => p.status === 'approved');
 
-    const dailySales = paidOrders.filter(o => new Date(o.created_at) >= startOfDay);
-    const weeklySales = paidOrders.filter(o => new Date(o.created_at) >= startOfWeek);
-    const monthlySales = paidOrders.filter(o => new Date(o.created_at) >= startOfMonth);
+    const getTotal = (list: typeof confirmedOrders, bolsaList: typeof approvedBolsa) =>
+      list.reduce((acc, o) => acc + Number(o.subtotal), 0) +
+      bolsaList.reduce((acc, p) => acc + Number(p.total_amount), 0);
+
+    const inRange = (date: string, from: Date) => new Date(date) >= from;
 
     return {
       daily: {
-        count: dailySales.length,
-        total: dailySales.reduce((acc, o) => acc + Number(o.subtotal), 0),
+        count: confirmedOrders.filter(o => inRange(o.created_at, startOfDay)).length + approvedBolsa.filter(p => inRange(p.created_at, startOfDay)).length,
+        total: getTotal(confirmedOrders.filter(o => inRange(o.created_at, startOfDay)), approvedBolsa.filter(p => inRange(p.created_at, startOfDay))),
       },
       weekly: {
-        count: weeklySales.length,
-        total: weeklySales.reduce((acc, o) => acc + Number(o.subtotal), 0),
+        count: confirmedOrders.filter(o => inRange(o.created_at, startOfWeek)).length + approvedBolsa.filter(p => inRange(p.created_at, startOfWeek)).length,
+        total: getTotal(confirmedOrders.filter(o => inRange(o.created_at, startOfWeek)), approvedBolsa.filter(p => inRange(p.created_at, startOfWeek))),
       },
       monthly: {
-        count: monthlySales.length,
-        total: monthlySales.reduce((acc, o) => acc + Number(o.subtotal), 0),
+        count: confirmedOrders.filter(o => inRange(o.created_at, startOfMonth)).length + approvedBolsa.filter(p => inRange(p.created_at, startOfMonth)).length,
+        total: getTotal(confirmedOrders.filter(o => inRange(o.created_at, startOfMonth)), approvedBolsa.filter(p => inRange(p.created_at, startOfMonth))),
       },
     };
   };
@@ -2897,23 +2901,32 @@ export default function AdminPage() {
 
           {/* Financeiro Tab */}
           {activeTab === "financeiro" && (() => {
-            const paidOrders = orders.filter(o => o.status === "paid");
+            const confirmedStatuses = ['paid', 'processing', 'shipped', 'delivered', 'exchange_requested', 'exchange_received', 'exchange_resent'];
 
             // Cards sem filtro de data (Hoje / Esta semana / Este mês)
             const financials = calculateFinancials();
 
-            // Histórico filtrado por intervalo de data
-            let histOrders = [...paidOrders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+            // Histórico: pedidos Stripe confirmados + BU aprovados, unidos e ordenados
+            type HistItem = { id: string; created_at: string; label: string; value: number; source: 'stripe' | 'bolsa' };
+            let histItems: HistItem[] = [
+              ...orders.filter(o => confirmedStatuses.includes(o.status)).map(o => ({
+                id: o.id, created_at: o.created_at, label: `#${o.id.slice(0, 8)}`, value: Number(o.subtotal), source: 'stripe' as const,
+              })),
+              ...bolsaPayments.filter(p => p.status === 'approved').map(p => ({
+                id: p.id, created_at: p.created_at, label: p.customer_name || `BU #${p.id.slice(0, 8)}`, value: Number(p.total_amount), source: 'bolsa' as const,
+              })),
+            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
             if (finDateFrom) {
               const from = new Date(finDateFrom);
-              histOrders = histOrders.filter(o => new Date(o.created_at) >= from);
+              histItems = histItems.filter(o => new Date(o.created_at) >= from);
             }
             if (finDateTo) {
               const to = new Date(finDateTo);
               to.setHours(23, 59, 59, 999);
-              histOrders = histOrders.filter(o => new Date(o.created_at) <= to);
+              histItems = histItems.filter(o => new Date(o.created_at) <= to);
             }
-            const filteredTotal = histOrders.reduce((acc, o) => acc + Number(o.subtotal), 0);
+            const filteredTotal = histItems.reduce((acc, o) => acc + o.value, 0);
 
             return (
             <div className="space-y-6">
@@ -2963,7 +2976,7 @@ export default function AdminPage() {
                       <div className="text-right">
                         <p className="text-xs text-gray-500">Total no período</p>
                         <p className="text-xl font-bold text-[#2e3091]">{formatCurrency(filteredTotal)}</p>
-                        <p className="text-xs text-gray-400">{histOrders.length} venda{histOrders.length !== 1 ? 's' : ''}</p>
+                        <p className="text-xs text-gray-400">{histItems.length} venda{histItems.length !== 1 ? 's' : ''}</p>
                       </div>
                     )}
                   </div>
@@ -2997,12 +3010,12 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {paidOrders.length === 0 ? (
+                {histItems.length === 0 && !finDateFrom && !finDateTo ? (
                   <div className="p-12 text-center">
                     <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500">Nenhuma venda registrada</p>
                   </div>
-                ) : histOrders.length === 0 ? (
+                ) : histItems.length === 0 ? (
                   <div className="p-8 text-center text-sm text-gray-400">
                     Nenhuma venda no período selecionado.
                   </div>
@@ -3012,16 +3025,22 @@ export default function AdminPage() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido / Cliente</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origem</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor (produtos)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {histOrders.map((order) => (
-                          <tr key={order.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-500">{formatDate(order.created_at)}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900">#{order.id.slice(0, 8)}</td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</td>
+                        {histItems.map((item) => (
+                          <tr key={item.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{formatDate(item.created_at)}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900">{item.label}</td>
+                            <td className="px-6 py-4">
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${item.source === 'bolsa' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {item.source === 'bolsa' ? 'Bolsa Uniforme' : 'Stripe'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(item.value)}</td>
                           </tr>
                         ))}
                       </tbody>
