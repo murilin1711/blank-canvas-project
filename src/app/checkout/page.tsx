@@ -1839,6 +1839,8 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
 
                       if (error) {
                         console.error("Error saving bolsa uniforme payment:", error);
+                        toast.error("Erro ao processar pagamento. Tente novamente.");
+                        throw error;
                       } else {
                         if (isLastCard && (insertedPayment as any)?.id) {
                           setBolsaPaymentId((insertedPayment as any).id);

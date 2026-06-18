@@ -346,6 +346,7 @@ function BolsaPaymentCard({
 
                   if (error) {
                     toast.error("Erro ao reenviar dados. Tente novamente.");
+                    throw error;
                   } else {
                     toast.success("Dados reenviados! Aguardando nova análise.");
                     setShowReenvioModal(false);

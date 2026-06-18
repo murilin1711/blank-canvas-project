@@ -4,7 +4,7 @@ import { Camera, AlertCircle, Check, Shield, Lock, X, Eye, EyeOff, Loader2, Doll
 import { toast } from "sonner";
 
 interface BolsaUniformePaymentProps {
-  onComplete: (data: { qrCodeImage: string; password: string; amount: number }) => void;
+  onComplete: (data: { qrCodeImage: string; password: string; amount: number }) => Promise<void>;
   onCancel: () => void;
   suggestedAmount: number; // valor sugerido (saldo restante, máx R$970)
   maxAmount: number;       // valor máximo permitido neste cartão
@@ -93,7 +93,11 @@ export function BolsaUniformePayment({
   /* ---------- Consent ---------- */
   const handleConsent = async () => {
     setIsProcessing(true);
-    onComplete({ qrCodeImage: qrCodeImage!, password, amount: parsedAmount });
+    try {
+      await onComplete({ qrCodeImage: qrCodeImage!, password, amount: parsedAmount });
+    } catch {
+      setIsProcessing(false);
+    }
   };
 
   return (
