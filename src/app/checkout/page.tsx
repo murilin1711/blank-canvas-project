@@ -221,6 +221,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
   const [showShippingStripe, setShowShippingStripe] = useState(false);
   const [showShippingPix, setShowShippingPix] = useState(false);
   const [bolsaPaymentId, setBolsaPaymentId] = useState<string | null>(null);
+  const [bolsaPaymentIds, setBolsaPaymentIds] = useState<string[]>([]);
   const [shippingPaid, setShippingPaid] = useState(false);
 
   // Detecta se o endereço é de Anápolis (normaliza acentos)
@@ -1384,6 +1385,24 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           ? `Pagar R$ ${(bolsaRemainder + shipping).toFixed(2).replace(".", ",")} com Cartão / Boleto`
                           : `Pagar R$ ${(bolsaRemainder + shipping).toFixed(2).replace(".", ",")} com Pix`}
                       </button>
+
+                      <button
+                        onClick={async () => {
+                          // Apaga registros intermediários do banco e recomeça com um cartão
+                          for (const id of bolsaPaymentIds) {
+                            await supabase.from("bolsa_uniforme_payments" as any).delete().eq("id", id);
+                          }
+                          setBolsaCards([]);
+                          setBolsaPaymentIds([]);
+                          setBolsaPaymentId(null);
+                          setShowBolsaRemainderChoice(false);
+                          setBolsaMultiCard(false);
+                          setShowBolsaUniformeModal(true);
+                        }}
+                        className="w-full text-sm text-gray-400 py-3 hover:text-gray-600 transition-colors mt-1"
+                      >
+                        Recomeçar com apenas um cartão
+                      </button>
                     </div>
 
                   ) : !bolsaUniformeCompleted && showBolsaRemainderStripe ? (
@@ -1842,8 +1861,10 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         toast.error("Erro ao processar pagamento. Tente novamente.");
                         throw error;
                       } else {
-                        if (isLastCard && (insertedPayment as any)?.id) {
-                          setBolsaPaymentId((insertedPayment as any).id);
+                        const newId = (insertedPayment as any)?.id;
+                        if (newId) {
+                          setBolsaPaymentIds(prev => [...prev, newId]);
+                          if (isLastCard) setBolsaPaymentId(newId);
                         }
                         setShowBolsaUniformeModal(false);
 
