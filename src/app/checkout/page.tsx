@@ -1822,7 +1822,6 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           quantity: item.quantity,
                           schoolSlug: item.schoolSlug,
                         })),
-                        shipping_service_name: getShippingLabel(),
                         shipping_address: {
                           cep: address.cep,
                           street: address.street,
@@ -1832,6 +1831,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           city: address.city,
                           state: address.state,
                           selected_shipping_method: shippingMethod,
+                          shipping_service_name: getShippingLabel(),
                           cpf: personal.cpf,
                         },
                         status: "pending",
