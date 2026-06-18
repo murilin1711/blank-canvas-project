@@ -2477,6 +2477,36 @@ export default function AdminPage() {
                     </select>
                   );
                 })()}
+                {payment.status === 'approved' && (() => {
+                  const orderKey = payment.order_id || `pending-${payment.id}`;
+                  const od = bolsaOrderData[orderKey];
+                  const alreadyHasTracking = od?.tracking_code;
+                  if (alreadyHasTracking) return (
+                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded-lg text-gray-600 truncate max-w-[120px]" title={od.tracking_code!}>
+                      {od.tracking_code}
+                    </span>
+                  );
+                  return (
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        placeholder="Rastreio"
+                        value={trackingInputs[orderKey] ?? ""}
+                        onChange={(e) => setTrackingInputs(prev => ({ ...prev, [orderKey]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(payment); }}
+                        className="w-28 text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                      <button
+                        onClick={() => handleSaveBolsaTracking(payment)}
+                        disabled={savingTrackingId === orderKey}
+                        className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        title="Salvar rastreio e notificar cliente"
+                      >
+                        <Send className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })()}
                 <button
                   onClick={(e) => { e.stopPropagation(); openPaymentDetails(payment); }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 text-xs ${accentClass} text-white rounded-lg transition-colors shrink-0`}
