@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 
 const STORAGE_KEY = 'gm-minas-unlocked';
-const PASSWORD = 'goiasminasfechado';
+const PASSWORD = '171095anps';
 
 export function PasswordGate({ children }: { children: React.ReactNode }) {
   const [unlocked, setUnlocked] = useState(() => {

@@ -299,10 +299,10 @@ export function BolsaUniformePayment({
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onChange={(e) => setPassword(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     placeholder="••••••"
                     className="w-full text-center text-2xl tracking-[0.5em] px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2e3091] focus:ring-2 focus:ring-[#2e3091]/20"
-                    maxLength={6}
+                    maxLength={4}
                   />
                   <button
                     type="button"
