@@ -3960,6 +3960,31 @@ export default function AdminPage() {
                   </div>
                 </div>
               )}
+
+              {/* Rastreio sem pedido vinculado ainda */}
+              {!linkedOrder && selectedPayment.status === "approved" && (
+                <div className="mt-6 border-t border-gray-200 pt-4">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Código de Rastreio</p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="ex: BR123456789BR"
+                      value={trackingInputs[`pending-${selectedPayment.id}`] ?? ""}
+                      onChange={(e) => setTrackingInputs(prev => ({ ...prev, [`pending-${selectedPayment.id}`]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(selectedPayment); }}
+                      className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={() => handleSaveBolsaTracking(selectedPayment)}
+                      disabled={savingTrackingId === `pending-${selectedPayment.id}`}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      {savingTrackingId === `pending-${selectedPayment.id}` ? "..." : "Salvar e Enviar"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

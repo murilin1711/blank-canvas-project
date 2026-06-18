@@ -324,6 +324,40 @@ Deno.serve(async (req: Request) => {
       if (bolsaOrderUpdateError) throw new Error(`Erro ao atualizar pedido bolsa: ${bolsaOrderUpdateError.message}`);
       if (!updatedBolsaOrder) throw new Error("Pedido vinculado não encontrado");
 
+      // Envia e-mail de rastreio ao cliente quando código for informado
+      if (trackingCode && status === "shipped") {
+        try {
+          const { data: fullOrder } = await supabase.from("orders").select("*, order_items(*)").eq("id", orderId).single();
+          if (fullOrder?.user_id) {
+            const userRes = await supabase.auth.admin.getUserById(fullOrder.user_id);
+            const userEmail = userRes.data?.user?.email;
+            const userName = userRes.data?.user?.user_metadata?.name || "";
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            if (userEmail) {
+              await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                body: JSON.stringify({
+                  template: "status_update",
+                  to: userEmail,
+                  data: {
+                    orderId: fullOrder.id,
+                    customerName: userName,
+                    status: "shipped",
+                    trackingCode,
+                    items: (fullOrder.order_items || []).map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                    total: fullOrder.total,
+                  },
+                }),
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error("Email tracking BU failed (non-critical):", emailErr);
+        }
+      }
+
       result = { success: true, orderId };
     } else if (action === 'delete_order') {
       // Restaura estoque antes de deletar
