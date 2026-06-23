@@ -109,12 +109,13 @@ serve(async (req) => {
         .eq("id", buId)
         .single();
       orderId = buPayment?.order_id ?? null;
-      // Marca frete como pago (idempotente)
+      // Marca frete como pago (idempotente) — aceita null (valor inicial) e pending,
+      // mas não sobrescreve caso já esteja "paid"
       await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
         .eq("id", buId)
-        .eq("shipping_payment_status", "pending"); // só atualiza se ainda pendente
+        .neq("shipping_payment_status", "paid");
     } else if (bolsaPaymentId) {
       // Fallback para pagamentos antigos sem external_reference
       const { data: buPayment } = await supabase
