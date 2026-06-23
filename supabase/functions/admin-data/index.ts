@@ -92,18 +92,32 @@ Deno.serve(async (req: Request) => {
       if (!profiles?.length) { result = { customers: [] }; }
       else {
         const ids = profiles.map(p => p.user_id);
-        const [o, c, a] = await Promise.all([
-          supabase.from("orders").select("user_id, total, created_at").in("user_id", ids),
+        const [o, c, a, bu] = await Promise.all([
+          supabase.from("orders").select("user_id, total, created_at, payment_method").in("user_id", ids),
           supabase.from("cart_items").select("user_id, id").in("user_id", ids),
-          supabase.from("user_activities").select("user_id, activity_type, description, created_at, metadata").in("user_id", ids).order("created_at", { ascending: false })
+          supabase.from("user_activities").select("user_id, activity_type, description, created_at, metadata").in("user_id", ids).order("created_at", { ascending: false }),
+          supabase.from("bolsa_uniforme_payments").select("user_id, total_amount, shipping_amount, status").in("user_id", ids)
         ]);
-        const ob: any = {}, cb: any = {}, ab: any = {};
+        const ob: any = {}, cb: any = {}, ab: any = {}, bub: any = {};
         (o.data || []).forEach(x => { ob[x.user_id] = ob[x.user_id] || []; ob[x.user_id].push(x); });
         (c.data || []).forEach(x => { cb[x.user_id] = cb[x.user_id] || []; cb[x.user_id].push(x); });
         (a.data || []).forEach(x => { ab[x.user_id] = ab[x.user_id] || []; ab[x.user_id].push(x); });
+        (bu.data || []).forEach(x => { bub[x.user_id] = bub[x.user_id] || []; bub[x.user_id].push(x); });
         result = { customers: profiles.map(p => {
-          const uo = ob[p.user_id] || [];
-          return { profile: p, ordersCount: uo.length, totalSpent: uo.reduce((s: number, x: any) => s + Number(x.total), 0), cartItems: cb[p.user_id] || [], lastActivity: uo.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || p.created_at, recentActivities: (ab[p.user_id] || []).slice(0, 5) };
+          const allOrders = ob[p.user_id] || [];
+          const nonBuOrders = allOrders.filter((x: any) => x.payment_method !== 'bolsa_uniforme');
+          const buPayments = (bub[p.user_id] || []).filter((x: any) => x.status === 'approved' || x.status === 'pending');
+          const totalSpent =
+            nonBuOrders.reduce((s: number, x: any) => s + Number(x.total), 0) +
+            buPayments.reduce((s: number, x: any) => s + Number(x.total_amount || 0) + Number(x.shipping_amount || 0), 0);
+          return {
+            profile: p,
+            ordersCount: allOrders.length,
+            totalSpent,
+            cartItems: cb[p.user_id] || [],
+            lastActivity: allOrders.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || p.created_at,
+            recentActivities: (ab[p.user_id] || []).slice(0, 5)
+          };
         })};
       }
     } else if (action === 'get_abandoned_carts') {
@@ -130,90 +144,110 @@ Deno.serve(async (req: Request) => {
       if (data.status === 'approved') {
         const { data: payment } = await supabase
           .from("bolsa_uniforme_payments")
-          .select("user_id, items, shipping_address, total_amount, shipping_amount")
+          .select("user_id, items, shipping_address, total_amount, shipping_amount, order_id")
           .eq("id", data.id)
           .maybeSingle();
 
         if (payment) {
           const shippingAmt = Number(payment.shipping_amount) || 0;
           const subtotalAmt = Number(payment.total_amount) || 0;
-          const { data: newOrder, error: orderError } = await supabase
-            .from("orders")
-            .insert({
-              user_id: payment.user_id,
-              status: "paid",
-              payment_method: "bolsa_uniforme",
+          let usedOrderId: string | null = payment.order_id || null;
+
+          if (usedOrderId) {
+            // Já existe order do frete PIX — apenas atualiza com o total completo
+            await supabase.from("orders").update({
               subtotal: subtotalAmt,
               shipping: shippingAmt,
               total: subtotalAmt + shippingAmt,
-              shipping_address: payment.shipping_address,
-            })
-            .select()
-            .single();
+              status: "paid",
+            }).eq("id", usedOrderId);
+            // NÃO re-insere order_items (já foram inseridos quando o PIX de frete foi gerado)
+          } else {
+            // Sem order prévia — cria nova (comportamento original)
+            const { data: newOrder, error: orderError } = await supabase
+              .from("orders")
+              .insert({
+                user_id: payment.user_id,
+                status: "paid",
+                payment_method: "bolsa_uniforme",
+                subtotal: subtotalAmt,
+                shipping: shippingAmt,
+                total: subtotalAmt + shippingAmt,
+                shipping_address: payment.shipping_address,
+              })
+              .select()
+              .single();
 
-          if (!orderError && newOrder) {
-            const rawItems: any[] = Array.isArray(payment.items) ? payment.items : [];
-            const orderItems = rawItems.map((item: any) => ({
-              order_id: newOrder.id,
-              product_id: item.productId || item.product_id || 0,
-              product_name: item.productName || item.product_name || "",
-              product_image: item.productImage || item.product_image || "",
-              price: item.price || 0,
-              size: item.size || "",
-              quantity: item.quantity || 1,
-            }));
-            if (orderItems.length > 0) {
-              await supabase.from("order_items").insert(orderItems);
+            if (!orderError && newOrder) {
+              usedOrderId = newOrder.id;
+              const rawItems: any[] = Array.isArray(payment.items) ? payment.items : [];
+              const orderItems = rawItems.map((item: any) => ({
+                order_id: newOrder.id,
+                product_id: item.productId || item.product_id || 0,
+                product_name: item.productName || item.product_name || "",
+                product_image: item.productImage || item.product_image || "",
+                price: item.price || 0,
+                size: item.size || "",
+                quantity: item.quantity || 1,
+              }));
+              if (orderItems.length > 0) {
+                await supabase.from("order_items").insert(orderItems);
+              }
+              await supabase
+                .from("bolsa_uniforme_payments")
+                .update({ order_id: newOrder.id })
+                .eq("id", data.id);
             }
-            await supabase
-              .from("bolsa_uniforme_payments")
-              .update({ order_id: newOrder.id })
-              .eq("id", data.id);
+          }
 
-            // Decrementa estoque
-            for (const item of orderItems) {
+          // Decrementa estoque (para ambos os casos)
+          if (usedOrderId) {
+            const rawItems: any[] = Array.isArray(payment.items) ? payment.items : [];
+            for (const item of rawItems) {
               try {
-                const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
+                const productId = item.productId || item.product_id || 0;
+                const size = item.size || "";
+                const quantity = item.quantity || 1;
+                const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", productId).eq("size", size).maybeSingle();
                 if (stockRow) {
-                  await supabase.from("product_stock").update({ quantity: Math.max(0, stockRow.quantity - item.quantity), updated_at: new Date().toISOString() }).eq("id", stockRow.id);
+                  await supabase.from("product_stock").update({ quantity: Math.max(0, stockRow.quantity - quantity), updated_at: new Date().toISOString() }).eq("id", stockRow.id);
                 }
               } catch (e: any) { console.error("Stock decrement error:", e); }
             }
-
-            // Envia email de confirmação do Bolsa Uniforme
-            try {
-              const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-              const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-              const userRes = await supabase.auth.admin.getUserById(payment.user_id);
-              const userEmail = userRes.data?.user?.email;
-              const userName = userRes.data?.user?.user_metadata?.name || "";
-              if (userEmail) {
-                await fetch(`${supabaseUrl}/functions/v1/send-email`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
-                  body: JSON.stringify({
-                    template: "order_confirmation",
-                    to: userEmail,
-                    data: {
-                      orderId: newOrder.id,
-                      customerName: userName,
-                      items: orderItems.map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
-                      subtotal: subtotalAmt,
-                      shipping: shippingAmt,
-                      total: subtotalAmt + shippingAmt,
-                      shippingAddress: payment.shipping_address,
-                    },
-                  }),
-                });
-              }
-            } catch (emailErr) {
-              console.error("Bolsa Uniforme email failed (non-critical):", emailErr);
-            }
-
-            result = { success: true, orderId: newOrder.id };
-          } else {
-            result = { success: true };
           }
+
+          // Envia email de confirmação (mantém o código existente, usando usedOrderId)
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            const userRes = await supabase.auth.admin.getUserById(payment.user_id);
+            const userEmail = userRes.data?.user?.email;
+            const userName = userRes.data?.user?.user_metadata?.name || "";
+            if (userEmail && usedOrderId) {
+              const rawItems: any[] = Array.isArray(payment.items) ? payment.items : [];
+              await fetch(`${supabaseUrl}/functions/v1/send-email`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+                body: JSON.stringify({
+                  template: "order_confirmation",
+                  to: userEmail,
+                  data: {
+                    orderId: usedOrderId,
+                    customerName: userName,
+                    items: rawItems.map((i: any) => ({ product_name: i.productName || i.product_name, product_image: i.productImage || i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                    subtotal: subtotalAmt,
+                    shipping: shippingAmt,
+                    total: subtotalAmt + shippingAmt,
+                    shippingAddress: payment.shipping_address,
+                  },
+                }),
+              });
+            }
+          } catch (emailErr) {
+            console.error("Bolsa Uniforme email failed (non-critical):", emailErr);
+          }
+
+          result = { success: true, orderId: usedOrderId };
         } else {
           result = { success: true };
         }
