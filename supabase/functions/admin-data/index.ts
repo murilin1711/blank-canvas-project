@@ -92,18 +92,32 @@ Deno.serve(async (req: Request) => {
       if (!profiles?.length) { result = { customers: [] }; }
       else {
         const ids = profiles.map(p => p.user_id);
-        const [o, c, a] = await Promise.all([
-          supabase.from("orders").select("user_id, total, created_at").in("user_id", ids),
+        const [o, c, a, bu] = await Promise.all([
+          supabase.from("orders").select("user_id, total, created_at, payment_method").in("user_id", ids),
           supabase.from("cart_items").select("user_id, id").in("user_id", ids),
-          supabase.from("user_activities").select("user_id, activity_type, description, created_at, metadata").in("user_id", ids).order("created_at", { ascending: false })
+          supabase.from("user_activities").select("user_id, activity_type, description, created_at, metadata").in("user_id", ids).order("created_at", { ascending: false }),
+          supabase.from("bolsa_uniforme_payments").select("user_id, total_amount, shipping_amount, status").in("user_id", ids)
         ]);
-        const ob: any = {}, cb: any = {}, ab: any = {};
+        const ob: any = {}, cb: any = {}, ab: any = {}, bub: any = {};
         (o.data || []).forEach(x => { ob[x.user_id] = ob[x.user_id] || []; ob[x.user_id].push(x); });
         (c.data || []).forEach(x => { cb[x.user_id] = cb[x.user_id] || []; cb[x.user_id].push(x); });
         (a.data || []).forEach(x => { ab[x.user_id] = ab[x.user_id] || []; ab[x.user_id].push(x); });
+        (bu.data || []).forEach(x => { bub[x.user_id] = bub[x.user_id] || []; bub[x.user_id].push(x); });
         result = { customers: profiles.map(p => {
-          const uo = ob[p.user_id] || [];
-          return { profile: p, ordersCount: uo.length, totalSpent: uo.reduce((s: number, x: any) => s + Number(x.total), 0), cartItems: cb[p.user_id] || [], lastActivity: uo.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || p.created_at, recentActivities: (ab[p.user_id] || []).slice(0, 5) };
+          const allOrders = ob[p.user_id] || [];
+          const nonBuOrders = allOrders.filter((x: any) => x.payment_method !== 'bolsa_uniforme');
+          const buPayments = (bub[p.user_id] || []).filter((x: any) => x.status === 'approved' || x.status === 'pending');
+          const totalSpent =
+            nonBuOrders.reduce((s: number, x: any) => s + Number(x.total), 0) +
+            buPayments.reduce((s: number, x: any) => s + Number(x.total_amount || 0) + Number(x.shipping_amount || 0), 0);
+          return {
+            profile: p,
+            ordersCount: allOrders.length,
+            totalSpent,
+            cartItems: cb[p.user_id] || [],
+            lastActivity: allOrders.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || p.created_at,
+            recentActivities: (ab[p.user_id] || []).slice(0, 5)
+          };
         })};
       }
     } else if (action === 'get_abandoned_carts') {
