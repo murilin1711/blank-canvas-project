@@ -204,6 +204,7 @@ export default function AdminPage() {
   // Modal states
   const [selectedPayment, setSelectedPayment] = useState<BolsaUniformePayment | null>(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [qrFullscreen, setQrFullscreen] = useState<string | null>(null);
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
   const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -3741,11 +3742,20 @@ export default function AdminPage() {
                       <RefreshCw className="w-8 h-8 animate-spin text-[#2e3091]" />
                     </div>
                   ) : selectedPayment.qr_code_image ? (
-                    <img 
-                      src={selectedPayment.qr_code_image} 
-                      alt="QR Code" 
-                      className="w-full max-w-[200px] rounded-lg border border-gray-200"
-                    />
+                    <button
+                      onClick={() => setQrFullscreen(selectedPayment.qr_code_image!)}
+                      className="block group relative"
+                      title="Ver em tela cheia"
+                    >
+                      <img
+                        src={selectedPayment.qr_code_image}
+                        alt="QR Code"
+                        className="w-full max-w-[200px] rounded-lg border border-gray-200 group-hover:opacity-90 transition-opacity"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="bg-black/60 text-white text-xs px-2 py-1 rounded">Tela cheia</span>
+                      </span>
+                    </button>
                   ) : (
                     <div className="text-sm text-gray-500">QR code indisponível.</div>
                   )}
@@ -4308,6 +4318,39 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Cartão Bolsa Uniforme Fullscreen */}
+      <AnimatePresence>
+        {qrFullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/90 flex items-center justify-center z-[60] p-4"
+            onClick={() => setQrFullscreen(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              className="relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={qrFullscreen}
+                alt="Cartão Bolsa Uniforme"
+                className="max-w-[90vw] max-h-[90vh] rounded-2xl border-4 border-white"
+              />
+              <button
+                onClick={() => setQrFullscreen(null)}
+                className="absolute -top-4 -right-4 w-9 h-9 bg-white rounded-full flex items-center justify-center shadow-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-700" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
