@@ -38,6 +38,7 @@ interface PaymentIntentRequest {
   shipping: number;
   userId: string;
   shippingMethod?: string;
+  bolsaPaymentId?: string;
 }
 
 serve(async (req) => {
@@ -57,7 +58,7 @@ serve(async (req) => {
     });
 
     const body: PaymentIntentRequest = await req.json();
-    const { items, customerEmail, customerName, shippingAddress, shipping, userId, shippingMethod } = body;
+    const { items, customerEmail, customerName, shippingAddress, shipping, userId, shippingMethod, bolsaPaymentId } = body;
 
     // Calculate total amount in centavos
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -122,6 +123,7 @@ serve(async (req) => {
         shipping: shipping.toString(),
         flow: items.length === 0 ? "frete_only" : "direct_pi",
         ...(shippingMethod ? { shippingMethod } : {}),
+        ...(bolsaPaymentId ? { bolsaPaymentId } : {}),
         items: JSON.stringify(items.map(item => ({
           productId: item.productId,
           productName: item.productName,
