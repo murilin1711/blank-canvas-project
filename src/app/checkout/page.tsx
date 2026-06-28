@@ -1281,6 +1281,10 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         neighborhood: address.neighborhood,
                         city: address.city,
                         state: address.state,
+                        name: user?.user_metadata?.name || user?.email?.split("@")[0] || "",
+                        email: user?.email || "",
+                        phone: personal.phone,
+                        cpf: personal.cpf,
                       }}
                       shipping={shipping}
                       shippingMethod={shippingMethod}
@@ -1604,12 +1608,8 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             userId={user?.id || ""}
                             total={shipping}
                             shippingMethod={shippingMethod}
+                            bolsaPaymentId={bolsaPaymentId}
                             onSuccess={async () => {
-                              if (bolsaPaymentId) {
-                                await supabase.from("bolsa_uniforme_payments" as any)
-                                  .update({ shipping_payment_status: "paid" } as any)
-                                  .eq("id", bolsaPaymentId);
-                              }
                               setShippingPaid(true);
                               setShowShippingStripe(false);
                             }}
