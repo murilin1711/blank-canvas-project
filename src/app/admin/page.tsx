@@ -288,6 +288,7 @@ export default function AdminPage() {
   // Financeiro date filter
   const [finDateFrom, setFinDateFrom] = useState("");
   const [finDateTo, setFinDateTo] = useState("");
+  const [finSourceFilter, setFinSourceFilter] = useState<"all" | "bolsa" | "stripe" | "frete">("all");
 
   // Feedback edit states
   const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
@@ -1717,7 +1718,9 @@ export default function AdminPage() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const confirmedStatuses = ['paid', 'processing', 'shipped', 'delivered', 'exchange_requested', 'exchange_received', 'exchange_resent'];
-    const confirmedOrders = orders.filter(o => confirmedStatuses.includes(o.status));
+    // Pedidos criados a partir de pagamentos Bolsa Uniforme aprovados já são contados
+    // via approvedBolsa — excluí-los aqui evita somar o mesmo pedido duas vezes.
+    const confirmedOrders = orders.filter(o => confirmedStatuses.includes(o.status) && o.payment_method !== 'bolsa_uniforme');
     const approvedBolsa = bolsaPayments.filter(p => p.status === 'approved');
 
     const getTotal = (list: typeof confirmedOrders, bolsaList: typeof approvedBolsa) =>
@@ -2927,14 +2930,17 @@ export default function AdminPage() {
             // Cards sem filtro de data (Hoje / Esta semana / Este mês)
             const financials = calculateFinancials();
 
-            // Histórico: pedidos Stripe confirmados + BU aprovados, unidos e ordenados
-            type HistItem = { id: string; created_at: string; label: string; value: number; source: 'stripe' | 'bolsa' };
+            // Histórico: pedidos Stripe confirmados + BU aprovados, unidos e ordenados.
+            // Pedidos com payment_method 'bolsa_uniforme' são excluídos de `orders` aqui
+            // porque já são representados por `bolsaPayments` — evita contar o mesmo
+            // pedido duas vezes.
+            type HistItem = { id: string; created_at: string; label: string; value: number; shipping: number; source: 'stripe' | 'bolsa' };
             let histItems: HistItem[] = [
-              ...orders.filter(o => confirmedStatuses.includes(o.status)).map(o => ({
-                id: o.id, created_at: o.created_at, label: `#${o.id.slice(0, 8)}`, value: Number(o.subtotal), source: 'stripe' as const,
+              ...orders.filter(o => confirmedStatuses.includes(o.status) && o.payment_method !== 'bolsa_uniforme').map(o => ({
+                id: o.id, created_at: o.created_at, label: `#${o.id.slice(0, 8)}`, value: Number(o.subtotal), shipping: Number(o.shipping) || 0, source: 'stripe' as const,
               })),
               ...bolsaPayments.filter(p => p.status === 'approved').map(p => ({
-                id: p.id, created_at: p.created_at, label: p.customer_name || `BU #${p.id.slice(0, 8)}`, value: Number(p.total_amount), source: 'bolsa' as const,
+                id: p.id, created_at: p.created_at, label: p.customer_name || `BU #${p.id.slice(0, 8)}`, value: Number(p.total_amount), shipping: Number(p.shipping_amount) || 0, source: 'bolsa' as const,
               })),
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -2947,7 +2953,13 @@ export default function AdminPage() {
               to.setHours(23, 59, 59, 999);
               histItems = histItems.filter(o => new Date(o.created_at) <= to);
             }
-            const filteredTotal = histItems.reduce((acc, o) => acc + o.value, 0);
+            if (finSourceFilter === 'bolsa') {
+              histItems = histItems.filter(o => o.source === 'bolsa');
+            } else if (finSourceFilter === 'stripe') {
+              histItems = histItems.filter(o => o.source === 'stripe');
+            }
+            const isFreteView = finSourceFilter === 'frete';
+            const filteredTotal = histItems.reduce((acc, o) => acc + (isFreteView ? o.shipping : o.value), 0);
 
             return (
             <div className="space-y-6">
@@ -2991,15 +3003,35 @@ export default function AdminPage() {
                   <div className="flex flex-wrap items-center justify-between gap-4 mb-3">
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">Histórico de Vendas</h2>
-                      <p className="text-xs text-gray-500 mt-0.5">Soma dos valores dos produtos (sem frete)</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {isFreteView ? 'Soma dos valores de frete' : 'Soma dos valores dos produtos (sem frete)'}
+                      </p>
                     </div>
-                    {(finDateFrom || finDateTo) && (
-                      <div className="text-right">
-                        <p className="text-xs text-gray-500">Total no período</p>
-                        <p className="text-xl font-bold text-[#2e3091]">{formatCurrency(filteredTotal)}</p>
-                        <p className="text-xs text-gray-400">{histItems.length} venda{histItems.length !== 1 ? 's' : ''}</p>
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500">{(finDateFrom || finDateTo) ? 'Total no período' : 'Total'}</p>
+                      <p className="text-xl font-bold text-[#2e3091]">{formatCurrency(filteredTotal)}</p>
+                      <p className="text-xs text-gray-400">{histItems.length} venda{histItems.length !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center mb-3">
+                    {[
+                      { key: 'all', label: 'Bolsa Uniforme + Stripe' },
+                      { key: 'bolsa', label: 'Apenas Bolsa Uniforme' },
+                      { key: 'stripe', label: 'Apenas Stripe' },
+                      { key: 'frete', label: 'Apenas Frete' },
+                    ].map(opt => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setFinSourceFilter(opt.key as typeof finSourceFilter)}
+                        className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
+                          finSourceFilter === opt.key
+                            ? 'bg-[#2e3091] text-white border-[#2e3091]'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                   <div className="flex flex-wrap gap-2 items-center">
                     <div className="flex items-center gap-1.5">
@@ -3048,7 +3080,7 @@ export default function AdminPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pedido / Cliente</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Origem</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor (produtos)</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{isFreteView ? 'Valor (frete)' : 'Valor (produtos)'}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -3061,7 +3093,7 @@ export default function AdminPage() {
                                 {item.source === 'bolsa' ? 'Bolsa Uniforme' : 'Stripe'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(item.value)}</td>
+                            <td className="px-6 py-4 text-sm font-medium text-gray-900">{formatCurrency(isFreteView ? item.shipping : item.value)}</td>
                           </tr>
                         ))}
                       </tbody>
