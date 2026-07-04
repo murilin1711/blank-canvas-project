@@ -61,6 +61,23 @@ serve(async (req) => {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       const metadata = paymentIntent.metadata;
 
+      // Handle bolsa uniforme shipping paid via card (frete_only flow)
+      if (metadata?.flow === "frete_only") {
+        const bolsaPaymentId = metadata?.bolsaPaymentId;
+        if (bolsaPaymentId) {
+          await supabase
+            .from("bolsa_uniforme_payments")
+            .update({ shipping_payment_status: "paid" })
+            .eq("id", bolsaPaymentId)
+            .neq("shipping_payment_status", "paid");
+          console.log("Bolsa frete pago via cartão, bolsaPaymentId:", bolsaPaymentId);
+        }
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Only handle direct payment intents (not those created inside a checkout session)
       if (metadata?.flow !== "direct_pi") {
         return new Response(JSON.stringify({ received: true }), {

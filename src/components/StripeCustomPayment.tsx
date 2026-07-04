@@ -46,6 +46,7 @@ interface StripeCustomPaymentProps {
   userId: string;
   total: number;
   shippingMethod?: string;
+  bolsaPaymentId?: string | null;
   onSuccess?: () => void;
 }
 
@@ -226,6 +227,7 @@ export function StripeCustomPayment({
   userId,
   total,
   shippingMethod,
+  bolsaPaymentId,
   onSuccess,
 }: StripeCustomPaymentProps) {
   const navigate = useNavigate();
@@ -253,6 +255,7 @@ export function StripeCustomPayment({
               shipping,
               userId,
               shippingMethod,
+              ...(bolsaPaymentId ? { bolsaPaymentId } : {}),
             },
           }
         );

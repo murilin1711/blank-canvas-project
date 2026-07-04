@@ -38,6 +38,7 @@ interface PaymentIntentRequest {
   shipping: number;
   userId: string;
   shippingMethod?: string;
+  bolsaPaymentId?: string;
 }
 
 serve(async (req) => {
@@ -57,11 +58,27 @@ serve(async (req) => {
     });
 
     const body: PaymentIntentRequest = await req.json();
-    const { items, customerEmail, customerName, shippingAddress, shipping, userId, shippingMethod } = body;
+    const { items, customerEmail, customerName, shippingAddress, shipping, userId, shippingMethod, bolsaPaymentId } = body;
 
-    // Calculate total amount in centavos
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalAmount = Math.round((subtotal + shipping) * 100);
+    // Quando é pagamento do frete Bolsa Uniforme, os produtos já foram pagos no
+    // cartão BU — cobrar aqui apenas o frete real (bolsa_uniforme_payments.shipping_amount),
+    // nunca subtotal + shipping, senão o cliente é cobrado de novo pelos produtos.
+    let totalAmount: number;
+    if (bolsaPaymentId) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const { data: buPayment, error: buError } = await supabase
+        .from("bolsa_uniforme_payments")
+        .select("shipping_amount")
+        .eq("id", bolsaPaymentId)
+        .single();
+      if (buError || !buPayment) throw new Error("Pagamento Bolsa Uniforme não encontrado");
+      totalAmount = Math.round((Number(buPayment.shipping_amount) || 0) * 100);
+    } else {
+      const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      totalAmount = Math.round((subtotal + shipping) * 100);
+    }
 
     console.log("[CREATE-PAYMENT-INTENT] Creating payment intent", { 
       totalAmount, 
@@ -120,8 +137,9 @@ serve(async (req) => {
         customerName,
         shippingAddress: JSON.stringify(shippingAddress),
         shipping: shipping.toString(),
-        flow: items.length === 0 ? "frete_only" : "direct_pi",
+        flow: bolsaPaymentId ? "frete_only" : "direct_pi",
         ...(shippingMethod ? { shippingMethod } : {}),
+        ...(bolsaPaymentId ? { bolsaPaymentId } : {}),
         items: JSON.stringify(items.map(item => ({
           productId: item.productId,
           productName: item.productName,

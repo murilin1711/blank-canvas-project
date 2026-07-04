@@ -282,11 +282,8 @@ function BolsaPaymentCard({
                   shipping={payment.shipping_amount}
                   userId={user?.id || ""}
                   total={payment.shipping_amount}
-                  onSuccess={async () => {
-                    await supabase
-                      .from("bolsa_uniforme_payments")
-                      .update({ shipping_payment_status: "paid" } as never)
-                      .eq("id", payment.id);
+                  bolsaPaymentId={payment.id}
+                  onSuccess={() => {
                     closeFreteModal();
                     onRefresh();
                   }}
