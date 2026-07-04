@@ -63,7 +63,7 @@ serve(async (req) => {
       // Frete BU: reutiliza order vinculado se já existir e ainda estiver pendente
       const { data: existingBu } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("order_id")
+        .select("order_id, shipping_amount")
         .eq("id", bolsaPaymentId)
         .single();
 
@@ -78,14 +78,19 @@ serve(async (req) => {
       }
 
       if (!order) {
+        // `total`/`shipping` recebidos no body são apenas o valor desta cobrança Pix
+        // (o frete, já que os produtos são pagos no cartão Bolsa Uniforme). O pedido
+        // precisa registrar os valores reais: subtotal dos itens + frete verdadeiro,
+        // vindo de bolsa_uniforme_payments.shipping_amount — nunca o valor da cobrança.
         const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+        const realShipping = Number(existingBu?.shipping_amount) || 0;
         const { data: createdOrder, error: orderError } = await supabase
           .from("orders")
           .insert({
             user_id: userId,
             subtotal,
-            shipping,
-            total,
+            shipping: realShipping,
+            total: subtotal + realShipping,
             shipping_address: { ...shippingAddress, ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}) },
             status: "pending",
             payment_method: "bolsa_uniforme",
