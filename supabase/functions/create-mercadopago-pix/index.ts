@@ -22,7 +22,7 @@ interface PixPaymentRequest {
   customerEmail: string;
   customerName: string;
   cpf: string;
-  total: number;
+  total: number; // ignorado — recalculado no servidor
   userId: string;
   shippingAddress: {
     cep: string;
@@ -48,7 +48,7 @@ serve(async (req) => {
     if (!accessToken) throw new Error("MERCADO_PAGO_ACCESS_TOKEN not configured");
 
     const body: PixPaymentRequest = await req.json();
-    const { items, customerEmail, customerName, cpf, total, userId, shippingAddress, shipping, bolsaPaymentId, shippingMethod } = body;
+    const { items, customerEmail, customerName, cpf, userId, shippingAddress, shipping, bolsaPaymentId, shippingMethod } = body;
 
     const cleanCpf = cpf.replace(/\D/g, "");
 
@@ -56,114 +56,65 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // ── 1. Cria ou reutiliza o order ────────────────────────────────────────────
-    let order: any = null;
+    // ── 1. Calcula valores no SERVIDOR (nunca confia no `total` do cliente) ─────
+    const itemsSubtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
+    const shippingSafe = Number(shipping) || 0;
+
+    // Fluxo BU: cobra somente o frete real vindo de bolsa_uniforme_payments
+    // Fluxo normal: cobra subtotal + shipping
+    let chargeAmount: number;
+    let realShipping = shippingSafe;
+    let existingBu: any = null;
 
     if (bolsaPaymentId) {
-      // Frete BU: reutiliza order vinculado se já existir e ainda estiver pendente
-      const { data: existingBu } = await supabase
+      const { data } = await supabase
         .from("bolsa_uniforme_payments")
         .select("order_id, shipping_amount")
         .eq("id", bolsaPaymentId)
         .single();
-
-      if (existingBu?.order_id) {
-        const { data: existingOrder } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("id", existingBu.order_id)
-          .eq("status", "pending")
-          .single();
-        if (existingOrder) order = existingOrder;
-      }
-
-      if (!order) {
-        // `total`/`shipping` recebidos no body são apenas o valor desta cobrança Pix
-        // (o frete, já que os produtos são pagos no cartão Bolsa Uniforme). O pedido
-        // precisa registrar os valores reais: subtotal dos itens + frete verdadeiro,
-        // vindo de bolsa_uniforme_payments.shipping_amount — nunca o valor da cobrança.
-        const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-        const realShipping = Number(existingBu?.shipping_amount) || 0;
-        const { data: createdOrder, error: orderError } = await supabase
-          .from("orders")
-          .insert({
-            user_id: userId,
-            subtotal,
-            shipping: realShipping,
-            total: subtotal + realShipping,
-            shipping_address: { ...shippingAddress, ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}) },
-            status: "pending",
-            payment_method: "bolsa_uniforme",
-          })
-          .select()
-          .single();
-
-        if (orderError) throw new Error("Erro ao criar pedido: " + orderError.message);
-        order = createdOrder;
-
-        const orderItems = items.map(item => ({
-          order_id: order.id,
-          product_id: item.productId,
-          product_name: item.productName,
-          product_image: item.productImage,
-          price: item.price,
-          size: item.size,
-          quantity: item.quantity,
-        }));
-        await supabase.from("order_items").insert(orderItems);
-        await supabase.from("bolsa_uniforme_payments").update({ order_id: order.id }).eq("id", bolsaPaymentId);
-      }
+      existingBu = data;
+      realShipping = Number(existingBu?.shipping_amount) || 0;
+      chargeAmount = Math.round(realShipping * 100) / 100;
     } else {
-      // Pix normal: busca order pendente recente do mesmo usuário/valor
+      chargeAmount = Math.round((itemsSubtotal + shippingSafe) * 100) / 100;
+    }
+
+    if (!(chargeAmount > 0)) throw new Error("Valor de cobrança inválido");
+
+    // ── 2. Reaproveita pedido pendente existente (se houver) ────────────────────
+    let order: any = null;
+
+    if (bolsaPaymentId && existingBu?.order_id) {
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", existingBu.order_id)
+        .eq("status", "pending")
+        .single();
+      if (existingOrder) order = existingOrder;
+    } else if (!bolsaPaymentId) {
+      // Pix normal: reaproveita pedido pendente MAIS RECENTE do usuário com
+      // mesmo total E que já tenha payment_provider_id (Pix ativo no MP).
+      // Se não existir MP vinculado, é órfão e não pode ser reutilizado.
       const { data: existingOrder } = await supabase
         .from("orders")
         .select("*")
         .eq("user_id", userId)
         .eq("payment_method", "pix")
         .eq("status", "pending")
-        .eq("total", total)
+        .eq("total", itemsSubtotal + shippingSafe)
+        .not("payment_provider_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-
       if (existingOrder) {
         order = existingOrder;
         console.log("[CREATE-MERCADOPAGO-PIX] Reusing existing pending order:", order.id);
-      } else {
-        const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-        const { data: createdOrder, error: orderError } = await supabase
-          .from("orders")
-          .insert({
-            user_id: userId,
-            subtotal,
-            shipping,
-            total,
-            shipping_address: { ...shippingAddress, ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}) },
-            status: "pending",
-            payment_method: "pix",
-          })
-          .select()
-          .single();
-
-        if (orderError) throw new Error("Erro ao criar pedido: " + orderError.message);
-        order = createdOrder;
-
-        const orderItems = items.map(item => ({
-          order_id: order.id,
-          product_id: item.productId,
-          product_name: item.productName,
-          product_image: item.productImage,
-          price: item.price,
-          size: item.size,
-          quantity: item.quantity,
-        }));
-        await supabase.from("order_items").insert(orderItems);
       }
     }
 
-    // ── 2. Verifica se já existe um Pix pendente para este order no MP ──────────
-    if (order.payment_provider_id) {
-      console.log("[CREATE-MERCADOPAGO-PIX] Checking existing MP payment:", order.payment_provider_id);
+    // ── 3. Se já há Pix ativo no MP vinculado ao pedido, devolve o mesmo QR ─────
+    if (order?.payment_provider_id) {
       try {
         const existingRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.payment_provider_id}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
@@ -173,7 +124,6 @@ serve(async (req) => {
           if (existingPayment.status === "pending") {
             const td = existingPayment.point_of_interaction?.transaction_data;
             if (td?.qr_code_base64 && td?.qr_code) {
-              console.log("[CREATE-MERCADOPAGO-PIX] Reusing existing pending MP payment");
               return new Response(JSON.stringify({
                 paymentId: String(existingPayment.id),
                 qrCodeBase64: td.qr_code_base64,
@@ -185,15 +135,19 @@ serve(async (req) => {
           }
         }
       } catch (e) {
-        console.warn("[CREATE-MERCADOPAGO-PIX] Could not fetch existing payment, creating new one:", e.message);
+        console.warn("[CREATE-MERCADOPAGO-PIX] Could not fetch existing MP payment:", e.message);
       }
     }
 
-    // ── 3. Cria novo Pix no Mercado Pago ────────────────────────────────────────
-    const externalRef = bolsaPaymentId ? `bu-${bolsaPaymentId}` : `order-${order.id}`;
+    // ── 4. Cria o Pix no Mercado Pago PRIMEIRO (antes de gravar pedido novo) ────
+    // externalRef estável por bolsaPaymentId ou por (userId+valor) para o fluxo
+    // normal — evita idempotency-keys sempre novos que dão margem a duplicatas.
+    const externalRef = bolsaPaymentId
+      ? `bu-${bolsaPaymentId}`
+      : (order ? `order-${order.id}` : `user-${userId}-${Math.round(chargeAmount * 100)}`);
 
     const paymentData = {
-      transaction_amount: total,
+      transaction_amount: chargeAmount,
       description: `Goiás & Minas Uniformes - ${items.length} produto(s)`,
       payment_method_id: "pix",
       external_reference: externalRef,
@@ -205,7 +159,7 @@ serve(async (req) => {
       },
       metadata: {
         user_id: userId,
-        order_id: order.id,
+        ...(order ? { order_id: order.id } : {}),
         ...(bolsaPaymentId ? { bolsa_payment_id: bolsaPaymentId } : {}),
       },
     };
@@ -215,7 +169,7 @@ serve(async (req) => {
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${accessToken}`,
-        "X-Idempotency-Key": `${externalRef}-${Math.floor(Date.now() / 60000)}`, // muda a cada minuto
+        "X-Idempotency-Key": `${externalRef}-${Math.floor(Date.now() / 60000)}`,
       },
       body: JSON.stringify(paymentData),
     });
@@ -227,13 +181,65 @@ serve(async (req) => {
       throw new Error(paymentResult.message || "Erro ao criar pagamento Pix");
     }
 
-    console.log("[CREATE-MERCADOPAGO-PIX] Payment created:", paymentResult.id);
-
     const transactionData = paymentResult.point_of_interaction?.transaction_data;
-    if (!transactionData) throw new Error("QR Code data not found in response");
+    if (!transactionData?.qr_code_base64 || !transactionData?.qr_code) {
+      throw new Error("QR Code não retornado pelo Mercado Pago");
+    }
 
-    // Salva o payment_provider_id no order para reutilização futura
-    await supabase.from("orders").update({ payment_provider_id: String(paymentResult.id) }).eq("id", order.id);
+    console.log("[CREATE-MERCADOPAGO-PIX] MP payment created:", paymentResult.id);
+
+    // ── 5. Só AGORA grava o pedido no banco (se ainda não existir) ──────────────
+    if (!order) {
+      const totalToStore = bolsaPaymentId
+        ? itemsSubtotal + realShipping   // BU: pedido total real (produtos + frete real)
+        : itemsSubtotal + shippingSafe;  // Pix normal
+
+      const { data: createdOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: userId,
+          subtotal: itemsSubtotal,
+          shipping: bolsaPaymentId ? realShipping : shippingSafe,
+          total: totalToStore,
+          shipping_address: { ...shippingAddress, ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}) },
+          status: "pending",
+          payment_method: bolsaPaymentId ? "bolsa_uniforme" : "pix",
+          payment_provider_id: String(paymentResult.id),
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        // Pedido não pôde ser gravado mas o Pix já foi criado no MP — cancela lá
+        try {
+          await fetch(`https://api.mercadopago.com/v1/payments/${paymentResult.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ status: "cancelled" }),
+          });
+        } catch {}
+        throw new Error("Erro ao criar pedido: " + orderError.message);
+      }
+      order = createdOrder;
+
+      const orderItems = items.map(item => ({
+        order_id: order.id,
+        product_id: item.productId,
+        product_name: item.productName,
+        product_image: item.productImage,
+        price: item.price,
+        size: item.size,
+        quantity: item.quantity,
+      }));
+      await supabase.from("order_items").insert(orderItems);
+
+      if (bolsaPaymentId) {
+        await supabase.from("bolsa_uniforme_payments").update({ order_id: order.id }).eq("id", bolsaPaymentId);
+      }
+    } else {
+      // Reaproveitou pedido pendente sem MP vinculado — grava o novo payment_provider_id
+      await supabase.from("orders").update({ payment_provider_id: String(paymentResult.id) }).eq("id", order.id);
+    }
 
     return new Response(
       JSON.stringify({
