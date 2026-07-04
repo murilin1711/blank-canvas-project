@@ -80,10 +80,10 @@ serve(async (req) => {
       totalAmount = Math.round((subtotal + shipping) * 100);
     }
 
-    console.log("[CREATE-PAYMENT-INTENT] Creating payment intent", { 
-      totalAmount, 
+    console.log("[CREATE-PAYMENT-INTENT] Creating payment intent", {
+      totalAmount,
       itemsCount: items.length,
-      customerEmail 
+      customerEmail
     });
 
     // Check if customer exists
@@ -151,12 +151,12 @@ serve(async (req) => {
       },
     });
 
-    console.log("[CREATE-PAYMENT-INTENT] Payment intent created", { 
-      paymentIntentId: paymentIntent.id 
+    console.log("[CREATE-PAYMENT-INTENT] Payment intent created", {
+      paymentIntentId: paymentIntent.id
     });
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
       }),
