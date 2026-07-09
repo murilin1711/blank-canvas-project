@@ -477,7 +477,7 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                   return (
                   <img
                     key={img + i}
-                    src={getOptimizedImageUrl(img, 750)}
+                    src={getOptimizedImageUrl(img, 1000, undefined, 88)}
                     alt={`${productName} - ${i + 1}`}
                     loading={i === 0 ? "eager" : "lazy"}
                     fetchPriority={i === 0 ? "high" : "low"}
@@ -514,7 +514,7 @@ const nextImage = () => setActiveIndex((s) => (s + 1) % images.length);
                 className="relative w-full aspect-[3/4] bg-gray-50 rounded-2xl overflow-hidden group border border-gray-100"
               >
                 <img
-                  src={getOptimizedImageUrl(images[activeIndex], 800)}
+                  src={getOptimizedImageUrl(images[activeIndex], 1400, undefined, 90)}
                   alt="Imagem principal do produto"
                   className="w-full h-full object-cover"
                   fetchPriority="high"

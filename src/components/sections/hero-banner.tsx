@@ -82,7 +82,7 @@ const HeroBanner = () => {
   };
 
   if (bannerLoading) {
-    return <section className="relative w-full md:h-[calc(100vh-80px)] bg-gray-200 animate-pulse" />;
+    return <section className="relative w-full aspect-[3/4] md:aspect-auto md:h-[calc(100vh-80px)] bg-gray-200 animate-pulse" />;
   }
 
   if (slides.length === 0) return null;
@@ -95,11 +95,11 @@ const HeroBanner = () => {
       onTouchEnd={handleTouchEnd}
     >
       {/* Ghost image — mantém a altura da seção no mobile sem reflow */}
-      <picture aria-hidden className="block w-full md:hidden" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
+      <picture aria-hidden className="block w-full aspect-[3/4] md:hidden" style={{ visibility: 'hidden', pointerEvents: 'none' }}>
         {slides[0].mobileUrl && (
           <source media="(max-width: 767px)" srcSet={getOptimizedImageUrl(slides[0].mobileUrl, 800)} />
         )}
-        <img src={slides[0].url} className="w-full h-auto block" alt="" />
+        <img src={slides[0].url} className="w-full h-full object-cover block" alt="" />
       </picture>
 
       {/* Camadas empilhadas — crossfade real sem piscar */}
