@@ -60,24 +60,78 @@ serve(async (req) => {
     const body: PaymentIntentRequest = await req.json();
     const { items, customerEmail, customerName, shippingAddress, shipping, userId, shippingMethod, bolsaPaymentId } = body;
 
-    // Quando é pagamento do frete Bolsa Uniforme, os produtos já foram pagos no
-    // cartão BU — cobrar aqui apenas o frete real (bolsa_uniforme_payments.shipping_amount),
-    // nunca subtotal + shipping, senão o cliente é cobrado de novo pelos produtos.
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fluxo Bolsa Uniforme: os produtos já cobertos pelos cartões BU nunca devem
+    // ser cobrados de novo. Há dois sub-fluxos:
+    //  - frete_only: todos os produtos couberam nos cartões BU, falta só o frete.
+    //  - bu_remainder: sobrou diferença de produtos (remainder_amount) + frete.
     let totalAmount: number;
+    let flow: "frete_only" | "bu_remainder" | "direct_pi";
+    let orderId: string | null = null;
+
     if (bolsaPaymentId) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
       const { data: buPayment, error: buError } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("shipping_amount")
+        .select("shipping_amount, remainder_amount, order_id")
         .eq("id", bolsaPaymentId)
         .single();
       if (buError || !buPayment) throw new Error("Pagamento Bolsa Uniforme não encontrado");
-      totalAmount = Math.round((Number(buPayment.shipping_amount) || 0) * 100);
+
+      const remainderAmount = Number(buPayment.remainder_amount) || 0;
+      const shippingAmount = Number(buPayment.shipping_amount) || 0;
+
+      if (remainderAmount > 0) {
+        flow = "bu_remainder";
+        totalAmount = Math.round((remainderAmount + shippingAmount) * 100);
+      } else {
+        flow = "frete_only";
+        totalAmount = Math.round(shippingAmount * 100);
+      }
+      orderId = buPayment.order_id ?? null;
     } else {
+      flow = "direct_pi";
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       totalAmount = Math.round((subtotal + shipping) * 100);
+    }
+
+    // Grava o pedido (pending) e seus itens no banco ANTES de criar o payment intent,
+    // em vez de colocar a lista de itens no metadata do Stripe — metadata tem limite
+    // de 500 caracteres por valor e carrinhos com vários produtos estouram esse limite.
+    if ((flow === "direct_pi" || flow === "bu_remainder") && !orderId) {
+      const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const { data: createdOrder, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: userId,
+          subtotal,
+          shipping,
+          total: subtotal + shipping,
+          shipping_address: { ...shippingAddress, ...(shippingMethod ? { selected_shipping_method: shippingMethod } : {}) },
+          status: "pending",
+          payment_method: "card",
+        })
+        .select()
+        .single();
+      if (orderError) throw new Error("Erro ao criar pedido: " + orderError.message);
+      orderId = createdOrder.id;
+
+      const orderItems = items.map(item => ({
+        order_id: orderId,
+        product_id: item.productId,
+        product_name: item.productName,
+        product_image: item.productImage,
+        price: item.price,
+        size: item.size,
+        quantity: item.quantity,
+      }));
+      await supabase.from("order_items").insert(orderItems);
+
+      if (bolsaPaymentId) {
+        await supabase.from("bolsa_uniforme_payments").update({ order_id: orderId }).eq("id", bolsaPaymentId);
+      }
     }
 
     console.log("[CREATE-PAYMENT-INTENT] Creating payment intent", {
@@ -111,8 +165,9 @@ serve(async (req) => {
       const reusable = existingPIs.data.find(pi =>
         pi.amount === totalAmount &&
         (pi.status === "requires_payment_method" || pi.status === "requires_confirmation") &&
-        pi.metadata?.flow === "direct_pi" &&
-        pi.metadata?.userId === userId
+        pi.metadata?.flow === flow &&
+        pi.metadata?.userId === userId &&
+        (orderId ? pi.metadata?.orderId === orderId : true)
       );
       if (reusable) {
         console.log("[CREATE-PAYMENT-INTENT] Reusing existing payment intent", reusable.id);
@@ -135,19 +190,11 @@ serve(async (req) => {
         userId,
         customerEmail,
         customerName,
-        shippingAddress: JSON.stringify(shippingAddress),
         shipping: shipping.toString(),
-        flow: bolsaPaymentId ? "frete_only" : "direct_pi",
+        flow,
         ...(shippingMethod ? { shippingMethod } : {}),
         ...(bolsaPaymentId ? { bolsaPaymentId } : {}),
-        items: JSON.stringify(items.map(item => ({
-          productId: item.productId,
-          productName: item.productName,
-          price: item.price,
-          size: item.size,
-          quantity: item.quantity,
-          schoolSlug: item.schoolSlug,
-        }))),
+        ...(orderId ? { orderId } : {}),
       },
     });
 

@@ -66,15 +66,19 @@ serve(async (req) => {
     let realShipping = shippingSafe;
     let existingBu: any = null;
 
+    let remainderAmount = 0;
     if (bolsaPaymentId) {
       const { data } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("order_id, shipping_amount")
+        .select("order_id, shipping_amount, remainder_amount")
         .eq("id", bolsaPaymentId)
         .single();
       existingBu = data;
       realShipping = Number(existingBu?.shipping_amount) || 0;
-      chargeAmount = Math.round(realShipping * 100) / 100;
+      remainderAmount = Number(existingBu?.remainder_amount) || 0;
+      // Se há diferença de produtos não coberta pelos cartões BU, cobra a diferença + frete.
+      // Caso contrário (produtos já 100% cobertos pelos cartões BU), cobra só o frete.
+      chargeAmount = Math.round((remainderAmount + realShipping) * 100) / 100;
     } else {
       chargeAmount = Math.round((itemsSubtotal + shippingSafe) * 100) / 100;
     }

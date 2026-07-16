@@ -78,90 +78,81 @@ serve(async (req) => {
         });
       }
 
-      // Only handle direct payment intents (not those created inside a checkout session)
-      if (metadata?.flow !== "direct_pi") {
+      // Marca a diferença Bolsa Uniforme (produtos + frete) como paga
+      if (metadata?.flow === "bu_remainder" && metadata?.bolsaPaymentId) {
+        await supabase
+          .from("bolsa_uniforme_payments")
+          .update({ shipping_payment_status: "paid" })
+          .eq("id", metadata.bolsaPaymentId)
+          .neq("shipping_payment_status", "paid");
+      }
+
+      // Only handle direct payment intents created by create-payment-intent
+      // (not those created inside a checkout session)
+      if (metadata?.flow !== "direct_pi" && metadata?.flow !== "bu_remainder") {
         return new Response(JSON.stringify({ received: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const userId = metadata.userId;
-      const shippingAddress = JSON.parse(metadata.shippingAddress || "{}");
-      const shipping = parseFloat(metadata.shipping || "0");
-      const items = JSON.parse(metadata.items || "[]");
-      if (metadata.shippingMethod) {
-        shippingAddress.selected_shipping_method = metadata.shippingMethod;
+      const orderId = metadata.orderId;
+      if (!orderId) {
+        console.error("Missing orderId in payment_intent metadata", paymentIntent.id);
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const subtotal = items.reduce(
-        (acc: number, item: any) => acc + item.price * item.quantity,
-        0
-      );
-
-      // Idempotency: skip if order already exists for this payment intent
+      // Idempotency: skip if this order was already marked paid
       const { data: existingOrder } = await supabase
         .from("orders")
-        .select("id")
-        .eq("payment_provider_id", paymentIntent.id)
-        .maybeSingle();
-      if (existingOrder) {
-        console.log("Order already exists for payment_intent", paymentIntent.id, "— skipping duplicate");
+        .select("id, status, subtotal, shipping, shipping_address")
+        .eq("id", orderId)
+        .single();
+      if (!existingOrder) {
+        console.error("Order not found for payment_intent metadata.orderId:", orderId);
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (existingOrder.status === "paid") {
+        console.log("Order already marked paid, skipping duplicate:", orderId);
         return new Response(JSON.stringify({ received: true }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const { data: order, error: orderError } = await supabase
+      const { error: orderError } = await supabase
         .from("orders")
-        .insert({
-          user_id: userId,
-          subtotal,
-          shipping,
-          total: subtotal + shipping,
+        .update({
           status: "paid",
           payment_method: paymentIntent.payment_method_types?.[0] || "card",
-          shipping_address: shippingAddress,
           payment_provider_id: paymentIntent.id,
         })
-        .select()
-        .single();
+        .eq("id", orderId);
 
       if (orderError) {
-        console.error("Error creating order (payment_intent.succeeded):", orderError);
+        console.error("Error updating order (payment_intent.succeeded):", orderError);
         throw orderError;
       }
 
-      console.log("Order created via payment_intent.succeeded:", order.id);
+      console.log("Order marked paid via payment_intent.succeeded:", orderId);
 
-      const productIds = items.map((i: any) => i.productId);
-      const { data: productRows } = await supabase
-        .from("products")
-        .select("id, name, images")
-        .in("id", productIds);
-      const productMap = new Map(
-        (productRows ?? []).map((p: any) => [p.id, p])
-      );
+      const userId = metadata.userId;
+      const shippingAddress = existingOrder.shipping_address || {};
+      const shipping = Number(existingOrder.shipping) || 0;
+      const subtotal = Number(existingOrder.subtotal) || 0;
 
-      const orderItems = items.map((item: any) => {
-        const prod = productMap.get(item.productId);
-        return {
-          order_id: order.id,
-          product_id: item.productId,
-          product_name: prod?.name ?? item.productName ?? `Produto #${item.productId}`,
-          product_image: prod?.images?.[0] ?? null,
-          price: item.price,
-          size: item.size,
-          quantity: item.quantity,
-        };
-      });
+      const { data: orderItems } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", orderId);
 
-      if (orderItems.length > 0) {
-        await supabase.from("order_items").insert(orderItems);
-      }
-
-      for (const item of orderItems) {
+      for (const item of orderItems ?? []) {
         try {
           const { data: stockRow } = await supabase.from("product_stock").select("id, quantity").eq("product_id", item.product_id).eq("size", item.size).maybeSingle();
           if (stockRow) {
@@ -182,9 +173,9 @@ serve(async (req) => {
               template: "order_confirmation",
               to: userEmail,
               data: {
-                orderId: order.id,
+                orderId,
                 customerName: userName,
-                items: orderItems.map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
+                items: (orderItems ?? []).map((i: any) => ({ product_name: i.product_name, product_image: i.product_image, price: i.price, size: i.size, quantity: i.quantity })),
                 subtotal,
                 shipping,
                 total: subtotal + shipping,

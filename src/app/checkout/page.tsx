@@ -1375,7 +1375,16 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                       </div>
 
                       <button
-                        onClick={() => {
+                        onClick={async () => {
+                          // Grava o valor da diferença + frete no último cartão BU registrado,
+                          // para que o backend cobre exatamente esse valor (não o carrinho todo).
+                          const lastId = bolsaPaymentIds[bolsaPaymentIds.length - 1];
+                          if (lastId) {
+                            await supabase.from("bolsa_uniforme_payments" as any)
+                              .update({ remainder_amount: bolsaRemainder, shipping_amount: shipping } as any)
+                              .eq("id", lastId);
+                            setBolsaPaymentId(lastId);
+                          }
                           if (bolsaRemainderMethod === "stripe") setShowBolsaRemainderStripe(true);
                           else setShowBolsaRemainderPix(true);
                         }}
@@ -1450,6 +1459,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           userId={user?.id || ""}
                           total={bolsaRemainderTotal + shipping}
                           shippingMethod={shippingMethod}
+                          bolsaPaymentId={bolsaPaymentId}
                         />
                       </div>
                     </div>
@@ -1483,6 +1493,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                       shipping={shipping}
                       shippingMethod={shippingMethod}
                       onBack={() => setShowBolsaRemainderPix(false)}
+                      bolsaPaymentId={bolsaPaymentId}
                     />
 
                   ) : !bolsaUniformeCompleted ? (
