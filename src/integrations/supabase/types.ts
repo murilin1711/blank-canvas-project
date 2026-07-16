@@ -112,6 +112,7 @@ export type Database = {
           processed_at: string | null
           processed_by: string | null
           qr_code_image: string
+          remainder_amount: number
           shipping_address: Json | null
           shipping_amount: number
           shipping_payment_status: string | null
@@ -133,6 +134,7 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           qr_code_image: string
+          remainder_amount?: number
           shipping_address?: Json | null
           shipping_amount?: number
           shipping_payment_status?: string | null
@@ -154,6 +156,7 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           qr_code_image?: string
+          remainder_amount?: number
           shipping_address?: Json | null
           shipping_amount?: number
           shipping_payment_status?: string | null
