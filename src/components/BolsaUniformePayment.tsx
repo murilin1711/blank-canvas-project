@@ -29,6 +29,7 @@ export function BolsaUniformePayment({
   const [showPassword, setShowPassword] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasSubmittedRef = useRef(false);
 
   const parsedAmount = parseFloat(amount.replace(",", ".")) || 0;
   const stepIndex = STEPS.indexOf(step);
@@ -92,10 +93,16 @@ export function BolsaUniformePayment({
 
   /* ---------- Consent ---------- */
   const handleConsent = async () => {
+    // Trava síncrona por ref: bloqueia cliques duplos/rápidos antes mesmo do React
+    // re-renderizar o botão desabilitado (o estado `isProcessing` sozinho não é
+    // rápido o suficiente para isso).
+    if (hasSubmittedRef.current) return;
+    hasSubmittedRef.current = true;
     setIsProcessing(true);
     try {
       await onComplete({ qrCodeImage: qrCodeImage!, password, amount: parsedAmount });
     } catch {
+      hasSubmittedRef.current = false;
       setIsProcessing(false);
     }
   };
