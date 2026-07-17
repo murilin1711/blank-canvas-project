@@ -1826,38 +1826,61 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                     const isLastCard = newRemainder === 0;
 
                     try {
-                      const { data: insertedPayment, error } = await supabase.from("bolsa_uniforme_payments" as any).insert({
-                        user_id: user?.id,
-                        qr_code_image: data.qrCodeImage,
-                        password: data.password,
-                        customer_name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Cliente",
-                        customer_phone: personal.phone,
-                        customer_email: user?.email,
-                        total_amount: cardAmount,
-                        shipping_amount: isLastCard ? shipping : 0,
-                        items: items.map(item => ({
-                          productId: item.productId,
-                          productName: item.productName,
-                          productImage: item.productImage,
-                          price: item.price,
-                          size: item.size,
-                          quantity: item.quantity,
-                          schoolSlug: item.schoolSlug,
-                        })),
-                        shipping_address: {
-                          cep: address.cep,
-                          street: address.street,
-                          number: address.number,
-                          complement: address.complement,
-                          neighborhood: address.neighborhood,
-                          city: address.city,
-                          state: address.state,
-                          selected_shipping_method: shippingMethod,
-                          shipping_service_name: getShippingLabel(),
-                          cpf: personal.cpf,
-                        },
-                        status: "pending",
-                      } as any).select("id").single();
+                      // Evita duplicar o registro se o cliente reenviar o mesmo cartão
+                      // (reload, duplo clique, retry após demora) — reaproveita um
+                      // pendente recente com o mesmo usuário/senha/valor em vez de inserir de novo.
+                      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+                      const { data: recentDuplicate } = await supabase
+                        .from("bolsa_uniforme_payments" as any)
+                        .select("id")
+                        .eq("user_id", user?.id)
+                        .eq("password", data.password)
+                        .eq("total_amount", cardAmount)
+                        .eq("status", "pending")
+                        .gte("created_at", tenMinAgo)
+                        .order("created_at", { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                      let insertedPayment: any = recentDuplicate;
+                      let error: any = null;
+
+                      if (!recentDuplicate) {
+                        const result = await supabase.from("bolsa_uniforme_payments" as any).insert({
+                          user_id: user?.id,
+                          qr_code_image: data.qrCodeImage,
+                          password: data.password,
+                          customer_name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Cliente",
+                          customer_phone: personal.phone,
+                          customer_email: user?.email,
+                          total_amount: cardAmount,
+                          shipping_amount: isLastCard ? shipping : 0,
+                          items: items.map(item => ({
+                            productId: item.productId,
+                            productName: item.productName,
+                            productImage: item.productImage,
+                            price: item.price,
+                            size: item.size,
+                            quantity: item.quantity,
+                            schoolSlug: item.schoolSlug,
+                          })),
+                          shipping_address: {
+                            cep: address.cep,
+                            street: address.street,
+                            number: address.number,
+                            complement: address.complement,
+                            neighborhood: address.neighborhood,
+                            city: address.city,
+                            state: address.state,
+                            selected_shipping_method: shippingMethod,
+                            shipping_service_name: getShippingLabel(),
+                            cpf: personal.cpf,
+                          },
+                          status: "pending",
+                        } as any).select("id").single();
+                        insertedPayment = result.data;
+                        error = result.error;
+                      }
 
                       if (error) {
                         console.error("Error saving bolsa uniforme payment:", error);
