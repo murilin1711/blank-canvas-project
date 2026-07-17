@@ -1,0 +1,1 @@
+DELETE FROM public.bolsa_uniforme_payments WHERE id IN ('383bff04-1a97-420c-836d-e625c8e9433b','c527b3dc-999e-4409-b942-ef764e6226a9','a3ade4ca-c13f-40bb-9920-ebded951648c','dabd89c8-b847-406c-9a81-e928fc8a18b4') AND status='pending' AND order_id IS NULL AND user_id='4bb5fdb7-f662-4e7c-ad20-8dd98e0ee5b6';
