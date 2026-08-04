@@ -187,6 +187,8 @@ export default function AdminPage() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [customerActivities, setCustomerActivities] = useState<Record<string, UserActivity[]>>({});
+  const [loadingActivities, setLoadingActivities] = useState<Record<string, boolean>>({});
 
   // Track which sections have been loaded (for on-demand loading)
   const [loadedSections, setLoadedSections] = useState<Set<string>>(new Set());
@@ -1770,11 +1772,34 @@ export default function AdminPage() {
     }
   };
 
-  const toggleCustomerExpanded = (id: string) => {
+  const loadCustomerActivities = async (userId: string) => {
+    if (customerActivities[userId] || loadingActivities[userId]) return;
+    const token = getAdminToken();
+    if (!token) { handleLogout(); return; }
+    setLoadingActivities(prev => ({ ...prev, [userId]: true }));
+    try {
+      const response = await supabase.functions.invoke('admin-data', {
+        body: { action: 'get_customer_activities', token, data: { user_id: userId } }
+      });
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+      setCustomerActivities(prev => ({ ...prev, [userId]: response.data?.activities || [] }));
+    } catch (error) {
+      console.error('Error loading customer activities:', error);
+      setCustomerActivities(prev => ({ ...prev, [userId]: [] }));
+    } finally {
+      setLoadingActivities(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const toggleCustomerExpanded = (id: string, userId?: string) => {
     setExpandedCustomers(prev => ({
       ...prev,
       [id]: !prev[id]
     }));
+    if (!expandedCustomers[id] && userId) {
+      loadCustomerActivities(userId);
+    }
   };
 
   const fetchBolsaPaymentDetails = async (paymentId: string) => {
@@ -3109,9 +3134,19 @@ export default function AdminPage() {
           {activeTab === "clientes" && (
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="p-6 border-b border-gray-100">
-                  <h2 className="text-lg font-semibold text-gray-900">Clientes Cadastrados</h2>
-                  <p className="text-sm text-gray-500 mt-1">Veja perfis, compras e atividades recentes</p>
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Clientes Cadastrados</h2>
+                    <p className="text-sm text-gray-500 mt-1">Veja perfis, compras e atividades recentes</p>
+                  </div>
+                  <button
+                    onClick={() => { setCustomerActivities({}); reloadSection('customers'); }}
+                    disabled={loadingCustomers}
+                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loadingCustomers ? "animate-spin" : ""}`} />
+                    Atualizar
+                  </button>
                 </div>
 
                 {customers.length === 0 ? (
@@ -3128,7 +3163,7 @@ export default function AdminPage() {
                         <div key={customer.profile.id} className="transition-all">
                           <div 
                             className="p-6 cursor-pointer hover:bg-gray-50"
-                            onClick={() => toggleCustomerExpanded(customer.profile.id)}
+                            onClick={() => toggleCustomerExpanded(customer.profile.id, customer.profile.user_id)}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
@@ -3206,15 +3241,22 @@ export default function AdminPage() {
                                     </div>
                                   )}
 
-                                  {/* Recent activities */}
-                                  {customer.recentActivities.length > 0 && (
+                                  {/* Recent activities (lazy-loaded) */}
+                                  {(() => {
+                                  const acts = customerActivities[customer.profile.user_id] ?? customer.recentActivities;
+                                  const loadingActs = !!loadingActivities[customer.profile.user_id];
+                                  return (<>
+                                  {loadingActs && (
+                                    <p className="text-sm text-gray-400 italic mt-4">Carregando atividades...</p>
+                                  )}
+                                  {acts.length > 0 && (
                                     <div className="mt-4">
                                       <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
                                         <Activity className="w-3.5 h-3.5" />
                                         Atividades recentes:
                                       </p>
                                       <div className="space-y-2">
-                                        {customer.recentActivities.map((activity) => {
+                                        {acts.map((activity) => {
                                           const IconComponent = getActivityIcon(activity.activity_type);
                                           return (
                                             <div key={activity.id} className="flex items-center gap-2 text-sm">
@@ -3233,11 +3275,13 @@ export default function AdminPage() {
                                     </div>
                                   )}
 
-                                  {customer.recentActivities.length === 0 && customer.cartItems.length === 0 && (
+                                  {!loadingActs && acts.length === 0 && customer.cartItems.length === 0 && (
                                     <p className="text-sm text-gray-400 italic mt-4">
                                       Nenhuma atividade recente registrada
                                     </p>
                                   )}
+                                  </>);
+                                  })()}
 
                                   <p className="text-xs text-gray-400 mt-4">
                                     Cadastro: {formatDate(customer.profile.created_at)}
