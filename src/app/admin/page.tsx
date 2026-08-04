@@ -166,7 +166,6 @@ interface CustomerData {
   totalSpent: number;
   cartItems: any[];
   lastActivity: string | null;
-  recentActivities: UserActivity[];
 }
 
 export default function AdminPage() {
@@ -2464,7 +2463,7 @@ export default function AdminPage() {
             }).length;
 
             const renderBolsaRow = (payment: BolsaUniformePayment, index: number, accentClass = "bg-[#2e3091]", hoverClass = "hover:bg-gray-50") => (
-              <div key={payment.id} className={`flex items-center gap-4 px-4 py-3 transition-colors ${hoverClass}`}>
+              <div key={payment.id} className={`flex items-center gap-4 px-4 py-3 transition-colors min-w-[820px] ${hoverClass}`}>
                 <div className="flex-1 flex items-center gap-4 min-w-0">
                   <span className="text-sm font-medium text-gray-900 truncate">
                     #{index + 1} - {payment.customer_name}
@@ -2642,7 +2641,7 @@ export default function AdminPage() {
                       <p className="text-gray-500">Nenhum pagamento Bolsa Uniforme ativo</p>
                     </div>
                   );
-                  return <div className="divide-y divide-gray-100">{list.map((p, i) => renderBolsaRow(p, i, "bg-[#2e3091] hover:bg-[#252a7a]", "hover:bg-gray-50"))}</div>;
+                  return <div className="overflow-x-auto"><div className="divide-y divide-gray-100">{list.map((p, i) => renderBolsaRow(p, i, "bg-[#2e3091] hover:bg-[#252a7a]", "hover:bg-gray-50"))}</div></div>;
                 })()}
 
                 {bolsaSubTab === "entregues" && (() => {
@@ -2656,7 +2655,7 @@ export default function AdminPage() {
                       <p className="text-gray-500">Nenhum pedido entregue encontrado</p>
                     </div>
                   );
-                  return <div className="divide-y divide-teal-50">{list.map((p, i) => renderBolsaRow(p, i, "bg-teal-600 hover:bg-teal-700", "hover:bg-teal-50/40"))}</div>;
+                  return <div className="overflow-x-auto"><div className="divide-y divide-teal-50">{list.map((p, i) => renderBolsaRow(p, i, "bg-teal-600 hover:bg-teal-700", "hover:bg-teal-50/40"))}</div></div>;
                 })()}
 
                 {bolsaSubTab === "devolucoes" && (() => {
@@ -2670,7 +2669,7 @@ export default function AdminPage() {
                       <p className="text-gray-500">Nenhum pedido em devolução encontrado</p>
                     </div>
                   );
-                  return <div className="divide-y divide-orange-50">{list.map((p, i) => renderBolsaRow(p, i, "bg-orange-600 hover:bg-orange-700", "hover:bg-orange-50/40"))}</div>;
+                  return <div className="overflow-x-auto"><div className="divide-y divide-orange-50">{list.map((p, i) => renderBolsaRow(p, i, "bg-orange-600 hover:bg-orange-700", "hover:bg-orange-50/40"))}</div></div>;
                 })()}
               </div>
             );
@@ -3142,9 +3141,9 @@ export default function AdminPage() {
                   <button
                     onClick={() => { setCustomerActivities({}); reloadSection('customers'); }}
                     disabled={loadingCustomers}
-                    className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shrink-0"
                   >
-                    <RefreshCw className={`w-4 h-4 ${loadingCustomers ? "animate-spin" : ""}`} />
+                    <RefreshCw className={`w-4 h-4 ${loadingCustomers ? 'animate-spin' : ''}`} />
                     Atualizar
                   </button>
                 </div>
@@ -3241,46 +3240,48 @@ export default function AdminPage() {
                                     </div>
                                   )}
 
-                                  {/* Recent activities (lazy-loaded) */}
+                                  {/* Recent activities (lazy-loaded on expand) */}
                                   {(() => {
-                                  const acts = customerActivities[customer.profile.user_id] ?? customer.recentActivities;
-                                  const loadingActs = !!loadingActivities[customer.profile.user_id];
-                                  return (<>
-                                  {loadingActs && (
-                                    <p className="text-sm text-gray-400 italic mt-4">Carregando atividades...</p>
-                                  )}
-                                  {acts.length > 0 && (
-                                    <div className="mt-4">
-                                      <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
-                                        <Activity className="w-3.5 h-3.5" />
-                                        Atividades recentes:
-                                      </p>
-                                      <div className="space-y-2">
-                                        {acts.map((activity) => {
-                                          const IconComponent = getActivityIcon(activity.activity_type);
-                                          return (
-                                            <div key={activity.id} className="flex items-center gap-2 text-sm">
-                                              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${getActivityColor(activity.activity_type)}`}>
-                                                <IconComponent className="w-3 h-3" />
-                                              </div>
-                                              <span className="text-gray-700">{activity.description}</span>
-                                              <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                {formatRelativeTime(activity.created_at)}
-                                              </span>
+                                    const acts = customerActivities[customer.profile.user_id] || [];
+                                    const loadingActs = !!loadingActivities[customer.profile.user_id];
+                                    return (
+                                      <>
+                                        {loadingActs && (
+                                          <p className="text-sm text-gray-400 italic mt-4">Carregando atividades...</p>
+                                        )}
+                                        {!loadingActs && acts.length > 0 && (
+                                          <div className="mt-4">
+                                            <p className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1.5">
+                                              <Activity className="w-3.5 h-3.5" />
+                                              Atividades recentes:
+                                            </p>
+                                            <div className="space-y-2">
+                                              {acts.map((activity) => {
+                                                const IconComponent = getActivityIcon(activity.activity_type);
+                                                return (
+                                                  <div key={activity.id} className="flex items-center gap-2 text-sm">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${getActivityColor(activity.activity_type)}`}>
+                                                      <IconComponent className="w-3 h-3" />
+                                                    </div>
+                                                    <span className="text-gray-700">{activity.description}</span>
+                                                    <span className="text-xs text-gray-400 flex items-center gap-1">
+                                                      <Clock className="w-3 h-3" />
+                                                      {formatRelativeTime(activity.created_at)}
+                                                    </span>
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
+                                          </div>
+                                        )}
 
-                                  {!loadingActs && acts.length === 0 && customer.cartItems.length === 0 && (
-                                    <p className="text-sm text-gray-400 italic mt-4">
-                                      Nenhuma atividade recente registrada
-                                    </p>
-                                  )}
-                                  </>);
+                                        {!loadingActs && acts.length === 0 && customer.cartItems.length === 0 && (
+                                          <p className="text-sm text-gray-400 italic mt-4">
+                                            Nenhuma atividade recente registrada
+                                          </p>
+                                        )}
+                                      </>
+                                    );
                                   })()}
 
                                   <p className="text-xs text-gray-400 mt-4">

@@ -114,16 +114,17 @@ Deno.serve(async (req: Request) => {
             totalSpent,
             cartItems: cb[p.user_id] || [],
             lastActivity: allOrders.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || p.created_at,
-            recentActivities: []
           };
         })};
       }
     } else if (action === 'get_customer_activities') {
       const userId = data?.user_id;
-      if (!userId) throw new Error("user_id obrigatorio");
+      if (!userId) {
+        return new Response(JSON.stringify({ error: 'user_id é obrigatório' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       const { data: acts } = await supabase
         .from("user_activities")
-        .select("user_id, activity_type, description, created_at, metadata")
+        .select("id, user_id, activity_type, description, created_at, metadata")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(5);
