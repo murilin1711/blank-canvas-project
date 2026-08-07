@@ -3149,14 +3149,30 @@ export default function AdminPage() {
                   </button>
                 </div>
 
-                {customers.length === 0 ? (
+                <div className="px-6 py-4 border-b border-gray-100">
+                  <input
+                    type="text"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Buscar por nome, e-mail, telefone ou CPF..."
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  />
+                </div>
+
+                {(() => {
+                  const q = customerSearch.trim().toLowerCase();
+                  const visibleCustomers = [...customers]
+                    .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
+                    .filter((c) => !q || [c.profile.name, c.profile.email, c.profile.phone, c.profile.cpf]
+                      .some((v) => (v || '').toLowerCase().includes(q)));
+                  return visibleCustomers.length === 0 ? (
                   <div className="p-12 text-center">
                     <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum cliente cadastrado</p>
+                    <p className="text-gray-500">{customers.length === 0 ? 'Nenhum cliente cadastrado' : 'Nenhum cliente encontrado'}</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
-                    {customers.map((customer) => {
+                    {visibleCustomers.map((customer) => {
                       const isExpanded = expandedCustomers[customer.profile.id];
                       
                       return (
