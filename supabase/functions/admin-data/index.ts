@@ -114,7 +114,7 @@ Deno.serve(async (req: Request) => {
 
           return {
             profile: p,
-            ordersCount: allOrders.length,
+            ordersCount: paidOrders.length,
             totalSpent,
             cartItems: cb[p.user_id] || [],
             lastActivity: allOrders.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.created_at || p.created_at,
