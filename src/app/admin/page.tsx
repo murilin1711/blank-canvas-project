@@ -199,6 +199,7 @@ export default function AdminPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<CustomerData[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
   const [bannerSlides, setBannerSlides] = useState<any[]>([]);
   const [loadingBanner, setLoadingBanner] = useState(false);
 
