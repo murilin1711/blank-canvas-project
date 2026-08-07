@@ -111,27 +111,39 @@ serve(async (req) => {
       orderId = externalRef.replace("order-", "");
     } else if (externalRef?.startsWith("bu-")) {
       const buId = externalRef.replace("bu-", "");
-      const { data: buPayment } = await supabase
+      const { data: buPayment, error: buFetchError } = await supabase
         .from("bolsa_uniforme_payments")
         .select("order_id")
         .eq("id", buId)
-        .single();
+        .maybeSingle();
+      if (buFetchError) {
+        console.error("[MERCADOPAGO-WEBHOOK] Erro ao buscar bolsa payment", buId, buFetchError);
+      }
       orderId = buPayment?.order_id ?? null;
-      // Marca frete como pago (idempotente) — aceita null (valor inicial) e pending,
-      // mas não sobrescreve caso já esteja "paid"
-      await supabase
+      // Marca frete como pago (idempotente). `.neq` sozinho descartava linhas com
+      // valor NULL (NULL <> 'paid' é NULL no Postgres), então usamos or(is.null, neq).
+      const { data: buUpdated, error: buUpdateError } = await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
         .eq("id", buId)
-        .neq("shipping_payment_status", "paid");
+        .or("shipping_payment_status.is.null,shipping_payment_status.neq.paid")
+        .select("id");
+      if (buUpdateError) {
+        console.error("[MERCADOPAGO-WEBHOOK] FALHA ao marcar frete como pago", buId, buUpdateError);
+      } else {
+        console.log("[MERCADOPAGO-WEBHOOK] Frete BU atualizado:", buId, "linhas:", buUpdated?.length ?? 0);
+      }
     } else if (bolsaPaymentId) {
       // Fallback para pagamentos antigos sem external_reference
-      const { data: buPayment } = await supabase
+      const { data: buPayment, error: buUpdateError } = await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
         .eq("id", bolsaPaymentId)
         .select("order_id")
-        .single();
+        .maybeSingle();
+      if (buUpdateError) {
+        console.error("[MERCADOPAGO-WEBHOOK] FALHA ao marcar frete como pago (metadata)", bolsaPaymentId, buUpdateError);
+      }
       orderId = buPayment?.order_id ?? null;
     } else if (metaOrderId) {
       orderId = metaOrderId;
