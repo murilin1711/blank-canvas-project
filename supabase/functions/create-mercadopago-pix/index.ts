@@ -150,11 +150,17 @@ serve(async (req) => {
       ? `bu-${bolsaPaymentId}`
       : (order ? `order-${order.id}` : `user-${userId}-${Math.round(chargeAmount * 100)}`);
 
+    // notification_url explícito por pagamento: não depende da configuração
+    // do painel do Mercado Pago (que estava ausente/instável e fazia o
+    // shipping_payment_status nunca ser atualizado quando o cliente saía do site).
+    const notificationUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`;
+
     const paymentData = {
       transaction_amount: chargeAmount,
       description: `Goiás & Minas Uniformes - ${items.length} produto(s)`,
       payment_method_id: "pix",
       external_reference: externalRef,
+      notification_url: notificationUrl,
       payer: {
         email: customerEmail,
         first_name: customerName.split(" ")[0],

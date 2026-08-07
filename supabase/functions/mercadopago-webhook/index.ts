@@ -22,25 +22,33 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      // Empty or non-JSON body (e.g. verification ping)
+      body = {};
+    }
+
+    // Mercado Pago envia dois formatos: Webhooks (JSON body) e IPN
+    // (query string ?topic=payment&id=123, às vezes sem body). Suportamos ambos.
+    const url = new URL(req.url);
+    const qsTopic = url.searchParams.get("topic") || url.searchParams.get("type");
+    const qsId = url.searchParams.get("id") || url.searchParams.get("data.id");
+
+    console.log(
+      "[MERCADOPAGO-WEBHOOK] Received webhook:",
+      JSON.stringify({ body, query: { topic: qsTopic, id: qsId } })
+    );
+
+    const topic = body.type || body.topic || qsTopic;
+    const isPayment =
+      topic === "payment" || body.action === "payment.updated" || body.action === "payment.created";
+
+    if (!isPayment) {
+      console.log("[MERCADOPAGO-WEBHOOK] Ignoring non-payment notification, topic:", topic);
       return new Response(JSON.stringify({ received: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
-    console.log("[MERCADOPAGO-WEBHOOK] Received webhook:", JSON.stringify(body));
 
-    // Mercado Pago sends different types of notifications
-    // We're interested in payment notifications
-    if (body.type !== "payment" && body.action !== "payment.updated") {
-      console.log("[MERCADOPAGO-WEBHOOK] Ignoring non-payment notification");
-      return new Response(JSON.stringify({ received: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    const paymentId = body.data?.id;
+    const paymentId = body.data?.id ?? body.resource ?? qsId;
     if (!paymentId) {
       console.log("[MERCADOPAGO-WEBHOOK] No payment ID in notification");
       return new Response(JSON.stringify({ received: true }), {
