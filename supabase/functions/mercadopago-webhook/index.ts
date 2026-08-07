@@ -22,25 +22,33 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      // Empty or non-JSON body (e.g. verification ping)
+      body = {};
+    }
+
+    // Mercado Pago envia dois formatos: Webhooks (JSON body) e IPN
+    // (query string ?topic=payment&id=123, às vezes sem body). Suportamos ambos.
+    const url = new URL(req.url);
+    const qsTopic = url.searchParams.get("topic") || url.searchParams.get("type");
+    const qsId = url.searchParams.get("id") || url.searchParams.get("data.id");
+
+    console.log(
+      "[MERCADOPAGO-WEBHOOK] Received webhook:",
+      JSON.stringify({ body, query: { topic: qsTopic, id: qsId } })
+    );
+
+    const topic = body.type || body.topic || qsTopic;
+    const isPayment =
+      topic === "payment" || body.action === "payment.updated" || body.action === "payment.created";
+
+    if (!isPayment) {
+      console.log("[MERCADOPAGO-WEBHOOK] Ignoring non-payment notification, topic:", topic);
       return new Response(JSON.stringify({ received: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
-    console.log("[MERCADOPAGO-WEBHOOK] Received webhook:", JSON.stringify(body));
 
-    // Mercado Pago sends different types of notifications
-    // We're interested in payment notifications
-    if (body.type !== "payment" && body.action !== "payment.updated") {
-      console.log("[MERCADOPAGO-WEBHOOK] Ignoring non-payment notification");
-      return new Response(JSON.stringify({ received: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
-    }
-
-    const paymentId = body.data?.id;
+    const paymentId = body.data?.id ?? body.resource ?? qsId;
     if (!paymentId) {
       console.log("[MERCADOPAGO-WEBHOOK] No payment ID in notification");
       return new Response(JSON.stringify({ received: true }), {
@@ -103,27 +111,39 @@ serve(async (req) => {
       orderId = externalRef.replace("order-", "");
     } else if (externalRef?.startsWith("bu-")) {
       const buId = externalRef.replace("bu-", "");
-      const { data: buPayment } = await supabase
+      const { data: buPayment, error: buFetchError } = await supabase
         .from("bolsa_uniforme_payments")
         .select("order_id")
         .eq("id", buId)
-        .single();
+        .maybeSingle();
+      if (buFetchError) {
+        console.error("[MERCADOPAGO-WEBHOOK] Erro ao buscar bolsa payment", buId, buFetchError);
+      }
       orderId = buPayment?.order_id ?? null;
-      // Marca frete como pago (idempotente) — aceita null (valor inicial) e pending,
-      // mas não sobrescreve caso já esteja "paid"
-      await supabase
+      // Marca frete como pago (idempotente). `.neq` sozinho descartava linhas com
+      // valor NULL (NULL <> 'paid' é NULL no Postgres), então usamos or(is.null, neq).
+      const { data: buUpdated, error: buUpdateError } = await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
         .eq("id", buId)
-        .neq("shipping_payment_status", "paid");
+        .or("shipping_payment_status.is.null,shipping_payment_status.neq.paid")
+        .select("id");
+      if (buUpdateError) {
+        console.error("[MERCADOPAGO-WEBHOOK] FALHA ao marcar frete como pago", buId, buUpdateError);
+      } else {
+        console.log("[MERCADOPAGO-WEBHOOK] Frete BU atualizado:", buId, "linhas:", buUpdated?.length ?? 0);
+      }
     } else if (bolsaPaymentId) {
       // Fallback para pagamentos antigos sem external_reference
-      const { data: buPayment } = await supabase
+      const { data: buPayment, error: buUpdateError } = await supabase
         .from("bolsa_uniforme_payments")
         .update({ shipping_payment_status: "paid" })
         .eq("id", bolsaPaymentId)
         .select("order_id")
-        .single();
+        .maybeSingle();
+      if (buUpdateError) {
+        console.error("[MERCADOPAGO-WEBHOOK] FALHA ao marcar frete como pago (metadata)", bolsaPaymentId, buUpdateError);
+      }
       orderId = buPayment?.order_id ?? null;
     } else if (metaOrderId) {
       orderId = metaOrderId;

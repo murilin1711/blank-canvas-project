@@ -91,31 +91,60 @@ serve(async (req) => {
         }
       }
 
-      // Se o order pertence a um bolsa_uniforme_payment, marca o frete como pago
+      // Se o order pertence a um bolsa_uniforme_payment, marca o frete como pago.
+      // Usamos lista (não maybeSingle) porque o fluxo de múltiplos cartões BU pode
+      // gerar mais de uma linha com o mesmo order_id — antes isso falhava em silêncio.
       if (resolvedOrderId) {
-        const { data: buRecord } = await supabase
+        const { data: buRecords, error: buFetchError } = await supabase
           .from("bolsa_uniforme_payments")
           .select("id")
-          .eq("order_id", resolvedOrderId)
-          .maybeSingle();
+          .eq("order_id", resolvedOrderId);
 
-        if (buRecord?.id) {
-          await supabase
+        if (buFetchError) {
+          console.error("[CHECK-PIX-PAYMENT] FALHA ao buscar bolsa payments do pedido", resolvedOrderId, buFetchError);
+        } else if (buRecords && buRecords.length > 0) {
+          const ids = buRecords.map((r) => r.id);
+          const { error: buUpdateError } = await supabase
             .from("bolsa_uniforme_payments")
             .update({ shipping_payment_status: "paid" })
-            .eq("id", buRecord.id);
-          console.log("[CHECK-PIX-PAYMENT] bolsa_uniforme_payments shipping marcado como pago:", buRecord.id);
+            .in("id", ids);
+          if (buUpdateError) {
+            console.error("[CHECK-PIX-PAYMENT] FALHA ao marcar frete como pago", ids, buUpdateError);
+          } else {
+            console.log("[CHECK-PIX-PAYMENT] Frete marcado como pago:", ids.join(", "));
+          }
+        } else {
+          console.log("[CHECK-PIX-PAYMENT] Nenhum bolsa payment vinculado ao pedido", resolvedOrderId);
         }
       }
 
       // Verifica também pelo bolsa_payment_id nos metadados do pagamento MP
       const bolsaPaymentIdFromMeta = payment.metadata?.bolsa_payment_id;
       if (bolsaPaymentIdFromMeta) {
-        await supabase
+        const { error: metaUpdateError } = await supabase
           .from("bolsa_uniforme_payments")
           .update({ shipping_payment_status: "paid" })
           .eq("id", bolsaPaymentIdFromMeta);
-        console.log("[CHECK-PIX-PAYMENT] bolsa_uniforme_payments shipping marcado via metadata:", bolsaPaymentIdFromMeta);
+        if (metaUpdateError) {
+          console.error("[CHECK-PIX-PAYMENT] FALHA ao marcar frete via metadata", bolsaPaymentIdFromMeta, metaUpdateError);
+        } else {
+          console.log("[CHECK-PIX-PAYMENT] Frete marcado como pago via metadata:", bolsaPaymentIdFromMeta);
+        }
+      }
+
+      // Fallback final: external_reference bu-{id} (caso metadata esteja ausente)
+      const extRef: string | undefined = payment.external_reference;
+      if (extRef?.startsWith("bu-")) {
+        const buId = extRef.replace("bu-", "");
+        const { error: refUpdateError } = await supabase
+          .from("bolsa_uniforme_payments")
+          .update({ shipping_payment_status: "paid" })
+          .eq("id", buId);
+        if (refUpdateError) {
+          console.error("[CHECK-PIX-PAYMENT] FALHA ao marcar frete via external_reference", buId, refUpdateError);
+        } else {
+          console.log("[CHECK-PIX-PAYMENT] Frete marcado como pago via external_reference:", buId);
+        }
       }
     }
 
