@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
         const [o, c, bu] = await Promise.all([
           supabase.from("orders").select("user_id, total, created_at, payment_method, status").in("user_id", ids),
           supabase.from("cart_items").select("user_id, id").in("user_id", ids),
-          supabase.from("bolsa_uniforme_payments").select("user_id, total_amount, shipping_amount, status").in("user_id", ids)
+          supabase.from("bolsa_uniforme_payments").select("user_id, total_amount, shipping_amount, status, shipping_payment_status").in("user_id", ids)
         ]);
         const ob: any = {}, cb: any = {}, bub: any = {};
         (o.data || []).forEach(x => { ob[x.user_id] = ob[x.user_id] || []; ob[x.user_id].push(x); });
