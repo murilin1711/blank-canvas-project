@@ -93,7 +93,7 @@ Deno.serve(async (req: Request) => {
       else {
         const ids = profiles.map(p => p.user_id);
         const [o, c, bu] = await Promise.all([
-          supabase.from("orders").select("user_id, total, created_at, payment_method").in("user_id", ids),
+          supabase.from("orders").select("user_id, total, created_at, payment_method, status").in("user_id", ids),
           supabase.from("cart_items").select("user_id, id").in("user_id", ids),
           supabase.from("bolsa_uniforme_payments").select("user_id, total_amount, shipping_amount, status").in("user_id", ids)
         ]);
@@ -103,11 +103,15 @@ Deno.serve(async (req: Request) => {
         (bu.data || []).forEach(x => { bub[x.user_id] = bub[x.user_id] || []; bub[x.user_id].push(x); });
         result = { customers: profiles.map(p => {
           const allOrders = ob[p.user_id] || [];
-          const nonBuOrders = allOrders.filter((x: any) => x.payment_method !== 'bolsa_uniforme');
-          const buPayments = (bub[p.user_id] || []).filter((x: any) => x.status === 'approved' || x.status === 'pending');
+          // Só conta o que foi realmente pago: pedidos abandonados (pending) e
+          // cancelados inflavam o "total gasto" do cliente.
+          const paidOrders = allOrders.filter((x: any) => !['pending', 'cancelled', 'canceled', 'refunded'].includes(String(x.status)));
+          const nonBuOrders = paidOrders.filter((x: any) => x.payment_method !== 'bolsa_uniforme');
+          const buPayments = (bub[p.user_id] || []).filter((x: any) => x.status === 'approved');
           const totalSpent =
             nonBuOrders.reduce((s: number, x: any) => s + Number(x.total), 0) +
             buPayments.reduce((s: number, x: any) => s + Number(x.total_amount || 0) + Number(x.shipping_amount || 0), 0);
+
           return {
             profile: p,
             ordersCount: allOrders.length,
