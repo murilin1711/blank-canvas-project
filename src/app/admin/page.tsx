@@ -3162,7 +3162,7 @@ export default function AdminPage() {
                 {(() => {
                   const q = customerSearch.trim().toLowerCase();
                   const visibleCustomers = [...customers]
-                    .sort((a, b) => new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime())
+                    .sort((a, b) => new Date(b.lastActivity || 0).getTime() - new Date(a.lastActivity || 0).getTime())
                     .filter((c) => !q || [c.profile.name, c.profile.email, c.profile.phone, c.profile.cpf]
                       .some((v) => (v || '').toLowerCase().includes(q)));
                   return visibleCustomers.length === 0 ? (
