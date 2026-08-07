@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
           const buPayments = (bub[p.user_id] || []).filter((x: any) => x.status === 'approved');
           const totalSpent =
             nonBuOrders.reduce((s: number, x: any) => s + Number(x.total), 0) +
-            buPayments.reduce((s: number, x: any) => s + Number(x.total_amount || 0) + Number(x.shipping_amount || 0), 0);
+            buPayments.reduce((s: number, x: any) => s + Number(x.total_amount || 0) + (x.shipping_payment_status === 'paid' ? Number(x.shipping_amount || 0) : 0), 0);
 
           return {
             profile: p,
