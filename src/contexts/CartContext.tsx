@@ -114,8 +114,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const itemCount = items.reduce((acc, item) => acc + item.quantity, 0);
   // Só considera frete grátis se o produto AINDA estiver marcado como tal no banco.
   // A flag salva no localStorage é apenas um snapshot e não pode zerar o frete sozinha.
-  const hasFreeShipping =
-    items.length > 0 && items.every((item) => freeShippingIds.has(item.productId));
+  const hasFreeShipping = items.some(
+    (item) => item.freeShipping === true && freeShippingIds.has(item.productId)
+  );
 
   return (
     <CartContext.Provider
