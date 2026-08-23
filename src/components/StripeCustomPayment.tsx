@@ -236,7 +236,24 @@ export function StripeCustomPayment({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Chave estável do pagamento: só muda quando algo que realmente afeta o valor/pedido muda.
+  // Antes as deps eram os objetos `items`/`shippingAddress`, recriados a cada render do checkout,
+  // o que disparava a criação de um novo PaymentIntent repetidamente (vários "Incompleto" na Stripe).
+  const paymentKey = JSON.stringify({
+    userId,
+    total,
+    shipping,
+    bolsaPaymentId: bolsaPaymentId ?? null,
+    items: items.map((i) => `${i.productId}|${i.size}|${i.quantity}|${i.price}`),
+  });
+  const requestedKeyRef = useRef<string | null>(null);
+
   useEffect(() => {
+    if (requestedKeyRef.current === paymentKey) return;
+    requestedKeyRef.current = paymentKey;
+
+    let cancelled = false;
+
     const createPaymentIntent = async () => {
       try {
         setIsLoading(true);
@@ -260,6 +277,8 @@ export function StripeCustomPayment({
           }
         );
 
+        if (cancelled) return;
+
         if (fnError) {
           // Extrair mensagem real da edge function
           let detail = fnError.message || "";
@@ -274,27 +293,37 @@ export function StripeCustomPayment({
           const userMsg = detail.includes("STRIPE_SECRET_KEY")
             ? "Chave Stripe não configurada no servidor. Contate o suporte."
             : detail || "Não foi possível iniciar o pagamento. Tente novamente.";
+          requestedKeyRef.current = null;
           setError(userMsg);
           return;
         }
 
         if (!data?.clientSecret) {
           console.error("[Stripe] Resposta sem clientSecret:", data);
+          requestedKeyRef.current = null;
           setError("Não foi possível iniciar o pagamento. Tente novamente.");
           return;
         }
 
         setClientSecret(data.clientSecret);
       } catch (err) {
+        if (cancelled) return;
         console.error("Error:", err);
+        requestedKeyRef.current = null;
         setError("Erro ao conectar com o servidor de pagamentos.");
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     createPaymentIntent();
-  }, [items, customerEmail, customerName, shippingAddress, shipping, userId]);
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentKey]);
+
 
   const handlePaymentSuccess = () => {
     if (onSuccess) {
