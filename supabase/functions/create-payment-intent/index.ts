@@ -226,7 +226,11 @@ serve(async (req) => {
         ...(bolsaPaymentId ? { bolsaPaymentId } : {}),
         ...(orderId ? { orderId } : {}),
       },
+    }, {
+      // Garante 1 PaymentIntent por pedido/fluxo mesmo com requisições simultâneas
+      idempotencyKey: `pi_${userId}_${flow}_${orderId || bolsaPaymentId || "na"}_${totalAmount}`,
     });
+
 
     console.log("[CREATE-PAYMENT-INTENT] Payment intent created", {
       paymentIntentId: paymentIntent.id
