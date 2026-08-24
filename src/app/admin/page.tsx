@@ -905,7 +905,9 @@ export default function AdminPage() {
       if (res.error || res.data?.error) throw new Error(res.error?.message || res.data?.error);
       toast.success("Código de rastreio salvo! Status → Enviado");
       setOrders(prev => prev.map(o => o.id === order.id ? { ...o, tracking_code: trackingCode, status: "shipped" } : o));
-      setTrackingInputs(prev => ({ ...prev, [order.id]: "" }));
+      setLinkedOrder(prev => prev && prev.id === order.id ? { ...prev, tracking_code: trackingCode, status: "shipped" } : prev);
+      setBolsaOrderData(prev => ({ ...prev, [order.id]: { status: "shipped", tracking_code: trackingCode } }));
+      setTrackingInputs(prev => { const n = { ...prev }; delete n[order.id]; return n; });
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar código");
     } finally {
