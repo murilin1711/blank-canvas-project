@@ -247,10 +247,18 @@ export function StripeCustomPayment({
     items: items.map((i) => `${i.productId}|${i.size}|${i.quantity}|${i.price}`),
   });
   const requestedKeyRef = useRef<string | null>(null);
+  // Após o pagamento confirmado o carrinho é limpo, o que mudava a paymentKey e
+  // disparava a criação de um NOVO PaymentIntent/pedido (sem itens, só com frete).
+  // Esses eram os pedidos duplicados de "R$ 0,00 + frete pendente".
+  const paidRef = useRef(false);
 
   useEffect(() => {
+    if (paidRef.current) return;
+    // Sem itens e sem fluxo Bolsa Uniforme não existe pedido a cobrar.
+    if (!bolsaPaymentId && items.length === 0) return;
     if (requestedKeyRef.current === paymentKey) return;
     requestedKeyRef.current = paymentKey;
+
 
     let cancelled = false;
 
@@ -326,7 +334,9 @@ export function StripeCustomPayment({
 
 
   const handlePaymentSuccess = () => {
+    paidRef.current = true;
     if (onSuccess) {
+
       onSuccess();
     } else {
       clearCart();

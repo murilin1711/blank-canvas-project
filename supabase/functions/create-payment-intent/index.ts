@@ -93,9 +93,25 @@ serve(async (req) => {
       orderId = buPayment.order_id ?? null;
     } else {
       flow = "direct_pi";
+      // Nunca cria cobrança/pedido só de frete: sem itens não há pedido válido.
+      // (Era isso que gerava pedidos duplicados "R$ 0,00 + frete pendente" quando
+      // o carrinho era limpo após o pagamento e o componente re-disparava a chamada.)
+      if (!items || items.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Carrinho vazio: nenhum item para cobrar" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      if (!(subtotal > 0)) {
+        return new Response(
+          JSON.stringify({ error: "Valor do pedido inválido" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
+      }
       totalAmount = Math.round((subtotal + shipping) * 100);
     }
+
 
     // Identifica o cliente Stripe ANTES de criar qualquer pedido, para que a
     // reutilização de payment intents pendentes aconteça sem gerar pedidos órfãos.
