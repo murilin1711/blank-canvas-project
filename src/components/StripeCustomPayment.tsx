@@ -334,7 +334,9 @@ export function StripeCustomPayment({
 
 
   const handlePaymentSuccess = () => {
+    paidRef.current = true;
     if (onSuccess) {
+
       onSuccess();
     } else {
       clearCart();
