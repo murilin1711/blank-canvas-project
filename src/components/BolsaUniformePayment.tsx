@@ -23,7 +23,6 @@ export function BolsaUniformePayment({
   cardNumber,
 }: BolsaUniformePaymentProps) {
   const [step, setStep] = useState<Step>("amount");
-  const [amount, setAmount] = useState<string>(suggestedAmount.toFixed(2).replace(".", ","));
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +30,9 @@ export function BolsaUniformePayment({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasSubmittedRef = useRef(false);
 
-  const parsedAmount = parseFloat(amount.replace(",", ".")) || 0;
+  // O valor do cartão é sempre o valor exato necessário (limitado a R$ 970).
+  // Não é editável: digitar menos gerava pedidos com diferença de preço.
+  const parsedAmount = Math.round(maxAmount * 100) / 100;
   const stepIndex = STEPS.indexOf(step);
 
   const stepLabel = {
@@ -41,20 +42,9 @@ export function BolsaUniformePayment({
     consent: `Passo 4 de 4 - Confirmação`,
   }[step];
 
-  /* ---------- Amount ---------- */
-  const handleAmountChange = (val: string) => {
-    // Permite apenas números e vírgula/ponto
-    const clean = val.replace(/[^0-9.,]/g, "").replace(".", ",");
-    setAmount(clean);
-  };
-
   const handleAmountSubmit = () => {
     if (parsedAmount <= 0) {
-      toast.error("Digite um valor válido");
-      return;
-    }
-    if (parsedAmount > maxAmount) {
-      toast.error(`O valor máximo para este cartão é R$ ${maxAmount.toFixed(2).replace(".", ",")}`);
+      toast.error("Valor inválido para este cartão");
       return;
     }
     setStep("photo");
