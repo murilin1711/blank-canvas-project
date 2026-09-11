@@ -3772,7 +3772,7 @@ export default function AdminPage() {
                         (acc: number, it: any) => acc + Number(it.price || 0) * Number(it.quantity || 0),
                         0
                       );
-                      const covered = Number(selectedPayment.total_amount || 0) + Number(selectedPayment.remainder_amount || 0);
+                      const covered = Number(selectedPayment.total_amount || 0) + Number((selectedPayment as any).remainder_amount || 0);
                       const diff = Math.round((itemsTotal - covered) * 100) / 100;
                       if (diff <= 0.009) return null;
                       return (
