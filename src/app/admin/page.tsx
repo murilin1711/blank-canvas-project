@@ -3790,7 +3790,14 @@ export default function AdminPage() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-green-600 font-semibold">Grátis</span>
+                      // Frete 0 aqui nunca significa "grátis": é frete ainda não
+                      // registrado neste pagamento Bolsa Uniforme.
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-gray-900">Não registrado</p>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          Cobrar frete do cliente
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div>
