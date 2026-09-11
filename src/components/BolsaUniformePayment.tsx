@@ -159,39 +159,20 @@ export function BolsaUniformePayment({
                   <div className="w-16 h-16 bg-[#2e3091]/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <DollarSign className="w-8 h-8 text-[#2e3091]" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900">Quanto usar neste cartão?</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Valor deste cartão</h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    Máximo de R$ {maxAmount.toFixed(2).replace(".", ",")} (limite R$ 970,00 por cartão)
+                    Este é o valor exato que será debitado (limite de R$ 970,00 por cartão)
                   </p>
                 </div>
 
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">R$</span>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={amount}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    className="w-full text-center text-2xl font-semibold px-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:border-[#2e3091] focus:ring-2 focus:ring-[#2e3091]/20"
-                    placeholder="0,00"
-                  />
+                {/* Valor fixo — o cliente não pode digitar um valor menor que o
+                    necessário, o que gerava pedidos com diferença de preço. */}
+                <div className="w-full text-center px-4 py-5 bg-gray-50 border border-gray-200 rounded-xl">
+                  <span className="text-3xl font-semibold text-[#2e3091]">
+                    R$ {maxAmount.toFixed(2).replace(".", ",")}
+                  </span>
                 </div>
 
-                {/* Atalhos rápidos */}
-                <div className="flex gap-2 flex-wrap justify-center">
-                  {[suggestedAmount, suggestedAmount / 2, suggestedAmount / 3]
-                    .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i && v !== suggestedAmount || i === 0)
-                    .slice(0, 3)
-                    .map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setAmount(v.toFixed(2).replace(".", ","))}
-                        className="px-3 py-1.5 text-sm border border-[#2e3091] text-[#2e3091] rounded-full hover:bg-[#2e3091]/5 transition-colors"
-                      >
-                        R$ {v.toFixed(2).replace(".", ",")}
-                      </button>
-                    ))}
-                </div>
 
                 <button
                   onClick={handleAmountSubmit}
