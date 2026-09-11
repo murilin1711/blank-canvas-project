@@ -3765,6 +3765,22 @@ export default function AdminPage() {
                   <div>
                     <p className="text-sm text-gray-500">Valor dos Produtos</p>
                     <p className="font-medium text-gray-900">{formatCurrency(Number(selectedPayment.total_amount))}</p>
+                    {(() => {
+                      // Alerta quando o valor debitado no cartão + diferença não
+                      // cobre a soma real dos itens do pedido.
+                      const itemsTotal = (Array.isArray(selectedPayment.items) ? selectedPayment.items : []).reduce(
+                        (acc: number, it: any) => acc + Number(it.price || 0) * Number(it.quantity || 0),
+                        0
+                      );
+                      const covered = Number(selectedPayment.total_amount || 0) + Number((selectedPayment as any).remainder_amount || 0);
+                      const diff = Math.round((itemsTotal - covered) * 100) / 100;
+                      if (diff <= 0.009) return null;
+                      return (
+                        <p className="mt-1 text-xs font-semibold text-red-600">
+                          Itens somam {formatCurrency(itemsTotal)} — faltam {formatCurrency(diff)} a cobrar
+                        </p>
+                      );
+                    })()}
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Frete</p>
@@ -3790,7 +3806,14 @@ export default function AdminPage() {
                         )}
                       </div>
                     ) : (
-                      <span className="text-green-600 font-semibold">Grátis</span>
+                      // Frete 0 aqui nunca significa "grátis": é frete ainda não
+                      // registrado neste pagamento Bolsa Uniforme.
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-gray-900">Não registrado</p>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                          Cobrar frete do cliente
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div>
