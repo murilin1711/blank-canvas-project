@@ -277,10 +277,28 @@ function BolsaPaymentCard({
                       <span className="font-medium text-gray-900">PIX</span>
                     </div>
                   </label>
+                  {fretePaymentMethod === "pix" && (
+                    <div className="pt-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">CPF do pagador</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={formatCpf(cpfInput)}
+                        onChange={(e) => { setCpfInput(e.target.value); setCpfError(null); }}
+                        placeholder="000.000.000-00"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#2e3091] outline-none"
+                      />
+                      {cpfError && <p className="text-sm text-red-600 mt-1">{cpfError}</p>}
+                    </div>
+                  )}
                   <button
                     onClick={() => {
-                      if (fretePaymentMethod === "stripe") setShowStripe(true);
-                      else setShowPix(true);
+                      if (fretePaymentMethod === "stripe") { setShowStripe(true); return; }
+                      if (!cpfValido) {
+                        setCpfError("Informe um CPF válido com 11 dígitos para gerar o Pix.");
+                        return;
+                      }
+                      setShowPix(true);
                     }}
                     className="w-full bg-[#2e3091] text-white py-3 rounded-xl font-medium hover:bg-[#252a7a] transition-colors mt-2"
                   >
