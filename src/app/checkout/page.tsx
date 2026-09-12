@@ -1044,9 +1044,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
 
                       <button
                         onClick={completeCurrentStep}
-                        className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn"
+                        disabled={!isShippingResolved || isLoadingShipping}
+                        className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Selecionar pagamento
+                        {isLoadingShipping
+                          ? "Calculando frete..."
+                          : !isShippingResolved
+                            ? "Selecione o frete"
+                            : "Selecionar pagamento"}
                       </button>
                     </>
                   )}
@@ -1248,6 +1253,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           const esgotados = stockChecks.filter(Boolean);
                           if (esgotados.length > 0) {
                             toast.error(`Produto esgotado: ${esgotados.join(", ")}. Remova do carrinho.`);
+                            return;
+                          }
+                          // Trava adicional: sem frete calculado o pedido ficaria
+                          // gravado com frete zerado (principalmente no Bolsa Uniforme).
+                          if (!isShippingResolved) {
+                            toast.error("Selecione uma opção de frete antes de pagar.", { duration: 4000 });
+                            setCurrentStep("entrega");
+                            scrollToStepContent();
                             return;
                           }
                           if (paymentMethod === "stripe") {
