@@ -329,7 +329,7 @@ function BolsaPaymentCard({
                   items={[]}
                   customerEmail={user?.email || ""}
                   customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
-                  cpf={userCpf}
+                  cpf={cpfDigits}
                   total={payment.shipping_amount}
                   userId={user?.id || ""}
                   shippingAddress={{ cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "" }}
