@@ -271,6 +271,12 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
     return shippingPrices.economico;
   };
   const shipping = getShippingPrice();
+  // Frete só é considerado resolvido quando é realmente grátis (regra do produto)
+  // ou quando uma opção cotada do Melhor Envio está selecionada.
+  const isShippingResolved =
+    hasFreeShipping ||
+    (shippingMethod.startsWith("me-") &&
+      !!cartShippingOptions?.melhorEnvio?.some((o: any) => `me-${o.id}` === shippingMethod));
   const total = subtotal + shipping;
   const bolsaUsed = bolsaCards.reduce((sum, c) => sum + c.amount, 0);
   const bolsaRemainder = Math.max(0, subtotal - bolsaUsed);
@@ -361,6 +367,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
         toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
         return;
       }
+
+      // O frete precisa estar calculado e selecionado antes do pagamento.
+      // Sem isso o pedido era gravado com frete zerado (aparecia como "grátis").
+      if (!isShippingResolved) {
+        toast.error("Calcule e selecione uma opção de frete antes de continuar.", { duration: 4000 });
+        return;
+      }
+      
       
       // Clear saved data if user unchecked save option
       if (!saveAddressData) {
@@ -1030,9 +1044,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
 
                       <button
                         onClick={completeCurrentStep}
-                        className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn"
+                        disabled={!isShippingResolved || isLoadingShipping}
+                        className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Selecionar pagamento
+                        {isLoadingShipping
+                          ? "Calculando frete..."
+                          : !isShippingResolved
+                            ? "Selecione o frete"
+                            : "Selecionar pagamento"}
                       </button>
                     </>
                   )}
@@ -1234,6 +1253,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                           const esgotados = stockChecks.filter(Boolean);
                           if (esgotados.length > 0) {
                             toast.error(`Produto esgotado: ${esgotados.join(", ")}. Remova do carrinho.`);
+                            return;
+                          }
+                          // Trava adicional: sem frete calculado o pedido ficaria
+                          // gravado com frete zerado (principalmente no Bolsa Uniforme).
+                          if (!isShippingResolved) {
+                            toast.error("Selecione uma opção de frete antes de pagar.", { duration: 4000 });
+                            setCurrentStep("entrega");
+                            scrollToStepContent();
                             return;
                           }
                           if (paymentMethod === "stripe") {
