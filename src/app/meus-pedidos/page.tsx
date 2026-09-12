@@ -71,6 +71,22 @@ function BolsaPaymentCard({
   const [fretePaymentMethod, setFretePaymentMethod] = useState<"stripe" | "pix">("stripe");
   const [showStripe, setShowStripe] = useState(false);
   const [showPix, setShowPix] = useState(false);
+  const [cpfInput, setCpfInput] = useState(userCpf);
+  const [cpfError, setCpfError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userCpf) setCpfInput(userCpf);
+  }, [userCpf]);
+
+  const cpfDigits = cpfInput.replace(/\D/g, "");
+  const cpfValido = cpfDigits.length === 11;
+  const formatCpf = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    return d
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  };
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
