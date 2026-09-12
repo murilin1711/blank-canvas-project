@@ -430,15 +430,28 @@ export default function MeusPedidosPage() {
   };
 
   useEffect(() => {
-    if (user) {
-      const saved = localStorage.getItem("checkout_personal");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed?.cpf) setUserCpf(parsed.cpf);
-        } catch {}
-      }
+    if (!user) return;
+    let found = "";
+    const saved = localStorage.getItem("checkout_personal");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.cpf) found = parsed.cpf;
+      } catch {}
     }
+    if (found) {
+      setUserCpf(found);
+      return;
+    }
+    // Fallback: CPF salvo no perfil do cliente (outro dispositivo/navegador)
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("cpf")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data?.cpf) setUserCpf(data.cpf as string);
+    })();
   }, [user]);
 
   useEffect(() => {
