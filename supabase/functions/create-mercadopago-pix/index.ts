@@ -50,7 +50,13 @@ serve(async (req) => {
     const body: PixPaymentRequest = await req.json();
     const { items, customerEmail, customerName, cpf, userId, shippingAddress, shipping, bolsaPaymentId, shippingMethod } = body;
 
-    const cleanCpf = cpf.replace(/\D/g, "");
+    const cleanCpf = String(cpf ?? "").replace(/\D/g, "");
+    if (cleanCpf.length !== 11) {
+      return new Response(
+        JSON.stringify({ error: "Informe um CPF válido (11 dígitos) para gerar o Pix." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

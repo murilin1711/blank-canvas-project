@@ -71,6 +71,22 @@ function BolsaPaymentCard({
   const [fretePaymentMethod, setFretePaymentMethod] = useState<"stripe" | "pix">("stripe");
   const [showStripe, setShowStripe] = useState(false);
   const [showPix, setShowPix] = useState(false);
+  const [cpfInput, setCpfInput] = useState(userCpf);
+  const [cpfError, setCpfError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userCpf) setCpfInput(userCpf);
+  }, [userCpf]);
+
+  const cpfDigits = cpfInput.replace(/\D/g, "");
+  const cpfValido = cpfDigits.length === 11;
+  const formatCpf = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 11);
+    return d
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  };
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
@@ -261,10 +277,28 @@ function BolsaPaymentCard({
                       <span className="font-medium text-gray-900">PIX</span>
                     </div>
                   </label>
+                  {fretePaymentMethod === "pix" && (
+                    <div className="pt-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">CPF do pagador</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={formatCpf(cpfInput)}
+                        onChange={(e) => { setCpfInput(e.target.value); setCpfError(null); }}
+                        placeholder="000.000.000-00"
+                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#2e3091] outline-none"
+                      />
+                      {cpfError && <p className="text-sm text-red-600 mt-1">{cpfError}</p>}
+                    </div>
+                  )}
                   <button
                     onClick={() => {
-                      if (fretePaymentMethod === "stripe") setShowStripe(true);
-                      else setShowPix(true);
+                      if (fretePaymentMethod === "stripe") { setShowStripe(true); return; }
+                      if (!cpfValido) {
+                        setCpfError("Informe um CPF válido com 11 dígitos para gerar o Pix.");
+                        return;
+                      }
+                      setShowPix(true);
                     }}
                     className="w-full bg-[#2e3091] text-white py-3 rounded-xl font-medium hover:bg-[#252a7a] transition-colors mt-2"
                   >
@@ -295,7 +329,7 @@ function BolsaPaymentCard({
                   items={[]}
                   customerEmail={user?.email || ""}
                   customerName={user?.user_metadata?.name || user?.email?.split("@")[0] || ""}
-                  cpf={userCpf}
+                  cpf={cpfDigits}
                   total={payment.shipping_amount}
                   userId={user?.id || ""}
                   shippingAddress={{ cep: "", street: "", number: "", complement: "", neighborhood: "", city: "", state: "" }}
@@ -396,15 +430,28 @@ export default function MeusPedidosPage() {
   };
 
   useEffect(() => {
-    if (user) {
-      const saved = localStorage.getItem("checkout_personal");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (parsed?.cpf) setUserCpf(parsed.cpf);
-        } catch {}
-      }
+    if (!user) return;
+    let found = "";
+    const saved = localStorage.getItem("checkout_personal");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.cpf) found = parsed.cpf;
+      } catch {}
     }
+    if (found) {
+      setUserCpf(found);
+      return;
+    }
+    // Fallback: CPF salvo no perfil do cliente (outro dispositivo/navegador)
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("cpf")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data?.cpf) setUserCpf(data.cpf as string);
+    })();
   }, [user]);
 
   useEffect(() => {
