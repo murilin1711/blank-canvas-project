@@ -271,6 +271,12 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
     return shippingPrices.economico;
   };
   const shipping = getShippingPrice();
+  // Frete só é considerado resolvido quando é realmente grátis (regra do produto)
+  // ou quando uma opção cotada do Melhor Envio está selecionada.
+  const isShippingResolved =
+    hasFreeShipping ||
+    (shippingMethod.startsWith("me-") &&
+      !!cartShippingOptions?.melhorEnvio?.some((o: any) => `me-${o.id}` === shippingMethod));
   const total = subtotal + shipping;
   const bolsaUsed = bolsaCards.reduce((sum, c) => sum + c.amount, 0);
   const bolsaRemainder = Math.max(0, subtotal - bolsaUsed);
@@ -361,6 +367,14 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
         toast.error("Preencha todos os campos obrigatórios", { duration: 2000 });
         return;
       }
+
+      // O frete precisa estar calculado e selecionado antes do pagamento.
+      // Sem isso o pedido era gravado com frete zerado (aparecia como "grátis").
+      if (!isShippingResolved) {
+        toast.error("Calcule e selecione uma opção de frete antes de continuar.", { duration: 4000 });
+        return;
+      }
+      
       
       // Clear saved data if user unchecked save option
       if (!saveAddressData) {
