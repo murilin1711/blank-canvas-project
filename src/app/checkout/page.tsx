@@ -201,7 +201,9 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
   const [isLoadingShipping, setIsLoadingShipping] = useState(false);
   
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "pix" | "bolsa-uniforme">("stripe");
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "pix" | "bolsa-uniforme" | "bolsa-combo">("stripe");
+  // Bolsa Uniforme + outro pagamento: valor parcial no BU, restante via Stripe/Pix
+  const [bolsaComboAmount, setBolsaComboAmount] = useState<string>("");
   const [showBolsaUniformeModal, setShowBolsaUniformeModal] = useState(false);
   const [showStripeCheckout, setShowStripeCheckout] = useState(false);
   const [showPixPayment, setShowPixPayment] = useState(false);
@@ -283,6 +285,11 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
   // Frete nunca é pago pelo Bolsa Uniforme — sempre cobrado à parte via Stripe/Pix
   const bolsaRemainderTotal = bolsaRemainder;
   const bolsaCurrentMax = Math.min(BOLSA_LIMIT, bolsaRemainder); // máximo para o próximo cartão
+  // Combo BU + outro: valor do BU precisa ser > 0, ≤ limite e menor que o subtotal (senão é "só BU")
+  const bolsaComboParsed = parseFloat(bolsaComboAmount.replace(",", ".")) || 0;
+  const bolsaComboMax = Math.min(BOLSA_LIMIT, Math.max(0, subtotal - 0.01));
+  const bolsaComboValid = bolsaComboParsed > 0 && bolsaComboParsed <= bolsaComboMax;
+  const bolsaComboRest = Math.max(0, subtotal - bolsaComboParsed);
 
   const getShippingLabel = () => {
     if (hasFreeShipping || shippingMethod === "free") return "🚚 Frete Grátis";
@@ -1233,6 +1240,130 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             )}
                           </div>
                         </label>
+
+                        {/* Bolsa Uniforme + outro pagamento */}
+                        <label
+                          className={`block cursor-pointer rounded-2xl border-2 transition-all ${
+                            paymentMethod === "bolsa-combo"
+                              ? "border-[#2e3091] bg-[#2e3091]/5"
+                              : "border-border-light bg-background-primary hover:border-text-muted"
+                          }`}
+                        >
+                          <div className="p-5">
+                            <div className="flex items-center gap-3 mb-2">
+                              <input
+                                type="radio"
+                                checked={paymentMethod === "bolsa-combo"}
+                                onChange={() => setPaymentMethod("bolsa-combo")}
+                                className="w-5 h-5 accent-[#2e3091]"
+                              />
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Wallet className="w-5 h-5 text-[#2e3091]" />
+                                <span className="text-body-regular font-medium text-text-primary">
+                                  Bolsa Uniforme + outro pagamento
+                                </span>
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                                  Dividir
+                                </span>
+                              </div>
+                            </div>
+
+                            {paymentMethod === "bolsa-combo" && (
+                              <div className="ml-8 mt-3 space-y-4">
+                                <p className="text-body-sm text-text-secondary">
+                                  Use parte do saldo do Bolsa Uniforme e pague o restante com Cartão, Boleto ou Pix.
+                                </p>
+
+                                <div>
+                                  <label className="block text-body-sm font-medium text-text-primary mb-2">
+                                    Valor a pagar com Bolsa Uniforme
+                                  </label>
+                                  <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted font-medium">R$</span>
+                                    <input
+                                      type="text"
+                                      inputMode="decimal"
+                                      value={bolsaComboAmount}
+                                      onChange={(e) => setBolsaComboAmount(e.target.value.replace(/[^0-9.,]/g, "").replace(".", ","))}
+                                      placeholder="0,00"
+                                      className="w-full pl-12 pr-4 py-3 text-lg font-semibold border border-border-light rounded-xl bg-white focus:outline-none focus:border-[#2e3091] focus:ring-2 focus:ring-[#2e3091]/20"
+                                    />
+                                  </div>
+                                  <p className="text-xs text-text-muted mt-1">
+                                    Máximo de R$ {bolsaComboMax.toFixed(2).replace(".", ",")} (limite de R$ 970,00 por cartão e menor que o total dos produtos)
+                                  </p>
+                                  {bolsaComboAmount !== "" && !bolsaComboValid && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      Informe um valor entre R$ 0,01 e R$ {bolsaComboMax.toFixed(2).replace(".", ",")}.
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <p className="text-body-sm font-medium text-text-primary mb-2">Pagar o restante com</p>
+                                  <div className="space-y-2">
+                                    <div
+                                      onClick={() => setBolsaRemainderMethod("stripe")}
+                                      className={`block cursor-pointer rounded-xl border-2 transition-all ${bolsaRemainderMethod === "stripe" ? "border-[#2e3091] bg-white" : "border-border-light bg-white hover:border-text-muted"}`}
+                                    >
+                                      <div className="p-3 flex items-center gap-3">
+                                        <input
+                                          type="radio"
+                                          name="bolsa-combo-rest"
+                                          checked={bolsaRemainderMethod === "stripe"}
+                                          onChange={() => setBolsaRemainderMethod("stripe")}
+                                          className="w-4 h-4 accent-[#2e3091]"
+                                        />
+                                        <CreditCard className="w-5 h-5 text-[#2e3091]" />
+                                        <span className="text-body-sm font-medium text-text-primary">Cartão de Crédito / Boleto</span>
+                                      </div>
+                                    </div>
+                                    <div
+                                      onClick={() => setBolsaRemainderMethod("pix")}
+                                      className={`block cursor-pointer rounded-xl border-2 transition-all ${bolsaRemainderMethod === "pix" ? "border-[#2e3091] bg-white" : "border-border-light bg-white hover:border-text-muted"}`}
+                                    >
+                                      <div className="p-3 flex items-center gap-3">
+                                        <input
+                                          type="radio"
+                                          name="bolsa-combo-rest"
+                                          checked={bolsaRemainderMethod === "pix"}
+                                          onChange={() => setBolsaRemainderMethod("pix")}
+                                          className="w-4 h-4 accent-[#2e3091]"
+                                        />
+                                        <img src={pixLogo} alt="Pix" className="h-5" />
+                                        <span className="text-body-sm font-medium text-text-primary">Pix</span>
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium ml-auto">Aprovação imediata</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {bolsaComboValid && (
+                                  <div className="bg-[#2e3091]/5 border border-[#2e3091]/20 rounded-xl p-3 text-body-sm text-text-secondary space-y-1">
+                                    <div className="flex justify-between">
+                                      <span>Bolsa Uniforme</span>
+                                      <span className="font-medium text-text-primary">R$ {bolsaComboParsed.toFixed(2).replace(".", ",")}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Restante dos produtos</span>
+                                      <span className="font-medium text-text-primary">R$ {bolsaComboRest.toFixed(2).replace(".", ",")}</span>
+                                    </div>
+                                    {shipping > 0 && (
+                                      <div className="flex justify-between">
+                                        <span>Frete</span>
+                                        <span className="font-medium text-text-primary">R$ {shipping.toFixed(2).replace(".", ",")}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-[#2e3091]/20 pt-1 mt-1">
+                                      <span>A pagar via {bolsaRemainderMethod === "pix" ? "Pix" : "Cartão / Boleto"}</span>
+                                      <span className="font-semibold text-[#2e3091]">R$ {(bolsaComboRest + shipping).toFixed(2).replace(".", ",")}</span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </label>
                       </div>
 
                       <button
@@ -1267,17 +1398,26 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                             setShowStripeCheckout(true);
                           } else if (paymentMethod === "pix") {
                             setShowPixPayment(true);
+                          } else if (paymentMethod === "bolsa-combo") {
+                            if (!bolsaComboValid) {
+                              toast.error(`Informe um valor entre R$ 0,01 e R$ ${bolsaComboMax.toFixed(2).replace(".", ",")} para o Bolsa Uniforme.`);
+                              return;
+                            }
+                            setBolsaMultiCard(false);
+                            setShowBolsaUniformeModal(true);
                           } else {
                             setShowBolsaMultiCardQuestion(true);
                           }
                         }}
-                        disabled={isProcessingPayment}
+                        disabled={isProcessingPayment || (paymentMethod === "bolsa-combo" && !bolsaComboValid)}
                         className="w-full bg-[#2e3091] text-white py-4 rounded-full font-medium hover:bg-[#252a7a] transition-colors text-btn uppercase disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {paymentMethod === "stripe" ? (
                           "Ir para pagamento"
                         ) : paymentMethod === "pix" ? (
                           "Pagar com Pix"
+                        ) : paymentMethod === "bolsa-combo" ? (
+                          `Pagar com Bolsa Uniforme + ${bolsaRemainderMethod === "pix" ? "Pix" : "Cartão / Boleto"}`
                         ) : (
                           "Pagar com Bolsa Uniforme"
                         )}
@@ -1843,6 +1983,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                   suggestedAmount={bolsaCurrentMax}
                   maxAmount={bolsaCurrentMax}
                   cardNumber={bolsaCards.length + 1}
+                  fixedAmount={paymentMethod === "bolsa-combo" ? bolsaComboParsed : undefined}
                   onComplete={async (data) => {
                     const newCards = [...bolsaCards, data];
                     setBolsaCards(newCards);
@@ -1921,7 +2062,17 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
                         }
                         setShowBolsaUniformeModal(false);
 
-                        if (!isLastCard) {
+                        if (paymentMethod === "bolsa-combo" && newId) {
+                          // Combo: grava a diferença + frete no cartão BU e vai direto
+                          // para o pagamento do restante no método já escolhido.
+                          await supabase.from("bolsa_uniforme_payments" as any)
+                            .update({ remainder_amount: newRemainder, shipping_amount: shipping } as any)
+                            .eq("id", newId);
+                          setBolsaPaymentId(newId);
+                          setShowBolsaRemainderChoice(true);
+                          if (bolsaRemainderMethod === "stripe") setShowBolsaRemainderStripe(true);
+                          else setShowBolsaRemainderPix(true);
+                        } else if (!isLastCard) {
                           setShowBolsaRemainderChoice(true);
                         } else {
                           await trackActivity("checkout_completed", `Finalizou produtos via Bolsa Uniforme - ${formatCurrency(subtotal)}`, {

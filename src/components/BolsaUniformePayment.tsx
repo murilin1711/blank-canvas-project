@@ -9,11 +9,12 @@ interface BolsaUniformePaymentProps {
   suggestedAmount: number; // valor sugerido (saldo restante, máx R$970)
   maxAmount: number;       // valor máximo permitido neste cartão
   cardNumber: number;      // número do cartão (1, 2 ou 3)
+  fixedAmount?: number;    // valor já definido pelo cliente (pula o passo "Valor")
 }
 
 type Step = "amount" | "photo" | "password" | "consent";
 
-const STEPS: Step[] = ["amount", "photo", "password", "consent"];
+const ALL_STEPS: Step[] = ["amount", "photo", "password", "consent"];
 
 export function BolsaUniformePayment({
   onComplete,
@@ -21,8 +22,11 @@ export function BolsaUniformePayment({
   suggestedAmount,
   maxAmount,
   cardNumber,
+  fixedAmount,
 }: BolsaUniformePaymentProps) {
-  const [step, setStep] = useState<Step>("amount");
+  const hasFixedAmount = fixedAmount !== undefined;
+  const STEPS: Step[] = hasFixedAmount ? ALL_STEPS.filter((s) => s !== "amount") : ALL_STEPS;
+  const [step, setStep] = useState<Step>(hasFixedAmount ? "photo" : "amount");
   const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,15 +36,13 @@ export function BolsaUniformePayment({
 
   // O valor do cartão é sempre o valor exato necessário (limitado a R$ 970).
   // Não é editável: digitar menos gerava pedidos com diferença de preço.
-  const parsedAmount = Math.round(maxAmount * 100) / 100;
+  // No fluxo "BU + outro pagamento", o valor vem fixo da tela de seleção (fixedAmount).
+  const parsedAmount = Math.round((hasFixedAmount ? fixedAmount : maxAmount) * 100) / 100;
   const stepIndex = STEPS.indexOf(step);
 
-  const stepLabel = {
-    amount: `Passo 1 de 4 - Valor`,
-    photo: `Passo 2 de 4 - Foto do QR Code`,
-    password: `Passo 3 de 4 - Senha`,
-    consent: `Passo 4 de 4 - Confirmação`,
-  }[step];
+  const stepLabel = `Passo ${stepIndex + 1} de ${STEPS.length} - ${
+    { amount: "Valor", photo: "Foto do QR Code", password: "Senha", consent: "Confirmação" }[step]
+  }`;
 
   const handleAmountSubmit = () => {
     if (parsedAmount <= 0) {
@@ -183,6 +185,12 @@ export function BolsaUniformePayment({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-6"
               >
+                {hasFixedAmount && (
+                  <p className="text-center text-sm text-gray-600">
+                    Valor neste cartão:{" "}
+                    <span className="font-semibold text-[#2e3091]">R$ {parsedAmount.toFixed(2).replace(".", ",")}</span>
+                  </p>
+                )}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <div className="flex gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -239,12 +247,14 @@ export function BolsaUniformePayment({
                 </div>
 
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setStep("amount")}
-                    className="flex-1 py-4 border border-gray-200 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    Voltar
-                  </button>
+                  {!hasFixedAmount && (
+                    <button
+                      onClick={() => setStep("amount")}
+                      className="flex-1 py-4 border border-gray-200 rounded-full font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      Voltar
+                    </button>
+                  )}
                   <button
                     onClick={handlePhotoSubmit}
                     disabled={!qrCodeImage}
