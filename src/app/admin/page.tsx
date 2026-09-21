@@ -3893,10 +3893,52 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total Pago</p>
-                    <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount) + Number(selectedPayment.shipping_amount || 0))}</p>
-                  </div>
+                  {(() => {
+                    const buValue = Number(selectedPayment.total_amount || 0);
+                    const remainder = Number((selectedPayment as any).remainder_amount || 0);
+                    const shippingValue = Number(selectedPayment.shipping_amount || 0);
+                    const shippingPaid = selectedPayment.shipping_payment_status === "paid";
+                    return (
+                      <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Como foi pago</p>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Cartão Bolsa Uniforme:</span>
+                          <span className="font-medium text-gray-900">{formatCurrency(buValue)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Diferença no cartão/Pix:</span>
+                          <span className="font-medium text-gray-900">{remainder > 0 ? formatCurrency(remainder) : "—"}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500">Frete:</span>
+                          {shippingValue <= 0 ? (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                              Não registrado — cobrar do cliente
+                            </span>
+                          ) : shippingPaid ? (
+                            <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                              <Check className="w-3 h-3" /> Pago ({formatCurrency(shippingValue)})
+                            </span>
+                          ) : (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                              Aguardando pagamento ({formatCurrency(shippingValue)})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex justify-between pt-2 border-t border-gray-200">
+                          <span className="font-semibold text-gray-700">Total recebido:</span>
+                          <span className="text-xl font-bold text-[#2e3091]">
+                            {formatCurrency(buValue + remainder + (shippingPaid ? shippingValue : 0))}
+                          </span>
+                        </div>
+                        {!shippingPaid && shippingValue > 0 && (
+                          <p className="text-xs font-semibold text-yellow-700">
+                            Frete de {formatCurrency(shippingValue)} ainda não recebido
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <p className="text-sm text-gray-500">Data</p>
                     <p className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</p>
