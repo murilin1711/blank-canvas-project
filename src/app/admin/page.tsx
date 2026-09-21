@@ -3444,31 +3444,108 @@ export default function AdminPage() {
                   </div>
 
                   {/* Valores */}
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Valores</p>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Pedido (produtos):</span>
-                        <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
+                  {(() => {
+                    const linkedBolsa = bolsaPayments.filter(p => p.order_id === order.id);
+                    const bolsaTotal = linkedBolsa.reduce((s, p) => s + Number(p.total_amount || 0), 0);
+                    const remainderTotal = linkedBolsa.reduce((s, p) => s + Number((p as any).remainder_amount || 0), 0);
+                    const isBolsa = order.payment_method === "bolsa_uniforme" || linkedBolsa.length > 0;
+                    const shippingValue = Number(order.shipping) || 0;
+                    const shippingPaid = isBolsa
+                      ? linkedBolsa.some(p => p.shipping_payment_status === "paid")
+                      : ["paid", "separating", "shipped", "delivered"].includes(order.status);
+                    const methodLabel =
+                      order.payment_method === "pix" ? "PIX"
+                        : order.payment_method === "boleto" ? "Boleto"
+                        : order.payment_method === "card" ? "Cartão"
+                        : order.payment_method === "bolsa_uniforme" ? "Bolsa Uniforme"
+                        : order.payment_method || "—";
+                    return (
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Valores e Pagamento</p>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Pedido (produtos):</span>
+                            <span className="font-medium text-gray-900">{formatCurrency(Number(order.subtotal))}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Frete:</span>
+                            {shippingValue > 0
+                              ? <span className="font-medium text-gray-900">{formatCurrency(shippingValue)}</span>
+                              : isBolsa
+                                ? <span className="font-medium text-amber-700">Não registrado</span>
+                                : <span className="font-medium text-green-600">Grátis</span>}
+                          </div>
+                          <div className="flex justify-between pt-2 border-t border-gray-200">
+                            <span className="font-semibold text-gray-700">Total:</span>
+                            <span className="font-bold text-[#2e3091] text-base">{formatCurrency(Number(order.total))}</span>
+                          </div>
+
+                          {/* Como foi pago */}
+                          <div className="pt-3 mt-2 border-t border-gray-200 space-y-1.5">
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Como foi pago</p>
+                            {isBolsa ? (
+                              <>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500">
+                                    Bolsa Uniforme{linkedBolsa.length > 1 ? ` (${linkedBolsa.length} cartões)` : ""}:
+                                  </span>
+                                  <span className="font-medium text-gray-900">{formatCurrency(bolsaTotal)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-500">Diferença no cartão/Pix:</span>
+                                  <span className="font-medium text-gray-900">
+                                    {remainderTotal > 0 ? formatCurrency(remainderTotal) : "—"}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex justify-between">
+                                <span className="text-gray-500">{methodLabel}:</span>
+                                <span className="font-medium text-gray-900">{formatCurrency(Number(order.total))}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-500">Frete:</span>
+                              {shippingValue <= 0 && isBolsa ? (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                                  Não registrado — cobrar do cliente
+                                </span>
+                              ) : shippingValue <= 0 ? (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                                  Sem frete
+                                </span>
+                              ) : shippingPaid ? (
+                                <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                  <Check className="w-3 h-3" /> Pago ({formatCurrency(shippingValue)})
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                                  Aguardando pagamento ({formatCurrency(shippingValue)})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between pt-2 mt-1 border-t border-gray-100">
+                            <span className="text-gray-500">Forma de pagamento:</span>
+                            <span className="font-medium text-gray-900">{methodLabel}</span>
+                          </div>
+                          {isBolsa && (() => {
+                            const paidSum = Math.round((bolsaTotal + remainderTotal) * 100) / 100;
+                            const productsTotal = Number(order.subtotal) || 0;
+                            const diff = Math.round((productsTotal - paidSum) * 100) / 100;
+                            if (diff <= 0.009) return null;
+                            return (
+                              <p className="text-xs font-semibold text-red-600 pt-1">
+                                Faltam {formatCurrency(diff)} dos produtos a receber
+                              </p>
+                            );
+                          })()}
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Frete:</span>
-                        {Number(order.shipping) > 0
-                          ? <span className="font-medium text-gray-900">{formatCurrency(Number(order.shipping))}</span>
-                          : <span className="font-medium text-green-600">Grátis</span>}
-                      </div>
-                      <div className="flex justify-between pt-2 border-t border-gray-200">
-                        <span className="font-semibold text-gray-700">Total:</span>
-                        <span className="font-bold text-[#2e3091] text-base">{formatCurrency(Number(order.total))}</span>
-                      </div>
-                      <div className="flex justify-between pt-1 border-t border-gray-100">
-                        <span className="text-gray-500">Pagamento:</span>
-                        <span className="font-medium text-gray-900">
-                          {order.payment_method === "pix" ? "PIX" : order.payment_method === "boleto" ? "Boleto" : order.payment_method === "card" ? "Cartão" : order.payment_method || "—"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
+
 
                   {/* Rastreio */}
                   <div>
@@ -3816,10 +3893,52 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Total Pago</p>
-                    <p className="text-2xl font-bold text-[#2e3091]">{formatCurrency(Number(selectedPayment.total_amount) + Number(selectedPayment.shipping_amount || 0))}</p>
-                  </div>
+                  {(() => {
+                    const buValue = Number(selectedPayment.total_amount || 0);
+                    const remainder = Number((selectedPayment as any).remainder_amount || 0);
+                    const shippingValue = Number(selectedPayment.shipping_amount || 0);
+                    const shippingPaid = selectedPayment.shipping_payment_status === "paid";
+                    return (
+                      <div className="bg-gray-50 rounded-xl p-4 space-y-1.5 text-sm">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Como foi pago</p>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Cartão Bolsa Uniforme:</span>
+                          <span className="font-medium text-gray-900">{formatCurrency(buValue)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Diferença no cartão/Pix:</span>
+                          <span className="font-medium text-gray-900">{remainder > 0 ? formatCurrency(remainder) : "—"}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-500">Frete:</span>
+                          {shippingValue <= 0 ? (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                              Não registrado — cobrar do cliente
+                            </span>
+                          ) : shippingPaid ? (
+                            <span className="flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                              <Check className="w-3 h-3" /> Pago ({formatCurrency(shippingValue)})
+                            </span>
+                          ) : (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                              Aguardando pagamento ({formatCurrency(shippingValue)})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex justify-between pt-2 border-t border-gray-200">
+                          <span className="font-semibold text-gray-700">Total recebido:</span>
+                          <span className="text-xl font-bold text-[#2e3091]">
+                            {formatCurrency(buValue + remainder + (shippingPaid ? shippingValue : 0))}
+                          </span>
+                        </div>
+                        {!shippingPaid && shippingValue > 0 && (
+                          <p className="text-xs font-semibold text-yellow-700">
+                            Frete de {formatCurrency(shippingValue)} ainda não recebido
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <p className="text-sm text-gray-500">Data</p>
                     <p className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</p>
