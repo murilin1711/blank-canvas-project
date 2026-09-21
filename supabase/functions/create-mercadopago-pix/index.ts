@@ -76,12 +76,33 @@ serve(async (req) => {
     if (bolsaPaymentId) {
       const { data } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("order_id, shipping_amount, remainder_amount")
+        .select("order_id, shipping_amount, remainder_amount, user_id")
         .eq("id", bolsaPaymentId)
         .single();
       existingBu = data;
       realShipping = Number(existingBu?.shipping_amount) || 0;
       remainderAmount = Number(existingBu?.remainder_amount) || 0;
+
+      // Fallback: o cliente não consegue gravar remainder/shipping (RLS), então
+      // recalculamos a diferença entre os produtos e o que os cartões BU cobriram.
+      if (remainderAmount <= 0 && itemsSubtotal > 0) {
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+        const { data: buRows } = await supabase
+          .from("bolsa_uniforme_payments")
+          .select("total_amount")
+          .eq("user_id", existingBu?.user_id ?? userId)
+          .eq("status", "pending")
+          .gte("created_at", twoHoursAgo);
+        const covered = (buRows || []).reduce((s: number, r: any) => s + (Number(r.total_amount) || 0), 0);
+        remainderAmount = Math.max(0, Math.round((itemsSubtotal - covered) * 100) / 100);
+      }
+      if (realShipping <= 0) realShipping = shippingSafe;
+
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ remainder_amount: remainderAmount, shipping_amount: realShipping })
+        .eq("id", bolsaPaymentId);
+
       // Se há diferença de produtos não coberta pelos cartões BU, cobra a diferença + frete.
       // Caso contrário (produtos já 100% cobertos pelos cartões BU), cobra só o frete.
       chargeAmount = Math.round((remainderAmount + realShipping) * 100) / 100;

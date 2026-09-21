@@ -75,13 +75,34 @@ serve(async (req) => {
     if (bolsaPaymentId) {
       const { data: buPayment, error: buError } = await supabase
         .from("bolsa_uniforme_payments")
-        .select("shipping_amount, remainder_amount, order_id")
+        .select("shipping_amount, remainder_amount, order_id, user_id, created_at")
         .eq("id", bolsaPaymentId)
         .single();
       if (buError || !buPayment) throw new Error("Pagamento Bolsa Uniforme não encontrado");
 
-      const remainderAmount = Number(buPayment.remainder_amount) || 0;
-      const shippingAmount = Number(buPayment.shipping_amount) || 0;
+      let remainderAmount = Number(buPayment.remainder_amount) || 0;
+      let shippingAmount = Number(buPayment.shipping_amount) || 0;
+
+      // Fallback: o cliente não consegue gravar remainder/shipping (RLS), então
+      // recalculamos aqui a diferença entre os produtos e o que os cartões BU cobriram.
+      const itemsSubtotal = (items || []).reduce((s, i) => s + i.price * i.quantity, 0);
+      if (remainderAmount <= 0 && itemsSubtotal > 0) {
+        const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+        const { data: buRows } = await supabase
+          .from("bolsa_uniforme_payments")
+          .select("total_amount")
+          .eq("user_id", buPayment.user_id)
+          .eq("status", "pending")
+          .gte("created_at", twoHoursAgo);
+        const covered = (buRows || []).reduce((s: number, r: any) => s + (Number(r.total_amount) || 0), 0);
+        remainderAmount = Math.max(0, Math.round((itemsSubtotal - covered) * 100) / 100);
+      }
+      if (shippingAmount <= 0) shippingAmount = Number(shipping) || 0;
+
+      await supabase
+        .from("bolsa_uniforme_payments")
+        .update({ remainder_amount: remainderAmount, shipping_amount: shippingAmount })
+        .eq("id", bolsaPaymentId);
 
       if (remainderAmount > 0) {
         flow = "bu_remainder";
@@ -89,6 +110,12 @@ serve(async (req) => {
       } else {
         flow = "frete_only";
         totalAmount = Math.round(shippingAmount * 100);
+      }
+      if (totalAmount < 50) {
+        return new Response(
+          JSON.stringify({ error: "Não há valor a pagar nesta etapa (mínimo de R$ 0,50)." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+        );
       }
       orderId = buPayment.order_id ?? null;
     } else {
