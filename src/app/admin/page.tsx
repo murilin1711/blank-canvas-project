@@ -726,6 +726,7 @@ export default function AdminPage() {
     { value: 'delivered', label: 'Pedido Entregue', color: 'bg-teal-100 text-teal-700' },
     { value: 'exchange_requested', label: 'Troca Solicitada', color: 'bg-orange-100 text-orange-700' },
     { value: 'refunded', label: 'Reembolsado', color: 'bg-red-100 text-red-700' },
+    { value: 'rejected', label: 'Rejeitado', color: 'bg-red-100 text-red-700' },
   ];
 
   const EXCHANGE_STATUSES = [
@@ -4223,11 +4224,11 @@ export default function AdminPage() {
                           placeholder="ex: BR123456789BR"
                           value={trackingInputs[linkedOrder.id] ?? ""}
                           onChange={(e) => setTrackingInputs(prev => ({ ...prev, [linkedOrder.id]: e.target.value }))}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleSaveTracking(linkedOrder); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(selectedPayment); }}
                           className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button
-                          onClick={() => handleSaveTracking(linkedOrder)}
+                          onClick={() => handleSaveBolsaTracking(selectedPayment)}
                           disabled={savingTrackingId === linkedOrder.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                         >
