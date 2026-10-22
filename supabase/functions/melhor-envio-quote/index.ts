@@ -328,7 +328,11 @@ function bestDims(blocks: Block[]): Dims {
     }
   }
 
+  // Limites das transportadoras: lado máx. 100 cm, soma das dimensões máx. 200 cm
+  const fits = (d: Dims) => Math.max(d.w, d.l, d.h) <= 100 && d.w + d.l + d.h <= 200;
+
   let best: Dims | null = null;
+  let bestFallback: Dims | null = null;
   for (const variant of variants) {
     const strategies: Dims[] = [
       sideBySide(variant),
@@ -337,11 +341,15 @@ function bestDims(blocks: Block[]): Dims {
       hybridPack(variant),
     ];
     for (const d of strategies) {
-      if (!best || volume(d) < volume(best)) best = d;
+      if (fits(d)) {
+        if (!best || volume(d) < volume(best)) best = d;
+      } else if (!bestFallback || Math.max(d.w, d.l, d.h) < Math.max(bestFallback.w, bestFallback.l, bestFallback.h)) {
+        bestFallback = d;
+      }
     }
   }
 
-  return best || { w: 30, l: 40, h: 15 };
+  return best || bestFallback || { w: 30, l: 40, h: 15 };
 }
 
 // Calcula as dimensões reais do pacote final (enviadas para o Melhor Envio)
