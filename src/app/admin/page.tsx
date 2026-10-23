@@ -866,7 +866,7 @@ export default function AdminPage() {
       if (newOrderId && !payment.order_id) {
         setBolsaPayments(prev => prev.map(p => p.id === payment.id ? { ...p, order_id: newOrderId } : p));
       }
-      setTrackingInputs(prev => { const n = { ...prev }; delete n[inputKey]; return n; });
+      setTrackingInputs(prev => { const n = { ...prev }; delete n[inputKey]; if (altKey) delete n[altKey]; delete n[`pending-${payment.id}`]; return n; });
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar código");
     } finally {
