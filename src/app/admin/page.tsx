@@ -4259,11 +4259,11 @@ export default function AdminPage() {
                       placeholder="ex: BR123456789BR"
                       value={trackingInputs[`pending-${selectedPayment.id}`] ?? ""}
                       onChange={(e) => setTrackingInputs(prev => ({ ...prev, [`pending-${selectedPayment.id}`]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(selectedPayment, linkedOrder?.id); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(selectedPayment); }}
                       className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     <button
-                      onClick={() => handleSaveBolsaTracking(selectedPayment, linkedOrder?.id)}
+                      onClick={() => handleSaveBolsaTracking(selectedPayment)}
                       disabled={savingTrackingId === `pending-${selectedPayment.id}`}
                       className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                     >
