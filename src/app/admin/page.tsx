@@ -838,10 +838,18 @@ export default function AdminPage() {
     setWppSummaryText(message);
   };
 
-  const handleSaveBolsaTracking = async (payment: BolsaUniformePayment) => {
+  const handleSaveBolsaTracking = async (payment: BolsaUniformePayment, altKey?: string) => {
     const inputKey = payment.order_id || `pending-${payment.id}`;
-    const trackingCode = trackingInputs[inputKey]?.trim();
+    const trackingCode = (
+      trackingInputs[inputKey] ||
+      (altKey ? trackingInputs[altKey] : "") ||
+      trackingInputs[`pending-${payment.id}`] ||
+      ""
+    ).trim();
     if (!trackingCode) { toast.error("Digite o código de rastreio"); return; }
+    if (trackingInputs[inputKey] !== trackingCode) {
+      setTrackingInputs(prev => ({ ...prev, [inputKey]: trackingCode }));
+    }
     setSavingTrackingId(inputKey);
     try {
       const token = getAdminToken();
@@ -858,7 +866,7 @@ export default function AdminPage() {
       if (newOrderId && !payment.order_id) {
         setBolsaPayments(prev => prev.map(p => p.id === payment.id ? { ...p, order_id: newOrderId } : p));
       }
-      setTrackingInputs(prev => { const n = { ...prev }; delete n[inputKey]; return n; });
+      setTrackingInputs(prev => { const n = { ...prev }; delete n[inputKey]; if (altKey) delete n[altKey]; delete n[`pending-${payment.id}`]; return n; });
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar código");
     } finally {
@@ -4224,11 +4232,11 @@ export default function AdminPage() {
                           placeholder="ex: BR123456789BR"
                           value={trackingInputs[linkedOrder.id] ?? ""}
                           onChange={(e) => setTrackingInputs(prev => ({ ...prev, [linkedOrder.id]: e.target.value }))}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(selectedPayment); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSaveBolsaTracking(selectedPayment, linkedOrder?.id); }}
                           className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                         <button
-                          onClick={() => handleSaveBolsaTracking(selectedPayment)}
+                          onClick={() => handleSaveBolsaTracking(selectedPayment, linkedOrder?.id)}
                           disabled={savingTrackingId === linkedOrder.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
                         >
