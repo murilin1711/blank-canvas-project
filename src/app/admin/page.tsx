@@ -838,10 +838,18 @@ export default function AdminPage() {
     setWppSummaryText(message);
   };
 
-  const handleSaveBolsaTracking = async (payment: BolsaUniformePayment) => {
+  const handleSaveBolsaTracking = async (payment: BolsaUniformePayment, altKey?: string) => {
     const inputKey = payment.order_id || `pending-${payment.id}`;
-    const trackingCode = trackingInputs[inputKey]?.trim();
+    const trackingCode = (
+      trackingInputs[inputKey] ||
+      (altKey ? trackingInputs[altKey] : "") ||
+      trackingInputs[`pending-${payment.id}`] ||
+      ""
+    ).trim();
     if (!trackingCode) { toast.error("Digite o código de rastreio"); return; }
+    if (trackingInputs[inputKey] !== trackingCode) {
+      setTrackingInputs(prev => ({ ...prev, [inputKey]: trackingCode }));
+    }
     setSavingTrackingId(inputKey);
     try {
       const token = getAdminToken();
