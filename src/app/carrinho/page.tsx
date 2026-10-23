@@ -66,7 +66,7 @@ export default function CarrinhoPage() {
       const viaCepData = await viaCepPromise;
 
       if (viaCepData.erro) {
-        toast.error("CEP não encontrado");
+        toast.error("CEP não encontrado. Confira se digitou certo e tente de novo.", { duration: 6000 });
         return;
       }
 

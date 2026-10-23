@@ -503,7 +503,7 @@ if (!data.selectedId?.startsWith("me-") && data.selectedId !== "free") {
       const data = await response.json();
       
       if (data.erro) {
-        toast.error("CEP não encontrado");
+        toast.error("CEP não encontrado. Confira se digitou certo e tente de novo.", { duration: 6000 });
         return;
       }
       
